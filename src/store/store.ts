@@ -1,8 +1,10 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { quickCartApi } from '../api/quickCartApi';
+import authReducer from './slices/authSlice';
 
 export const store = configureStore({
   reducer: {
+    auth: authReducer,
     [quickCartApi.reducerPath]: quickCartApi.reducer,
   },
 

@@ -1,6 +1,11 @@
 import React, { useRef, useState } from 'react';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useDispatch } from 'react-redux';
+import type { AppDispatch } from '../../../store/store';
+import { setCredentials } from '../../../store/slices/authSlice';
+
+import { saveToken } from '../../../services/secureStorage';
 
 import { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import { OTPScreenStyles } from './OTPScreen.styles';
@@ -12,6 +17,7 @@ type TextInputRef = React.ElementRef<typeof TextInput>;
 
 const OTPScreen = ({ route }: Props) => {
   const { phone } = route.params;
+  const dispatch = useDispatch<AppDispatch>();
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [verifyOtp, { isLoading }] = useVerifyOtpMutation();
@@ -50,7 +56,23 @@ const OTPScreen = ({ route }: Props) => {
 
       console.log('OTP verified successfully:', response);
 
-      Alert.alert('OTP Verified', 'OTP verification was successful.');
+      if (response.success && response.token) {
+        await saveToken(response.token);
+
+        dispatch(
+          setCredentials({
+            user: response.data,
+            token: response.token,
+          }),
+        );
+
+        Alert.alert(
+          'Login Successful',
+          'You have been successfully logged in.',
+        );
+      } else {
+        Alert.alert('Login Failed', 'Authentication token was not received.');
+      }
     } catch (error) {
       console.log('Verify OTP error:', error);
 
