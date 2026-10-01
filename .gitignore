@@ -73,3 +73,19 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Ruby / Bundler
+.bundle/
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# VS Code personal settings
+.vscode/
+
+# macOS
+.DS_Store
