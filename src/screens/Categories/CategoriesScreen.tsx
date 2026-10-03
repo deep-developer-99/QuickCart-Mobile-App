@@ -16,7 +16,7 @@ import {
   useGetProductsQuery,
 } from '../../api/quickCartApi';
 import { addToCart, type CartProduct } from '../../store/slices/cartSlice';
-import toggleWishlist from '../../store/slices/wishlistSlice';
+import { toggleWishlist } from '../../store/slices/wishlistSlice';
 import type { AppDispatch, RootState } from '../../store/store';
 import { colors, radius, spacing, typography } from '../../theme';
 
@@ -57,9 +57,9 @@ const productEmoji = (name: string) => {
 };
 
 const getProductCategory = (product: Product) => {
-  if (!product.category) return { id: '', name: '' };
+  if (!product.category) return { _id: '', name: '' };
   if (typeof product.category === 'string') {
-    return { id: product.category, name: product.category };
+    return { _id: product.category, name: product.category };
   }
   return product.category;
 };
@@ -102,7 +102,7 @@ const CategoriesScreen = () => {
         const category = getProductCategory(product);
         const selectedName = selectedCategory.name.toLowerCase();
         return (
-          category.id === selectedCategory._id ||
+          category._id === selectedCategory._id ||
           category.name.toLowerCase() === selectedName
         );
       });

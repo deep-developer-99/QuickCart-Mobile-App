@@ -20,7 +20,7 @@ export type MainTabParamList = {
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-const tabSymbols: Record<keyof MainTabParamList, string> = {
+const tabSymbols: Record<string, string> = {
   Home: '⌂',
   Categories: '▦',
   Cart: '▱',

@@ -17,7 +17,7 @@ import {
   useGetProductsQuery,
 } from '../../api/quickCartApi';
 import { addToCart, type CartProduct } from '../../store/slices/cartSlice';
-import toggleWishlist from '../../store/slices/wishlistSlice';
+import { toggleWishlist } from '../../store/slices/wishlistSlice';
 import type { AppDispatch, RootState } from '../../store/store';
 import { colors, radius, shadows, spacing, typography } from '../../theme';
 
