@@ -16,6 +16,28 @@ interface VerifyOtpResponse {
   token: string;
 }
 
+export interface CategoryResponse {
+  success: boolean;
+  data: Array<{
+    _id: string;
+    name: string;
+    image?: string;
+  }>;
+}
+
+export interface ProductResponse {
+  success: boolean;
+  data: Array<{
+    _id: string;
+    name: string;
+    image?: string;
+    price: number;
+    discountPrice?: number;
+    stock: number;
+    category?: string | { _id: string; name: string };
+  }>;
+}
+
 interface MeResponse {
   success: boolean;
   message: string;
@@ -47,6 +69,22 @@ export const quickCartApi = createApi({
   }),
 
   endpoints: builder => ({
+    // Get categories
+    getCategories: builder.query<CategoryResponse, void>({
+      query: () => ({
+        url: '/categories',
+        method: 'GET',
+      }),
+    }),
+
+    // Get products
+    getProducts: builder.query<ProductResponse, void>({
+      query: () => ({
+        url: '/products',
+        method: 'GET',
+      }),
+    }),
+
     // Get current logged-in user
     getMe: builder.query<MeResponse, void>({
       query: () => ({
@@ -91,4 +129,6 @@ export const {
   useVerifyOtpMutation,
   useGetMeQuery,
   useLazyGetMeQuery,
+  useGetCategoriesQuery,
+  useGetProductsQuery,
 } = quickCartApi;

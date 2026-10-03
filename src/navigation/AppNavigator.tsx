@@ -1,35 +1,20 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-const Stack = createNativeStackNavigator();
+import HomeScreen from '../screens/home/HomeScreen';
 
-const HomePlaceholder = () => {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>QuickCart Home</Text>
-    </View>
-  );
+export type AppStackParamList = {
+  Home: undefined;
 };
+
+const Stack = createNativeStackNavigator<AppStackParamList>();
 
 const AppNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Home" component={HomePlaceholder} />
+      <Stack.Screen name="Home" component={HomeScreen} />
     </Stack.Navigator>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  text: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-});
 
 export default AppNavigator;
