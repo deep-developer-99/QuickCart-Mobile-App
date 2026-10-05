@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "911620422080",
+    "project_id": "quick-cart-850c3",
+    "storage_bucket": "quick-cart-850c3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:911620422080:android:9db249b9e3751b73383025",
+        "android_client_info": {
+          "package_name": "com.quickcartmobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "911620422080-dt0af3rvjtut1919sv8om5cv4vf4bh4c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUNhgq02Js4wvE5C9NpVLvzGxOAmbdBZ0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "911620422080-dt0af3rvjtut1919sv8om5cv4vf4bh4c.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

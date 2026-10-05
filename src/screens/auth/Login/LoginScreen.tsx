@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { signInWithGoogle } from '../../../services/googleSignIn';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -39,8 +40,19 @@ const LoginScreen = ({ navigation }: Props) => {
     }
   };
 
-  const handleGoogleLogin = () => {
-    console.log('Google Login pressed');
+  const handleGoogleLogin = async () => {
+    try {
+      const firebaseIdToken = await signInWithGoogle();
+
+      if (!firebaseIdToken) {
+        console.log('Google Sign-In cancelled');
+        return;
+      }
+
+      console.log('Firebase ID Token received');
+    } catch (error) {
+      console.error('Google Login error:', error);
+    }
   };
 
   return (
