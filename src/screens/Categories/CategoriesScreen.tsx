@@ -5,6 +5,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   View,
@@ -314,18 +315,12 @@ const CategoriesScreen = () => {
                 </View>
 
                 <View style={styles.colorRow}>
-                  <View
-                    style={[styles.colorDot, { backgroundColor: '#252525' }]}
-                  />
-                  <View
-                    style={[styles.colorDot, { backgroundColor: '#1F88DA' }]}
-                  />
-                  <View
-                    style={[
-                      styles.colorDot,
-                      { backgroundColor: colors.grey100 },
-                    ]}
-                  />
+                  <View style={styles.colorDotBlack} />
+
+                  <View style={styles.colorDotBlue} />
+
+                  <View style={styles.colorDotGrey} />
+
                   <Text style={styles.colorText}>All 5 Colors</Text>
                 </View>
 
@@ -439,7 +434,7 @@ const FilterModal = ({
   );
 };
 
-const styles = {
+const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white },
   header: {
     height: 60,
@@ -541,6 +536,35 @@ const styles = {
     borderWidth: 2,
     borderColor: colors.white,
     marginRight: -5,
+  },
+  colorDotBlack: {
+    width: 22,
+    height: 22,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: colors.white,
+    marginRight: -5,
+    backgroundColor: '#252525',
+  },
+
+  colorDotBlue: {
+    width: 22,
+    height: 22,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: colors.white,
+    marginRight: -5,
+    backgroundColor: '#1F88DA',
+  },
+
+  colorDotGrey: {
+    width: 22,
+    height: 22,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: colors.white,
+    marginRight: -5,
+    backgroundColor: colors.grey100,
   },
   colorText: {
     ...typography.captionRegular,
@@ -662,6 +686,6 @@ const styles = {
     justifyContent: 'center' as const,
   },
   applyText: { ...typography.body2Medium, color: colors.white },
-};
+});
 
 export default CategoriesScreen;
