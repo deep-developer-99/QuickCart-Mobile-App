@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -8,9 +8,12 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 
 import {
   useGetCategoriesQuery,
@@ -68,13 +71,17 @@ const HomeScreen = () => {
     isLoading: categoriesLoading,
     isFetching: categoriesFetching,
     refetch: refetchCategories,
-  } = useGetCategoriesQuery();
+  } = useGetCategoriesQuery(undefined, {
+    refetchOnMountOrArgChange: 30,
+  });
   const {
     data: productResponse,
     isLoading: productsLoading,
     isFetching: productsFetching,
     refetch: refetchProducts,
-  } = useGetProductsQuery();
+  } = useGetProductsQuery(undefined, {
+    refetchOnMountOrArgChange: 30,
+  });
 
   const categories = useMemo<Category[]>(
     () => (Array.isArray(categoryResponse?.data) ? categoryResponse.data : []),
@@ -90,12 +97,24 @@ const HomeScreen = () => {
 
   const isRefreshing = categoriesFetching || productsFetching;
 
-  const refreshHome = async () => {
+  const refreshHome = useCallback(async () => {
     await Promise.all([refetchCategories(), refetchProducts()]);
-  };
+  }, [refetchCategories, refetchProducts]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const interval = setInterval(() => {
+        refreshHome().catch(error => {
+          console.error('Failed to refresh home:', error);
+        });
+      }, 30_000);
+
+      return () => clearInterval(interval);
+    }, [refreshHome]),
+  );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) }}
@@ -284,7 +303,7 @@ const HomeScreen = () => {
           )}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

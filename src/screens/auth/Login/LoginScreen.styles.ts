@@ -29,6 +29,9 @@ export const LoginScreenStyles = StyleSheet.create({
   inputSection: {
     marginTop: spacing.huge,
   },
+  safeArea: {
+    flex: 1,
+  },
 
   label: {
     ...typography.body2Medium,

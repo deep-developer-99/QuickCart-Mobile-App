@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { AppDispatch, RootState } from '../../store/store';
 import { logout } from '../../store/slices/authSlice';
@@ -35,7 +36,7 @@ const ProfileScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Profile</Text>
       </View>
@@ -88,7 +89,7 @@ const ProfileScreen = () => {
           <Text style={styles.logoutText}>Logout</Text>
         </Pressable>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

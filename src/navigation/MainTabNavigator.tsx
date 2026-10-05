@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSelector } from 'react-redux';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import HomeScreen from '../screens/Home/HomeScreen';
 import CategoriesScreen from '../screens/Categories/CategoriesScreen';
@@ -50,12 +51,6 @@ const TabBarIcon = ({ color, routeName }: TabBarIconProps) => {
   );
 };
 
-/*
- * Keep these functions outside MainTabNavigator.
- * This prevents React from receiving a new component/function
- * on every navigator render.
- */
-
 const renderHomeIcon = ({ color }: { color: string }) => (
   <TabBarIcon color={color} routeName="Home" />
 );
@@ -77,6 +72,8 @@ const renderProfileIcon = ({ color }: { color: string }) => (
 );
 
 const MainTabNavigator = () => {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -87,7 +84,13 @@ const MainTabNavigator = () => {
 
         tabBarLabelStyle: styles.tabBarLabel,
 
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: 68 + insets.bottom,
+            paddingBottom: 7 + insets.bottom,
+          },
+        ],
       }}
     >
       <Tab.Screen

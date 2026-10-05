@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../../store/store';
@@ -84,7 +85,7 @@ const OTPScreen = ({ route }: Props) => {
   };
 
   return (
-    <View style={OTPScreenStyles.container}>
+    <SafeAreaView style={OTPScreenStyles.container}>
       <View style={OTPScreenStyles.content}>
         <Text style={OTPScreenStyles.title}>Verify your number</Text>
 
@@ -130,7 +131,7 @@ const OTPScreen = ({ route }: Props) => {
           </Text>
         </Pressable>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 

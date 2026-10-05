@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { useFocusEffect } from '@react-navigation/native';
 
 import {
   useGetCategoriesQuery,
@@ -76,10 +78,38 @@ const CategoriesScreen = () => {
   const [sort, setSort] = useState<SortOption>(null);
   const [draftSort, setDraftSort] = useState<SortOption>(null);
 
-  const { data: categoryResponse, isLoading: categoriesLoading } =
-    useGetCategoriesQuery();
-  const { data: productResponse, isLoading: productsLoading } =
-    useGetProductsQuery();
+  const {
+    data: categoryResponse,
+    isLoading: categoriesLoading,
+    isFetching: categoriesFetching,
+    refetch: refetchCategories,
+  } = useGetCategoriesQuery(undefined, {
+    refetchOnMountOrArgChange: 30,
+  });
+  const {
+    data: productResponse,
+    isLoading: productsLoading,
+    isFetching: productsFetching,
+    refetch: refetchProducts,
+  } = useGetProductsQuery(undefined, {
+    refetchOnMountOrArgChange: 30,
+  });
+
+  const isRefreshing = categoriesFetching || productsFetching;
+
+  const refreshCategories = useCallback(async () => {
+    await Promise.all([refetchCategories(), refetchProducts()]);
+  }, [refetchCategories, refetchProducts]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const interval = setInterval(() => {
+        refreshCategories().catch(() => {});
+      }, 30_000);
+
+      return () => clearInterval(interval);
+    }, [refreshCategories]),
+  );
 
   const wishlistIds = useSelector((state: RootState) =>
     state.wishlist.items.map(item => item._id),
@@ -210,6 +240,12 @@ const CategoriesScreen = () => {
           </View>
         ) : (
           <ScrollView
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={refreshCategories}
+              />
+            }
             contentContainerStyle={styles.categoryGrid}
             showsVerticalScrollIndicator={false}
           >
@@ -276,6 +312,12 @@ const CategoriesScreen = () => {
         </View>
       ) : (
         <ScrollView
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={refreshCategories}
+            />
+          }
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.productGrid}
         >

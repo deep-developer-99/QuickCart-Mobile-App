@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { AppDispatch, RootState } from '../../store/store';
 import {
@@ -29,7 +30,7 @@ const CartScreen = () => {
   const total = subtotal + delivery;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>My Cart</Text>
         <Text style={styles.count}>{items.length} items</Text>
@@ -120,7 +121,7 @@ const CartScreen = () => {
           </View>
         </>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 

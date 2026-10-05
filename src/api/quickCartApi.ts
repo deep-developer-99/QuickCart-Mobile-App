@@ -53,6 +53,7 @@ interface MeResponse {
 
 export const quickCartApi = createApi({
   reducerPath: 'quickCartApi',
+  tagTypes: ['Categories', 'Products', 'Me'],
 
   baseQuery: fetchBaseQuery({
     baseUrl: 'https://quickcart-bxod.onrender.com/api',
@@ -75,6 +76,7 @@ export const quickCartApi = createApi({
         url: '/categories',
         method: 'GET',
       }),
+      providesTags: ['Categories'],
     }),
 
     // Get products
@@ -83,6 +85,7 @@ export const quickCartApi = createApi({
         url: '/products',
         method: 'GET',
       }),
+      providesTags: ['Products'],
     }),
 
     // Get current logged-in user
@@ -91,6 +94,7 @@ export const quickCartApi = createApi({
         url: '/auth/me',
         method: 'GET',
       }),
+      providesTags: ['Me'],
     }),
 
     // Send OTP to mobile number

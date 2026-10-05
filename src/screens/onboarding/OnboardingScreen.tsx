@@ -10,6 +10,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AuthStackParamList } from '../../navigation/AuthNavigator';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { OnboardingScreenStyles } from './OnboardingScreen.styles';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Onboarding'>;
@@ -85,7 +86,7 @@ const OnboardingScreen = ({ navigation }: Props) => {
   };
 
   return (
-    <View style={OnboardingScreenStyles.container}>
+    <SafeAreaView style={OnboardingScreenStyles.container}>
       <FlatList
         ref={flatListRef}
         data={onboardingData}
@@ -124,7 +125,7 @@ const OnboardingScreen = ({ navigation }: Props) => {
           </Text>
         </Pressable>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
