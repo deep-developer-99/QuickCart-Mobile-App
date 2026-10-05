@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { signInWithGoogle } from '../../../services/googleSignIn';
+import { useDispatch } from 'react-redux';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -11,9 +11,16 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useSendOtpMutation } from '../../../api/quickCartApi';
+import {
+  useGoogleLoginMutation,
+  useSendOtpMutation,
+} from '../../../api/quickCartApi';
 import { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import { LoginScreenStyles } from './LoginScreen.styles';
+import { signInWithGoogle } from '../../../services/googleSignIn';
+import { saveToken } from '../../../services/secureStorage';
+import { setCredentials } from '../../../store/slices/authSlice';
+import type { AppDispatch } from '../../../store/store';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
@@ -21,6 +28,9 @@ const LoginScreen = ({ navigation }: Props) => {
   const [mobileNumber, setMobileNumber] = useState('');
 
   const [sendOtp, { isLoading }] = useSendOtpMutation();
+  const [googleLogin, { isLoading: isGoogleLoading }] =
+    useGoogleLoginMutation();
+  const dispatch = useDispatch<AppDispatch>();
 
   const handleContinue = async () => {
     if (mobileNumber.length !== 10 || isLoading) {
@@ -41,6 +51,10 @@ const LoginScreen = ({ navigation }: Props) => {
   };
 
   const handleGoogleLogin = async () => {
+    if (isGoogleLoading) {
+      return;
+    }
+
     try {
       const firebaseIdToken = await signInWithGoogle();
 
@@ -49,7 +63,20 @@ const LoginScreen = ({ navigation }: Props) => {
         return;
       }
 
-      console.log('Firebase ID Token received');
+      const response = await googleLogin({
+        idToken: firebaseIdToken,
+      }).unwrap();
+
+      await saveToken(response.token);
+
+      dispatch(
+        setCredentials({
+          user: response.data,
+          token: response.token,
+        }),
+      );
+
+      console.log('Google Login successful');
     } catch (error) {
       console.error('Google Login error:', error);
     }
@@ -113,11 +140,12 @@ const LoginScreen = ({ navigation }: Props) => {
           <Pressable
             style={LoginScreenStyles.googleButton}
             onPress={handleGoogleLogin}
+            disabled={isGoogleLoading}
           >
             <Text style={LoginScreenStyles.googleIcon}>G</Text>
 
             <Text style={LoginScreenStyles.googleButtonText}>
-              Continue with Google
+              {isGoogleLoading ? 'Signing in...' : 'Continue with Google'}
             </Text>
           </Pressable>
         </View>

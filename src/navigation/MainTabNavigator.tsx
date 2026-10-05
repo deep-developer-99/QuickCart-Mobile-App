@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSelector } from 'react-redux';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +9,12 @@ import CategoriesScreen from '../screens/Categories/CategoriesScreen';
 import CartScreen from '../screens/Cart/CartScreen';
 import WishlistScreen from '../screens/Wishlist/WishlistScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
+
+import HomeIcon from '../assets/icons/home-2.svg';
+import CategoriesIcon from '../assets/icons/category-2.svg';
+import CartIcon from '../assets/icons/shopping-cart.svg';
+import WishlistIcon from '../assets/icons/heart.svg';
+import ProfileIcon from '../assets/icons/profile.svg';
 
 import type { RootState } from '../store/store';
 
@@ -22,17 +28,17 @@ export type MainTabParamList = {
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-const tabSymbols: Record<keyof MainTabParamList, string> = {
-  Home: '⌂',
-  Categories: '▦',
-  Cart: '▱',
-  Wishlist: '♡',
-  Profile: '♙',
-};
-
 type TabBarIconProps = {
   color: string;
   routeName: keyof MainTabParamList;
+};
+
+const tabIcons = {
+  Home: HomeIcon,
+  Categories: CategoriesIcon,
+  Cart: CartIcon,
+  Wishlist: WishlistIcon,
+  Profile: ProfileIcon,
 };
 
 const TabBarIcon = ({ color, routeName }: TabBarIconProps) => {
@@ -40,9 +46,11 @@ const TabBarIcon = ({ color, routeName }: TabBarIconProps) => {
     state.cart.items.reduce((total, item) => total + item.quantity, 0),
   );
 
+  const Icon = tabIcons[routeName];
+
   return (
     <View style={styles.iconContainer}>
-      <Text style={[styles.iconText, { color }]}>{tabSymbols[routeName]}</Text>
+      <Icon width={24} height={24} color={color} fill={color} />
 
       {routeName === 'Cart' && cartCount > 0 ? (
         <View style={styles.cartBadge} />
@@ -143,11 +151,6 @@ const styles = StyleSheet.create({
     height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-
-  iconText: {
-    fontSize: 25,
-    lineHeight: 27,
   },
 
   cartBadge: {

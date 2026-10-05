@@ -18,6 +18,10 @@ export const signInWithGoogle = async (): Promise<string | null> => {
     showPlayServicesUpdateDialog: true,
   });
 
+  // Clear the previously selected Google Sign-In session
+  // so the account picker can be shown.
+  await GoogleSignin.signOut();
+
   const response = await GoogleSignin.signIn();
 
   if (!isSuccessResponse(response)) {

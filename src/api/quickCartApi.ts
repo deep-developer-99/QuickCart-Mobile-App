@@ -38,6 +38,20 @@ export interface ProductResponse {
   }>;
 }
 
+interface GoogleLoginResponse {
+  success: boolean;
+  message: string;
+  data: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    profileImage?: string;
+    role: string;
+  };
+  token: string;
+}
+
 interface MeResponse {
   success: boolean;
   message: string;
@@ -88,6 +102,22 @@ export const quickCartApi = createApi({
       providesTags: ['Products'],
     }),
 
+    // Google Login
+    googleLogin: builder.mutation<
+      GoogleLoginResponse,
+      {
+        idToken: string;
+      }
+    >({
+      query: ({ idToken }) => ({
+        url: '/auth/google',
+        method: 'POST',
+        body: {
+          idToken,
+        },
+      }),
+    }),
+
     // Get current logged-in user
     getMe: builder.query<MeResponse, void>({
       query: () => ({
@@ -131,6 +161,7 @@ export const quickCartApi = createApi({
 export const {
   useSendOtpMutation,
   useVerifyOtpMutation,
+  useGoogleLoginMutation,
   useGetMeQuery,
   useLazyGetMeQuery,
   useGetCategoriesQuery,
