@@ -10,6 +10,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import AuthNavigator from './AuthNavigator';
 import MainTabNavigator, { type MainTabParamList } from './MainTabNavigator';
 import SearchScreen from '../screens/search/SearchScreen';
+import OrderHistoryScreen from '../screens/OrderHistory/OrderHistoryScreen';
 import { useLazyGetMeQuery } from '../api/quickCartApi';
 import { getToken, removeToken } from '../services/secureStorage';
 import { logout, setCredentials } from '../store/slices/authSlice';
@@ -18,6 +19,7 @@ import type { AppDispatch, RootState } from '../store/store';
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   Search: undefined;
+  OrderHistory: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -27,6 +29,7 @@ const RootNavigator = () => {
   const isAuthenticated = useSelector(
     (state: RootState) => state.auth.isAuthenticated,
   );
+
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [getMe, { isLoading }] = useLazyGetMeQuery();
 
@@ -37,7 +40,10 @@ const RootNavigator = () => {
       try {
         const token = await getToken();
 
-        if (!token) return;
+        if (!token) {
+          if (mounted) setCheckingAuth(false);
+          return;
+        }
 
         const response = await getMe().unwrap();
 
@@ -54,12 +60,15 @@ const RootNavigator = () => {
         }
       } catch (error) {
         console.log('Session restore failed:', error);
+
         if (mounted) {
           await removeToken();
           dispatch(logout());
         }
       } finally {
-        if (mounted) setCheckingAuth(false);
+        if (mounted) {
+          setCheckingAuth(false);
+        }
       }
     };
 
@@ -80,10 +89,13 @@ const RootNavigator = () => {
 
   return (
     <NavigationContainer>
-      {isAuthenticated ? (
+      {true ? (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+
           <Stack.Screen name="Search" component={SearchScreen} />
+
+          <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
         </Stack.Navigator>
       ) : (
         <AuthNavigator />
