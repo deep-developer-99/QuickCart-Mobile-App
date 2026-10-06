@@ -68,7 +68,7 @@ const RootNavigator = () => {
 
   return (
     <NavigationContainer>
-      {isAuthenticated ? <MainTabNavigator /> : <AuthNavigator />}
+      {true ? <MainTabNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );
 };

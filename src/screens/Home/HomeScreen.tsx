@@ -133,7 +133,7 @@ const HomeScreen = () => {
 
             <View style={styles.headerActions}>
               <Pressable
-                onPress={() => navigation.navigate('Categories')}
+                onPress={() => navigation.navigate('Search')}
                 hitSlop={10}
               >
                 <View style={styles.searchIcon}>
