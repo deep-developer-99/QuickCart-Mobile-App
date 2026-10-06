@@ -1,14 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  type NavigatorScreenParams,
+} from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useDispatch, useSelector } from 'react-redux';
 
 import AuthNavigator from './AuthNavigator';
-import MainTabNavigator from './MainTabNavigator';
+import MainTabNavigator, { type MainTabParamList } from './MainTabNavigator';
+import SearchScreen from '../screens/search/SearchScreen';
 import { useLazyGetMeQuery } from '../api/quickCartApi';
 import { getToken, removeToken } from '../services/secureStorage';
 import { logout, setCredentials } from '../store/slices/authSlice';
 import type { AppDispatch, RootState } from '../store/store';
+
+export type RootStackParamList = {
+  MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
+  Search: undefined;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const RootNavigator = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -68,7 +80,14 @@ const RootNavigator = () => {
 
   return (
     <NavigationContainer>
-      {true ? <MainTabNavigator /> : <AuthNavigator />}
+      {isAuthenticated ? (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+          <Stack.Screen name="Search" component={SearchScreen} />
+        </Stack.Navigator>
+      ) : (
+        <AuthNavigator />
+      )}
     </NavigationContainer>
   );
 };

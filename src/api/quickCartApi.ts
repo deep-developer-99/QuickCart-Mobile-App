@@ -93,12 +93,12 @@ export const quickCartApi = createApi({
       providesTags: ['Categories'],
     }),
 
-    // Get products
+    // Get products / search products
     getProducts: builder.query<ProductResponse, string | undefined>({
       query: search => ({
         url: '/products',
         method: 'GET',
-        params: search?.trim() ? { search: search.trim() } : undefined,
+        params: search ? { search } : undefined,
       }),
       providesTags: ['Products'],
     }),

@@ -9,7 +9,6 @@ import CategoriesScreen from '../screens/Categories/CategoriesScreen';
 import CartScreen from '../screens/Cart/CartScreen';
 import WishlistScreen from '../screens/Wishlist/WishlistScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
-import SearchScreen from '../screens/search/SearchScreen';
 
 import HomeIcon from '../assets/icons/home-2.svg';
 import CategoriesIcon from '../assets/icons/category-2.svg';
@@ -25,27 +24,16 @@ export type MainTabParamList = {
   Cart: undefined;
   Wishlist: undefined;
   Profile: undefined;
-  Search: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-type VisibleTabRoute = 'Home' | 'Categories' | 'Cart' | 'Wishlist' | 'Profile';
-
 type TabBarIconProps = {
   color: string;
-  routeName: VisibleTabRoute;
+  routeName: keyof MainTabParamList;
 };
 
-const tabIcons: Record<
-  VisibleTabRoute,
-  React.ComponentType<{
-    width?: number;
-    height?: number;
-    color?: string;
-    fill?: string;
-  }>
-> = {
+const tabIcons = {
   Home: HomeIcon,
   Categories: CategoriesIcon,
   Cart: CartIcon,
@@ -98,9 +86,12 @@ const MainTabNavigator = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+
         tabBarActiveTintColor: '#21D4B4',
         tabBarInactiveTintColor: '#6F7384',
+
         tabBarLabelStyle: styles.tabBarLabel,
+
         tabBarStyle: [
           styles.tabBar,
           {
@@ -140,15 +131,6 @@ const MainTabNavigator = () => {
         component={WishlistScreen}
         options={{
           tabBarIcon: renderWishlistIcon,
-        }}
-      />
-
-      <Tab.Screen
-        name="Search"
-        component={SearchScreen}
-        options={{
-          tabBarButton: () => null,
-          tabBarStyle: { display: 'none' },
         }}
       />
 
