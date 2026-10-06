@@ -89,7 +89,7 @@ const RootNavigator = () => {
 
   return (
     <NavigationContainer>
-      {true ? (
+      {isAuthenticated ? (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="MainTabs" component={MainTabNavigator} />
 
