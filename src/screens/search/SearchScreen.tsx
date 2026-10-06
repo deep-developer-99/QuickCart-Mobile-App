@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
   Image,
@@ -25,14 +26,8 @@ import { colors, radius, spacing, typography } from '../../theme';
 
 type Product = ProductResponse['data'][number];
 
-const DEFAULT_RECENT_SEARCHES = [
-  'Smart watch',
-  'Laptop',
-  'Women bag',
-  'Headphones',
-  'Shoes',
-  'Eye glasses',
-];
+const RECENT_SEARCHES_KEY = '@quickcart_recent_searches';
+const MAX_RECENT_SEARCHES = 7;
 
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -60,11 +55,38 @@ const SearchScreen = () => {
   const dispatch = useDispatch<AppDispatch>();
   const [searchText, setSearchText] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [recentSearches, setRecentSearches] = useState(DEFAULT_RECENT_SEARCHES);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [recentSearchesLoaded, setRecentSearchesLoaded] = useState(false);
 
   const wishlistIds = useSelector((state: RootState) =>
     state.wishlist.items.map(item => item._id),
   );
+
+  useEffect(() => {
+    const loadRecentSearches = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(RECENT_SEARCHES_KEY);
+
+        if (stored) {
+          const parsed = JSON.parse(stored);
+
+          if (Array.isArray(parsed)) {
+            setRecentSearches(
+              parsed
+                .filter((item): item is string => typeof item === 'string')
+                .slice(0, MAX_RECENT_SEARCHES),
+            );
+          }
+        }
+      } catch (error) {
+        console.log('Failed to load recent searches:', error);
+      } finally {
+        setRecentSearchesLoaded(true);
+      }
+    };
+
+    loadRecentSearches();
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -92,18 +114,27 @@ const SearchScreen = () => {
     [productResponse],
   );
 
-  const saveRecentSearch = (value: string) => {
+  const saveRecentSearch = async (value: string) => {
     const cleaned = value.trim();
     if (!cleaned) return;
 
-    setRecentSearches(previous =>
-      [
-        cleaned,
-        ...previous.filter(
-          item => item.toLowerCase() !== cleaned.toLowerCase(),
-        ),
-      ].slice(0, 6),
-    );
+    const updatedSearches = [
+      cleaned,
+      ...recentSearches.filter(
+        item => item.toLowerCase() !== cleaned.toLowerCase(),
+      ),
+    ].slice(0, MAX_RECENT_SEARCHES);
+
+    setRecentSearches(updatedSearches);
+
+    try {
+      await AsyncStorage.setItem(
+        RECENT_SEARCHES_KEY,
+        JSON.stringify(updatedSearches),
+      );
+    } catch (error) {
+      console.log('Failed to save recent search:', error);
+    }
   };
 
   const handleSubmitSearch = () => {
@@ -192,16 +223,22 @@ const SearchScreen = () => {
         >
           <Text style={styles.recentTitle}>RECENT SEARCH</Text>
 
-          {recentSearches.map(item => (
-            <Pressable
-              key={item}
-              style={styles.recentRow}
-              onPress={() => handleRecentSearch(item)}
-            >
-              <Text style={styles.recentText}>{item}</Text>
-              <Text style={styles.recentArrow}>↖</Text>
-            </Pressable>
-          ))}
+          {recentSearchesLoaded && recentSearches.length > 0 ? (
+            recentSearches.map(item => (
+              <Pressable
+                key={item}
+                style={styles.recentRow}
+                onPress={() => handleRecentSearch(item)}
+              >
+                <Text style={styles.recentText}>{item}</Text>
+                <Text style={styles.recentArrow}>↖</Text>
+              </Pressable>
+            ))
+          ) : (
+            <View style={styles.emptyRecentBox}>
+              <Text style={styles.emptyRecentText}>No recent searches</Text>
+            </View>
+          )}
         </ScrollView>
       ) : (
         <ScrollView
@@ -449,6 +486,8 @@ const styles = StyleSheet.create({
   },
   recentText: { ...typography.body2Regular, color: colors.black },
   recentArrow: { fontSize: 25, color: '#BFC1C7' },
+  emptyRecentBox: { paddingHorizontal: spacing.lg, paddingTop: 18 },
+  emptyRecentText: { ...typography.captionRegular, color: '#8D91A0' },
   resultsContent: {
     paddingHorizontal: spacing.lg,
     paddingTop: 24,
