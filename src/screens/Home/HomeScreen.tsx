@@ -277,13 +277,6 @@ const HomeScreen = () => {
                       </Pressable>
                     </Pressable>
 
-                    <View style={styles.colorRow}>
-                      <View style={[styles.colorDot, styles.dotDark]} />
-                      <View style={[styles.colorDot, styles.dotBlue]} />
-                      <View style={[styles.colorDot, styles.dotGreen]} />
-                      <Text style={styles.colorText}>All 5 Colors</Text>
-                    </View>
-
                     <Text style={styles.productName} numberOfLines={1}>
                       {product.name}
                     </Text>
