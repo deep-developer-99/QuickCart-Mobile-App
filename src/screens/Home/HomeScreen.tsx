@@ -18,8 +18,9 @@ import {
 import {
   useGetCategoriesQuery,
   useGetProductsQuery,
+  useAddToCartMutation,
 } from '../../api/quickCartApi';
-import { addToCart, type CartProduct } from '../../store/slices/cartSlice';
+import type { CartProduct } from '../../store/slices/cartSlice';
 import { toggleWishlist } from '../../store/slices/wishlistSlice';
 import type { AppDispatch, RootState } from '../../store/store';
 import { colors, radius, shadows, spacing, typography } from '../../theme';
@@ -60,6 +61,7 @@ const productEmoji = (name: string) => {
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
   const dispatch = useDispatch<AppDispatch>();
+  const [addToCart] = useAddToCartMutation();
   const insets = useSafeAreaInsets();
   const user = useSelector((state: RootState) => state.auth.user);
   const wishlistIds = useSelector((state: RootState) =>
@@ -133,7 +135,7 @@ const HomeScreen = () => {
 
             <View style={styles.headerActions}>
               <Pressable
-                onPress={() => navigation.getParent()?.navigate('Search')}
+                onPress={() => navigation.navigate('Search')}
                 hitSlop={10}
               >
                 <View style={styles.searchIcon}>
@@ -250,7 +252,19 @@ const HomeScreen = () => {
                   <View key={product._id} style={styles.productCard}>
                     <Pressable
                       style={styles.productImageContainer}
-                      onPress={() => dispatch(addToCart(product))}
+                      onPress={async () => {
+                        try {
+                          await addToCart({
+                            productId: product._id,
+                            quantity: 1,
+                          }).unwrap();
+                        } catch (error) {
+                          console.error(
+                            'Failed to add product to cart:',
+                            error,
+                          );
+                        }
+                      }}
                     >
                       {product.image ? (
                         <Image
@@ -276,6 +290,13 @@ const HomeScreen = () => {
                         </Text>
                       </Pressable>
                     </Pressable>
+
+                    <View style={styles.colorRow}>
+                      <View style={[styles.colorDot, styles.dotDark]} />
+                      <View style={[styles.colorDot, styles.dotBlue]} />
+                      <View style={[styles.colorDot, styles.dotGreen]} />
+                      <Text style={styles.colorText}>All 5 Colors</Text>
+                    </View>
 
                     <Text style={styles.productName} numberOfLines={1}>
                       {product.name}

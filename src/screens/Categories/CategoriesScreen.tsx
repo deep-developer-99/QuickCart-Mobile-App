@@ -1,24 +1,23 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
   Modal,
   Pressable,
-  RefreshControl,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   View,
+  StyleSheet,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { useFocusEffect } from '@react-navigation/native';
 
 import {
   useGetCategoriesQuery,
   useGetProductsQuery,
+  useAddToCartMutation,
 } from '../../api/quickCartApi';
-import { addToCart, type CartProduct } from '../../store/slices/cartSlice';
+import type { CartProduct } from '../../store/slices/cartSlice';
 import { toggleWishlist } from '../../store/slices/wishlistSlice';
 import type { AppDispatch, RootState } from '../../store/store';
 import { colors, radius, spacing, typography } from '../../theme';
@@ -69,6 +68,7 @@ const getProductCategory = (product: Product) => {
 
 const CategoriesScreen = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const [addToCart] = useAddToCartMutation();
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null,
   );
@@ -78,38 +78,10 @@ const CategoriesScreen = () => {
   const [sort, setSort] = useState<SortOption>(null);
   const [draftSort, setDraftSort] = useState<SortOption>(null);
 
-  const {
-    data: categoryResponse,
-    isLoading: categoriesLoading,
-    isFetching: categoriesFetching,
-    refetch: refetchCategories,
-  } = useGetCategoriesQuery(undefined, {
-    refetchOnMountOrArgChange: 30,
-  });
-  const {
-    data: productResponse,
-    isLoading: productsLoading,
-    isFetching: productsFetching,
-    refetch: refetchProducts,
-  } = useGetProductsQuery(undefined, {
-    refetchOnMountOrArgChange: 30,
-  });
-
-  const isRefreshing = categoriesFetching || productsFetching;
-
-  const refreshCategories = useCallback(async () => {
-    await Promise.all([refetchCategories(), refetchProducts()]);
-  }, [refetchCategories, refetchProducts]);
-
-  useFocusEffect(
-    useCallback(() => {
-      const interval = setInterval(() => {
-        refreshCategories().catch(() => {});
-      }, 30_000);
-
-      return () => clearInterval(interval);
-    }, [refreshCategories]),
-  );
+  const { data: categoryResponse, isLoading: categoriesLoading } =
+    useGetCategoriesQuery();
+  const { data: productResponse, isLoading: productsLoading } =
+    useGetProductsQuery(undefined);
 
   const wishlistIds = useSelector((state: RootState) =>
     state.wishlist.items.map(item => item._id),
@@ -240,12 +212,6 @@ const CategoriesScreen = () => {
           </View>
         ) : (
           <ScrollView
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={refreshCategories}
-              />
-            }
             contentContainerStyle={styles.categoryGrid}
             showsVerticalScrollIndicator={false}
           >
@@ -312,12 +278,6 @@ const CategoriesScreen = () => {
         </View>
       ) : (
         <ScrollView
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={refreshCategories}
-            />
-          }
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.productGrid}
         >
@@ -329,7 +289,16 @@ const CategoriesScreen = () => {
               <Pressable
                 key={product._id}
                 style={styles.productCard}
-                onPress={() => dispatch(addToCart(product))}
+                onPress={async () => {
+                  try {
+                    await addToCart({
+                      productId: product._id,
+                      quantity: 1,
+                    }).unwrap();
+                  } catch (error) {
+                    console.error('Failed to add product to cart:', error);
+                  }
+                }}
               >
                 <View style={styles.productImageWrap}>
                   {product.image ? (
@@ -357,12 +326,14 @@ const CategoriesScreen = () => {
                 </View>
 
                 <View style={styles.colorRow}>
-                  <View style={styles.colorDotBlack} />
-
-                  <View style={styles.colorDotBlue} />
-
-                  <View style={styles.colorDotGrey} />
-
+                  <View style={[styles.colorDot, styles.colorDotDark]} />
+                  <View style={[styles.colorDot, styles.colorDotBlue]} />
+                  <View
+                    style={[
+                      styles.colorDot,
+                      { backgroundColor: colors.grey100 },
+                    ]}
+                  />
                   <Text style={styles.colorText}>All 5 Colors</Text>
                 </View>
 
@@ -579,35 +550,8 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
     marginRight: -5,
   },
-  colorDotBlack: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.pill,
-    borderWidth: 2,
-    borderColor: colors.white,
-    marginRight: -5,
-    backgroundColor: '#252525',
-  },
-
-  colorDotBlue: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.pill,
-    borderWidth: 2,
-    borderColor: colors.white,
-    marginRight: -5,
-    backgroundColor: '#1F88DA',
-  },
-
-  colorDotGrey: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.pill,
-    borderWidth: 2,
-    borderColor: colors.white,
-    marginRight: -5,
-    backgroundColor: colors.grey100,
-  },
+  colorDotDark: { backgroundColor: '#252525' },
+  colorDotBlue: { backgroundColor: '#1F88DA' },
   colorText: {
     ...typography.captionRegular,
     color: colors.grey150,

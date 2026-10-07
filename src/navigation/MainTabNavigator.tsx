@@ -1,7 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useSelector } from 'react-redux';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import HomeScreen from '../screens/Home/HomeScreen';
@@ -16,7 +15,7 @@ import CartIcon from '../assets/icons/shopping-cart.svg';
 import WishlistIcon from '../assets/icons/heart.svg';
 import ProfileIcon from '../assets/icons/profile.svg';
 
-import type { RootState } from '../store/store';
+import { useGetCartQuery } from '../api/quickCartApi';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -42,9 +41,13 @@ const tabIcons = {
 };
 
 const TabBarIcon = ({ color, routeName }: TabBarIconProps) => {
-  const cartCount = useSelector((state: RootState) =>
-    state.cart.items.reduce((total, item) => total + item.quantity, 0),
-  );
+  const { data: cartResponse } = useGetCartQuery();
+
+  const cartCount =
+    cartResponse?.data?.items?.reduce(
+      (total, item) => total + item.quantity,
+      0,
+    ) ?? 0;
 
   const Icon = tabIcons[routeName];
 
