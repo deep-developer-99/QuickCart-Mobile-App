@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigation } from '@react-navigation/native';
 import {
   Image,
   Pressable,
@@ -152,6 +153,7 @@ const EmptyCartIllustration = () => (
 
 const CartScreen = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const navigation = useNavigation();
   const items = useSelector((state: RootState) => state.cart.items);
 
   const subtotal = items.reduce(
@@ -181,7 +183,10 @@ const CartScreen = () => {
             explore top categories.
           </Text>
 
-          <Pressable style={styles.exploreButton}>
+          <Pressable
+            style={styles.exploreButton}
+            onPress={() => navigation.navigate('Categories' as never)}
+          >
             <Text style={styles.exploreButtonText}>Explore Categories</Text>
           </Pressable>
         </View>
