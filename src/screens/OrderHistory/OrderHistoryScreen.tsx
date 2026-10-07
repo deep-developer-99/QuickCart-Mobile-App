@@ -228,11 +228,11 @@ const OrderHistoryScreen = () => {
                   {item.name}
                 </Text>
 
-                <Text style={styles.price}>${price.toFixed(2)}</Text>
+                <Text style={styles.price}>₹{price.toFixed(2)}</Text>
 
                 {item.discountedPrice !== undefined &&
                 item.discountedPrice < item.price ? (
-                  <Text style={styles.oldPrice}>${item.price.toFixed(2)}</Text>
+                  <Text style={styles.oldPrice}>₹{item.price.toFixed(2)}</Text>
                 ) : null}
 
                 <View style={styles.quantityBox}>

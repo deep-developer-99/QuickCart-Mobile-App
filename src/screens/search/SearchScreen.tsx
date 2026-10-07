@@ -13,15 +13,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 
 import {
   useGetProductsQuery,
+  useGetWishlistQuery,
+  useAddToWishlistMutation,
+  useRemoveFromWishlistMutation,
   type ProductResponse,
 } from '../../api/quickCartApi';
 import { addToCart, type CartProduct } from '../../store/slices/cartSlice';
-import { toggleWishlist } from '../../store/slices/wishlistSlice';
-import type { AppDispatch, RootState } from '../../store/store';
+import type { AppDispatch } from '../../store/store';
 import { colors, radius, spacing, typography } from '../../theme';
 
 type Product = ProductResponse['data'][number];
@@ -53,14 +55,19 @@ const productEmoji = (name: string) => {
 const SearchScreen = () => {
   const navigation = useNavigation<any>();
   const dispatch = useDispatch<AppDispatch>();
+  const [addToWishlist] = useAddToWishlistMutation();
+  const [removeFromWishlist] = useRemoveFromWishlistMutation();
   const [searchText, setSearchText] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [recentSearchesLoaded, setRecentSearchesLoaded] = useState(false);
 
-  const wishlistIds = useSelector((state: RootState) =>
-    state.wishlist.items.map(item => item._id),
-  );
+  const { data: wishlistResponse } = useGetWishlistQuery();
+  const wishlistIds = useMemo(() => {
+    const data = wishlistResponse?.data;
+    const products = Array.isArray(data) ? data : data?.products ?? [];
+    return products.map(item => item._id);
+  }, [wishlistResponse]);
 
   useEffect(() => {
     const loadRecentSearches = async () => {
@@ -298,9 +305,20 @@ const SearchScreen = () => {
                       <Pressable
                         style={styles.heartButton}
                         hitSlop={8}
-                        onPress={() =>
-                          dispatch(toggleWishlist(product as CartProduct))
-                        }
+                        onPress={async event => {
+                          event.stopPropagation();
+                          try {
+                            if (isWishlisted) {
+                              await removeFromWishlist(product._id).unwrap();
+                            } else {
+                              await addToWishlist({
+                                productId: product._id,
+                              }).unwrap();
+                            }
+                          } catch (error) {
+                            console.error('Failed to update wishlist:', error);
+                          }
+                        }}
                       >
                         <Text style={styles.heartText}>
                           {isWishlisted ? '♥' : '♡'}

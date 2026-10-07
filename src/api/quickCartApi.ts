@@ -38,6 +38,30 @@ export interface ProductResponse {
   }>;
 }
 
+export interface WishlistResponse {
+  success: boolean;
+  data:
+    | CartProduct[]
+    | {
+        products?: CartProduct[];
+      };
+  message?: string;
+}
+
+export interface WishlistMutationResponse {
+  success: boolean;
+  message: string;
+  data?: CartProduct[] | { products?: CartProduct[] };
+}
+
+export const getWishlistProducts = (
+  response?: WishlistResponse,
+): CartProduct[] => {
+  if (!response?.data) return [];
+  if (Array.isArray(response.data)) return response.data;
+  return Array.isArray(response.data.products) ? response.data.products : [];
+};
+
 export interface CartProduct {
   _id: string;
   name: string;
@@ -114,7 +138,7 @@ interface MeResponse {
 
 export const quickCartApi = createApi({
   reducerPath: 'quickCartApi',
-  tagTypes: ['Categories', 'Products', 'Me', 'Cart'],
+  tagTypes: ['Categories', 'Products', 'Me', 'Cart', 'Wishlist'],
 
   baseQuery: fetchBaseQuery({
     baseUrl: 'https://quickcart-bxod.onrender.com/api',
@@ -203,6 +227,49 @@ export const quickCartApi = createApi({
       invalidatesTags: ['Cart'],
     }),
 
+    // Get current user's wishlist
+    getWishlist: builder.query<WishlistResponse, void>({
+      query: () => ({
+        url: '/wishlist',
+        method: 'GET',
+      }),
+      providesTags: ['Wishlist'],
+    }),
+
+    // Add product to wishlist
+    addToWishlist: builder.mutation<
+      WishlistMutationResponse,
+      { productId: string }
+    >({
+      query: body => ({
+        url: '/wishlist',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Wishlist'],
+    }),
+
+    // Remove product from wishlist
+    removeFromWishlist: builder.mutation<WishlistMutationResponse, string>({
+      query: productId => ({
+        url: `/wishlist/${productId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Wishlist'],
+    }),
+
+    // Clear current user's wishlist
+    clearWishlist: builder.mutation<
+      { success: boolean; message: string },
+      void
+    >({
+      query: () => ({
+        url: '/wishlist',
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Wishlist'],
+    }),
+
     // Google Login
     googleLogin: builder.mutation<
       GoogleLoginResponse,
@@ -268,6 +335,10 @@ export const {
   useGetCategoriesQuery,
   useGetProductsQuery,
   useGetCartQuery,
+  useGetWishlistQuery,
+  useAddToWishlistMutation,
+  useRemoveFromWishlistMutation,
+  useClearWishlistMutation,
   useAddToCartMutation,
   useUpdateCartItemMutation,
   useRemoveCartItemMutation,

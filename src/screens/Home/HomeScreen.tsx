@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -19,10 +19,12 @@ import {
   useGetCategoriesQuery,
   useGetProductsQuery,
   useAddToCartMutation,
+  useGetWishlistQuery,
+  useAddToWishlistMutation,
+  useRemoveFromWishlistMutation,
 } from '../../api/quickCartApi';
 import type { CartProduct } from '../../store/slices/cartSlice';
-import { toggleWishlist } from '../../store/slices/wishlistSlice';
-import type { AppDispatch, RootState } from '../../store/store';
+import type { RootState } from '../../store/store';
 import { colors, radius, shadows, spacing, typography } from '../../theme';
 
 interface Category {
@@ -60,13 +62,17 @@ const productEmoji = (name: string) => {
 
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
-  const dispatch = useDispatch<AppDispatch>();
   const [addToCart] = useAddToCartMutation();
+  const [addToWishlist] = useAddToWishlistMutation();
+  const [removeFromWishlist] = useRemoveFromWishlistMutation();
   const insets = useSafeAreaInsets();
   const user = useSelector((state: RootState) => state.auth.user);
-  const wishlistIds = useSelector((state: RootState) =>
-    state.wishlist.items.map(item => item._id),
-  );
+  const { data: wishlistResponse } = useGetWishlistQuery();
+  const wishlistIds = useMemo(() => {
+    const data = wishlistResponse?.data;
+    const products = Array.isArray(data) ? data : data?.products ?? [];
+    return products.map(item => item._id);
+  }, [wishlistResponse]);
 
   const {
     data: categoryResponse,
@@ -283,7 +289,20 @@ const HomeScreen = () => {
                       <Pressable
                         style={styles.heartButton}
                         hitSlop={8}
-                        onPress={() => dispatch(toggleWishlist(product))}
+                        onPress={async event => {
+                          event.stopPropagation();
+                          try {
+                            if (isWishlisted) {
+                              await removeFromWishlist(product._id).unwrap();
+                            } else {
+                              await addToWishlist({
+                                productId: product._id,
+                              }).unwrap();
+                            }
+                          } catch (error) {
+                            console.error('Failed to update wishlist:', error);
+                          }
+                        }}
                       >
                         <Text style={styles.heartText}>
                           {isWishlisted ? '♥' : '♡'}

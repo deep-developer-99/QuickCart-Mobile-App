@@ -137,26 +137,6 @@ const FaqIcon = ({ color = '#777C8D', size = 24 }: IconProps) => (
   </Svg>
 );
 
-const PasswordIcon = ({ color = '#777C8D', size = 24 }: IconProps) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Rect
-      x="4"
-      y="10"
-      width="16"
-      height="10"
-      rx="2.5"
-      stroke={color}
-      strokeWidth="1.6"
-    />
-    <Path
-      d="M8 10V7.5a4 4 0 0 1 8 0V10"
-      stroke={color}
-      strokeWidth="1.6"
-      strokeLinecap="round"
-    />
-  </Svg>
-);
-
 const DeviceIcon = ({ color = '#777C8D', size = 24 }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Rect
@@ -338,11 +318,6 @@ const ProfileScreen = () => {
         <Text style={styles.sectionTitle}>Account Management</Text>
 
         <View>
-          <MenuRow
-            icon={<PasswordIcon />}
-            label="Change Password"
-            onPress={() => handleComingSoon('Change Password')}
-          />
           <MenuRow
             icon={<DeviceIcon />}
             label="Dark Theme"
