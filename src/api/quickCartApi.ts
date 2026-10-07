@@ -30,10 +30,14 @@ export interface ProductResponse {
   data: Array<{
     _id: string;
     name: string;
+    description?: string;
     image?: string;
+    images?: string[];
     price: number;
     discountPrice?: number;
     stock: number;
+    rating?: number;
+    reviews?: number;
     category?: string | { _id: string; name: string };
   }>;
 }
@@ -67,6 +71,9 @@ export interface CartProduct {
   name: string;
   description?: string;
   image?: string;
+  images?: string[];
+  rating?: number;
+  reviews?: number;
   price: number;
   discountPrice?: number;
   stock: number;

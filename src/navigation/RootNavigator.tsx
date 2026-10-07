@@ -11,6 +11,8 @@ import AuthNavigator from './AuthNavigator';
 import MainTabNavigator, { type MainTabParamList } from './MainTabNavigator';
 import SearchScreen from '../screens/search/SearchScreen';
 import OrderHistoryScreen from '../screens/OrderHistory/OrderHistoryScreen';
+import ProductDetailsScreen from '../screens/ProductDetails/ProductDetailsScreen';
+import type { CartProduct } from '../api/quickCartApi';
 import { useLazyGetMeQuery } from '../api/quickCartApi';
 import { getToken, removeToken } from '../services/secureStorage';
 import { logout, setCredentials } from '../store/slices/authSlice';
@@ -20,6 +22,7 @@ export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   Search: undefined;
   OrderHistory: undefined;
+  ProductDetails: { product: CartProduct };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -96,6 +99,11 @@ const RootNavigator = () => {
           <Stack.Screen name="Search" component={SearchScreen} />
 
           <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
+
+          <Stack.Screen
+            name="ProductDetails"
+            component={ProductDetailsScreen}
+          />
         </Stack.Navigator>
       ) : (
         <AuthNavigator />

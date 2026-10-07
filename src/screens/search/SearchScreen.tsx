@@ -13,8 +13,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { useDispatch } from 'react-redux';
-
 import {
   useGetProductsQuery,
   useGetWishlistQuery,
@@ -22,8 +20,6 @@ import {
   useRemoveFromWishlistMutation,
   type ProductResponse,
 } from '../../api/quickCartApi';
-import { addToCart, type CartProduct } from '../../store/slices/cartSlice';
-import type { AppDispatch } from '../../store/store';
 import { colors, radius, spacing, typography } from '../../theme';
 
 type Product = ProductResponse['data'][number];
@@ -54,7 +50,6 @@ const productEmoji = (name: string) => {
 
 const SearchScreen = () => {
   const navigation = useNavigation<any>();
-  const dispatch = useDispatch<AppDispatch>();
   const [addToWishlist] = useAddToWishlistMutation();
   const [removeFromWishlist] = useRemoveFromWishlistMutation();
   const [searchText, setSearchText] = useState('');
@@ -285,7 +280,9 @@ const SearchScreen = () => {
                     <Pressable
                       style={styles.productImageContainer}
                       onPress={() =>
-                        dispatch(addToCart(product as CartProduct))
+                        navigation.navigate('ProductDetails', {
+                          product,
+                        })
                       }
                     >
                       {product.image ? (

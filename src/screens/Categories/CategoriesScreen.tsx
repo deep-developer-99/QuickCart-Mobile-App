@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import {
   ActivityIndicator,
   Image,
@@ -10,10 +11,10 @@ import {
   View,
   StyleSheet,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   useGetCategoriesQuery,
   useGetProductsQuery,
-  useAddToCartMutation,
   useGetWishlistQuery,
   useAddToWishlistMutation,
   useRemoveFromWishlistMutation,
@@ -66,7 +67,7 @@ const getProductCategory = (product: Product) => {
 };
 
 const CategoriesScreen = () => {
-  const [addToCart] = useAddToCartMutation();
+  const navigation = useNavigation<any>();
   const [addToWishlist] = useAddToWishlistMutation();
   const [removeFromWishlist] = useRemoveFromWishlistMutation();
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
@@ -145,51 +146,231 @@ const CategoriesScreen = () => {
 
   if (searchOpen) {
     return (
-      <View style={styles.container}>
-        <View style={styles.searchHeader}>
-          <Text style={styles.logoText}>QuickMart</Text>
-          <Pressable onPress={() => setSearchOpen(false)}>
-            <Text style={styles.closeText}>×</Text>
-          </Pressable>
-        </View>
+      <SafeAreaView edges={['top']} style={styles.safeArea}>
+        <View style={styles.container}>
+          <View style={styles.searchHeader}>
+            <Text style={styles.logoText}>QuickMart</Text>
+            <Pressable onPress={() => setSearchOpen(false)}>
+              <Text style={styles.closeText}>×</Text>
+            </Pressable>
+          </View>
 
-        <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>⌕</Text>
-          <TextInput
-            value={searchText}
-            onChangeText={setSearchText}
-            placeholder="Search"
-            placeholderTextColor={colors.grey150}
-            style={styles.searchInput}
-            autoFocus
-          />
-          <Pressable onPress={openFilter}>
-            <Text style={styles.filterIcon}>☷</Text>
-          </Pressable>
-        </View>
+          <View style={styles.searchBox}>
+            <Text style={styles.searchIcon}>⌕</Text>
+            <TextInput
+              value={searchText}
+              onChangeText={setSearchText}
+              placeholder="Search"
+              placeholderTextColor={colors.grey150}
+              style={styles.searchInput}
+              autoFocus
+            />
+            <Pressable onPress={openFilter}>
+              <Text style={styles.filterIcon}>☷</Text>
+            </Pressable>
+          </View>
 
-        <Text style={styles.recentTitle}>RECENT SEARCH</Text>
-        {[
-          'Smart watch',
-          'Laptop',
-          'Women bag',
-          'Headphones',
-          'Shoes',
-          'Eye glasses',
-        ].map(item => (
-          <Pressable
-            key={item}
-            style={styles.recentRow}
-            onPress={() => {
-              setSearchText(item);
-              setSearchOpen(false);
-              setSelectedCategory(null);
+          <Text style={styles.recentTitle}>RECENT SEARCH</Text>
+          {[
+            'Smart watch',
+            'Laptop',
+            'Women bag',
+            'Headphones',
+            'Shoes',
+            'Eye glasses',
+          ].map(item => (
+            <Pressable
+              key={item}
+              style={styles.recentRow}
+              onPress={() => {
+                setSearchText(item);
+                setSearchOpen(false);
+                setSelectedCategory(null);
+              }}
+            >
+              <Text style={styles.recentText}>{item}</Text>
+              <Text style={styles.recentArrow}>↖</Text>
+            </Pressable>
+          ))}
+
+          <FilterModal
+            visible={filterOpen}
+            value={draftSort}
+            onChange={setDraftSort}
+            onClose={() => setFilterOpen(false)}
+            onApply={() => {
+              setSort(draftSort);
+              setFilterOpen(false);
             }}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!selectedCategory) {
+    return (
+      <SafeAreaView edges={['top']} style={styles.safeArea}>
+        <View style={styles.container}>
+          <Header title="Categories" onBack={() => {}} />
+          {categoriesLoading ? (
+            <View style={styles.center}>
+              <ActivityIndicator />
+            </View>
+          ) : (
+            <ScrollView
+              contentContainerStyle={styles.categoryGrid}
+              showsVerticalScrollIndicator={false}
+            >
+              {categories.map(category => (
+                <Pressable
+                  key={category._id}
+                  style={styles.categoryTile}
+                  onPress={() => {
+                    setSelectedCategory(category);
+                    setSearchText('');
+                    setSort(null);
+                  }}
+                >
+                  {category.image ? (
+                    <Image
+                      source={{ uri: category.image }}
+                      style={styles.categoryImage}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <Text style={styles.categoryEmoji}>
+                      {categoryEmoji[category.name.toLowerCase()] ?? '🛍️'}
+                    </Text>
+                  )}
+                  <Text style={styles.categoryName} numberOfLines={2}>
+                    {category.name}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <View style={styles.container}>
+        <Header
+          title={selectedCategory.name}
+          onBack={() => {
+            setSelectedCategory(null);
+            setSearchText('');
+          }}
+          right={
+            <View style={styles.headerActions}>
+              <Pressable onPress={() => setSearchOpen(true)} hitSlop={8}>
+                <Text style={styles.headerIcon}>⌕</Text>
+              </Pressable>
+              <Pressable onPress={openFilter} hitSlop={8}>
+                <Text style={styles.headerIcon}>☷</Text>
+              </Pressable>
+            </View>
+          }
+        />
+
+        {productsLoading ? (
+          <View style={styles.center}>
+            <ActivityIndicator />
+          </View>
+        ) : visibleProducts.length === 0 ? (
+          <View style={styles.center}>
+            <Text style={styles.emptyTitle}>No products found</Text>
+            <Text style={styles.emptyText}>
+              Try another category or search.
+            </Text>
+          </View>
+        ) : (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.productGrid}
           >
-            <Text style={styles.recentText}>{item}</Text>
-            <Text style={styles.recentArrow}>↖</Text>
-          </Pressable>
-        ))}
+            {visibleProducts.map(product => {
+              const price = product.discountPrice ?? product.price;
+              const isWishlisted = wishlistIds.includes(product._id);
+
+              return (
+                <Pressable
+                  key={product._id}
+                  style={styles.productCard}
+                  onPress={() =>
+                    navigation.navigate('ProductDetails', {
+                      product,
+                    })
+                  }
+                >
+                  <View style={styles.productImageWrap}>
+                    {product.image ? (
+                      <Image
+                        source={{ uri: product.image }}
+                        style={styles.productImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={styles.productFallback}>
+                        <Text style={styles.productEmoji}>
+                          {productEmoji(product.name)}
+                        </Text>
+                      </View>
+                    )}
+                    <Pressable
+                      style={styles.heartButton}
+                      onPress={async event => {
+                        event.stopPropagation();
+                        try {
+                          if (isWishlisted) {
+                            await removeFromWishlist(product._id).unwrap();
+                          } else {
+                            await addToWishlist({
+                              productId: product._id,
+                            }).unwrap();
+                          }
+                        } catch (error) {
+                          console.error('Failed to update wishlist:', error);
+                        }
+                      }}
+                      hitSlop={8}
+                    >
+                      <Text style={styles.heartText}>
+                        {isWishlisted ? '♥' : '♡'}
+                      </Text>
+                    </Pressable>
+                  </View>
+
+                  <View style={styles.colorRow}>
+                    <View style={[styles.colorDot, styles.colorDotDark]} />
+                    <View style={[styles.colorDot, styles.colorDotBlue]} />
+                    <View
+                      style={[
+                        styles.colorDot,
+                        { backgroundColor: colors.grey100 },
+                      ]}
+                    />
+                    <Text style={styles.colorText}>All 5 Colors</Text>
+                  </View>
+
+                  <Text style={styles.productName} numberOfLines={1}>
+                    {product.name}
+                  </Text>
+                  <Text style={styles.productPrice}>₹{price.toFixed(2)}</Text>
+                  {product.discountPrice !== undefined &&
+                  product.discountPrice < product.price ? (
+                    <Text style={styles.originalPrice}>
+                      ₹{product.price.toFixed(2)}
+                    </Text>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
 
         <FilterModal
           visible={filterOpen}
@@ -202,184 +383,7 @@ const CategoriesScreen = () => {
           }}
         />
       </View>
-    );
-  }
-
-  if (!selectedCategory) {
-    return (
-      <View style={styles.container}>
-        <Header title="Categories" onBack={() => {}} />
-        {categoriesLoading ? (
-          <View style={styles.center}>
-            <ActivityIndicator />
-          </View>
-        ) : (
-          <ScrollView
-            contentContainerStyle={styles.categoryGrid}
-            showsVerticalScrollIndicator={false}
-          >
-            {categories.map(category => (
-              <Pressable
-                key={category._id}
-                style={styles.categoryTile}
-                onPress={() => {
-                  setSelectedCategory(category);
-                  setSearchText('');
-                  setSort(null);
-                }}
-              >
-                {category.image ? (
-                  <Image
-                    source={{ uri: category.image }}
-                    style={styles.categoryImage}
-                    resizeMode="contain"
-                  />
-                ) : (
-                  <Text style={styles.categoryEmoji}>
-                    {categoryEmoji[category.name.toLowerCase()] ?? '🛍️'}
-                  </Text>
-                )}
-                <Text style={styles.categoryName} numberOfLines={2}>
-                  {category.name}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        )}
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <Header
-        title={selectedCategory.name}
-        onBack={() => {
-          setSelectedCategory(null);
-          setSearchText('');
-        }}
-        right={
-          <View style={styles.headerActions}>
-            <Pressable onPress={() => setSearchOpen(true)} hitSlop={8}>
-              <Text style={styles.headerIcon}>⌕</Text>
-            </Pressable>
-            <Pressable onPress={openFilter} hitSlop={8}>
-              <Text style={styles.headerIcon}>☷</Text>
-            </Pressable>
-          </View>
-        }
-      />
-
-      {productsLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator />
-        </View>
-      ) : visibleProducts.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyTitle}>No products found</Text>
-          <Text style={styles.emptyText}>Try another category or search.</Text>
-        </View>
-      ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.productGrid}
-        >
-          {visibleProducts.map(product => {
-            const price = product.discountPrice ?? product.price;
-            const isWishlisted = wishlistIds.includes(product._id);
-
-            return (
-              <Pressable
-                key={product._id}
-                style={styles.productCard}
-                onPress={async () => {
-                  try {
-                    await addToCart({
-                      productId: product._id,
-                      quantity: 1,
-                    }).unwrap();
-                  } catch (error) {
-                    console.error('Failed to add product to cart:', error);
-                  }
-                }}
-              >
-                <View style={styles.productImageWrap}>
-                  {product.image ? (
-                    <Image
-                      source={{ uri: product.image }}
-                      style={styles.productImage}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View style={styles.productFallback}>
-                      <Text style={styles.productEmoji}>
-                        {productEmoji(product.name)}
-                      </Text>
-                    </View>
-                  )}
-                  <Pressable
-                    style={styles.heartButton}
-                    onPress={async event => {
-                      event.stopPropagation();
-                      try {
-                        if (isWishlisted) {
-                          await removeFromWishlist(product._id).unwrap();
-                        } else {
-                          await addToWishlist({
-                            productId: product._id,
-                          }).unwrap();
-                        }
-                      } catch (error) {
-                        console.error('Failed to update wishlist:', error);
-                      }
-                    }}
-                    hitSlop={8}
-                  >
-                    <Text style={styles.heartText}>
-                      {isWishlisted ? '♥' : '♡'}
-                    </Text>
-                  </Pressable>
-                </View>
-
-                <View style={styles.colorRow}>
-                  <View style={[styles.colorDot, styles.colorDotDark]} />
-                  <View style={[styles.colorDot, styles.colorDotBlue]} />
-                  <View
-                    style={[
-                      styles.colorDot,
-                      { backgroundColor: colors.grey100 },
-                    ]}
-                  />
-                  <Text style={styles.colorText}>All 5 Colors</Text>
-                </View>
-
-                <Text style={styles.productName} numberOfLines={1}>
-                  {product.name}
-                </Text>
-                <Text style={styles.productPrice}>₹{price.toFixed(2)}</Text>
-                {product.discountPrice !== undefined &&
-                product.discountPrice < product.price ? (
-                  <Text style={styles.originalPrice}>
-                    ₹{product.price.toFixed(2)}
-                  </Text>
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      )}
-
-      <FilterModal
-        visible={filterOpen}
-        value={draftSort}
-        onChange={setDraftSort}
-        onClose={() => setFilterOpen(false)}
-        onApply={() => {
-          setSort(draftSort);
-          setFilterOpen(false);
-        }}
-      />
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -464,6 +468,10 @@ const FilterModal = ({
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
   container: { flex: 1, backgroundColor: colors.white },
   header: {
     height: 60,

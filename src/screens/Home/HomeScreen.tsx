@@ -18,14 +18,13 @@ import {
 import {
   useGetCategoriesQuery,
   useGetProductsQuery,
-  useAddToCartMutation,
   useGetWishlistQuery,
   useAddToWishlistMutation,
   useRemoveFromWishlistMutation,
 } from '../../api/quickCartApi';
 import type { CartProduct } from '../../store/slices/cartSlice';
 import type { RootState } from '../../store/store';
-import { colors, radius, shadows, spacing, typography } from '../../theme';
+import { colors, radius, spacing, typography } from '../../theme';
 
 interface Category {
   _id: string;
@@ -62,7 +61,6 @@ const productEmoji = (name: string) => {
 
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
-  const [addToCart] = useAddToCartMutation();
   const [addToWishlist] = useAddToWishlistMutation();
   const [removeFromWishlist] = useRemoveFromWishlistMutation();
   const insets = useSafeAreaInsets();
@@ -258,19 +256,11 @@ const HomeScreen = () => {
                   <View key={product._id} style={styles.productCard}>
                     <Pressable
                       style={styles.productImageContainer}
-                      onPress={async () => {
-                        try {
-                          await addToCart({
-                            productId: product._id,
-                            quantity: 1,
-                          }).unwrap();
-                        } catch (error) {
-                          console.error(
-                            'Failed to add product to cart:',
-                            error,
-                          );
-                        }
-                      }}
+                      onPress={() =>
+                        navigation.navigate('ProductDetails', {
+                          product,
+                        })
+                      }
                     >
                       {product.image ? (
                         <Image
@@ -309,13 +299,6 @@ const HomeScreen = () => {
                         </Text>
                       </Pressable>
                     </Pressable>
-
-                    <View style={styles.colorRow}>
-                      <View style={[styles.colorDot, styles.dotDark]} />
-                      <View style={[styles.colorDot, styles.dotBlue]} />
-                      <View style={[styles.colorDot, styles.dotGreen]} />
-                      <Text style={styles.colorText}>All 5 Colors</Text>
-                    </View>
 
                     <Text style={styles.productName} numberOfLines={1}>
                       {product.name}
@@ -535,29 +518,6 @@ const styles = {
     justifyContent: 'center' as const,
   },
   heartText: { color: colors.white, fontSize: 17 },
-  colorRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    marginTop: spacing.sm,
-  },
-  colorDot: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.pill,
-    borderWidth: 2,
-    borderColor: colors.white,
-    marginRight: -5,
-    ...shadows.small,
-  },
-  dotDark: { backgroundColor: '#252525' },
-  dotBlue: { backgroundColor: '#1F88DA' },
-  dotGreen: { backgroundColor: colors.cyan },
-  colorText: {
-    ...typography.captionRegular,
-    color: colors.grey150,
-    textDecorationLine: 'underline' as const,
-    marginLeft: spacing.sm,
-  },
   productName: {
     ...typography.body2Regular,
     color: colors.black,

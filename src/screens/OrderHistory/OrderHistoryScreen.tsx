@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import {
@@ -280,7 +281,7 @@ const OrderHistoryScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Pressable
           style={styles.backButton}
@@ -357,7 +358,7 @@ const OrderHistoryScreen = () => {
             : renderEmptyState()}
         </ScrollView>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
