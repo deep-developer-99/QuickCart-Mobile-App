@@ -297,7 +297,7 @@ const CartScreen = () => {
               ]}
               disabled={selectedItems.length === 0}
               onPress={() => {
-                // Checkout screen will be connected here next.
+                navigation.navigate('Checkout');
               }}
             >
               <Text style={styles.checkoutText}>

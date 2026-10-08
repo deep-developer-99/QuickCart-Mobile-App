@@ -112,6 +112,19 @@ const ProductDetailsScreen = () => {
       ? description
       : `${description.slice(0, 220).trim()}...`;
 
+  const handleBuyNow = async () => {
+    try {
+      await addToCart({
+        productId: product._id,
+        quantity,
+      }).unwrap();
+
+      navigation.navigate('Checkout');
+    } catch (error) {
+      console.error('Buy Now failed:', error);
+    }
+  };
+
   const handleAddToCart = async () => {
     try {
       await addToCart({
@@ -291,8 +304,16 @@ const ProductDetailsScreen = () => {
           { paddingBottom: Math.max(insets.bottom, 12) },
         ]}
       >
-        <Pressable style={styles.buyButton}>
-          <Text style={styles.buyText}>Buy Now</Text>
+        <Pressable
+          style={[styles.buyButton, addingToCart && styles.buyButtonDisabled]}
+          onPress={handleBuyNow}
+          disabled={addingToCart}
+        >
+          {addingToCart ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.buyText}>Buy Now</Text>
+          )}
         </Pressable>
         <Pressable
           style={[styles.addButton, addingToCart && styles.addButtonDisabled]}
@@ -548,6 +569,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
+  },
+  buyButtonDisabled: {
+    opacity: 0.7,
   },
   addButtonDisabled: { opacity: 0.75 },
   addText: {
