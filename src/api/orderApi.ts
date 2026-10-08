@@ -52,6 +52,13 @@ export interface CreateOrderRequest {
   paymentId?: string;
 }
 
+export interface CreateBuyNowOrderRequest {
+  productId: string;
+  quantity: number;
+  addressId: string;
+  paymentMethod: 'COD';
+}
+
 interface CreateOrderResponse {
   success: boolean;
   message: string;
@@ -68,6 +75,17 @@ export const orderApi = quickCartApi.injectEndpoints({
       }),
     }),
 
+    createBuyNowOrder: builder.mutation<
+      CreateOrderResponse,
+      CreateBuyNowOrderRequest
+    >({
+      query: body => ({
+        url: '/orders/buy-now',
+        method: 'POST',
+        body,
+      }),
+    }),
+
     getMyOrders: builder.query<OrdersResponse, void>({
       query: () => ({
         url: '/orders/my-orders',
@@ -78,4 +96,8 @@ export const orderApi = quickCartApi.injectEndpoints({
   overrideExisting: false,
 });
 
-export const { useCreateOrderMutation, useGetMyOrdersQuery } = orderApi;
+export const {
+  useCreateOrderMutation,
+  useCreateBuyNowOrderMutation,
+  useGetMyOrdersQuery,
+} = orderApi;

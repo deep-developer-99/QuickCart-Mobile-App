@@ -31,7 +31,13 @@ export type RootStackParamList = {
     product: CartProduct;
   };
 
-  Checkout: undefined;
+  Checkout:
+    | {
+        mode: 'cart' | 'buyNow';
+        product?: CartProduct;
+        quantity?: number;
+      }
+    | undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

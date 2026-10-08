@@ -112,17 +112,12 @@ const ProductDetailsScreen = () => {
       ? description
       : `${description.slice(0, 220).trim()}...`;
 
-  const handleBuyNow = async () => {
-    try {
-      await addToCart({
-        productId: product._id,
-        quantity,
-      }).unwrap();
-
-      navigation.navigate('Checkout');
-    } catch (error) {
-      console.error('Buy Now failed:', error);
-    }
+  const handleBuyNow = () => {
+    navigation.navigate('Checkout', {
+      mode: 'buyNow',
+      product,
+      quantity,
+    });
   };
 
   const handleAddToCart = async () => {

@@ -19,7 +19,10 @@ import {
   useCreateAddressMutation,
   useGetAddressesQuery,
 } from '../../api/addressApi';
-import { useCreateOrderMutation } from '../../api/orderApi';
+import {
+  useCreateBuyNowOrderMutation,
+  useCreateOrderMutation,
+} from '../../api/orderApi';
 import {
   type CartItem,
   useClearCartMutation,
@@ -37,18 +40,40 @@ const BLACK = '#1C1C1C';
 const GREY = '#6F7384';
 const BORDER = '#ECEEF4';
 
-export default function CheckoutScreen({ navigation }: Props) {
-  const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery();
+export default function CheckoutScreen({ navigation, route }: Props) {
+  const checkoutMode = route.params?.mode ?? 'cart';
+  const buyNowProduct = route.params?.product;
+  const buyNowQuantity = route.params?.quantity ?? 1;
+  const isBuyNow = checkoutMode === 'buyNow';
+
+  const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery(
+    undefined,
+    { skip: isBuyNow },
+  );
   const { data: addressResponse, isLoading: addressLoading } =
     useGetAddressesQuery();
 
   const [createAddress, { isLoading: savingAddress }] =
     useCreateAddressMutation();
-  const [createOrder, { isLoading: placingOrder }] = useCreateOrderMutation();
+  const [createOrder, { isLoading: placingCartOrder }] =
+    useCreateOrderMutation();
+  const [createBuyNowOrder, { isLoading: placingBuyNowOrder }] =
+    useCreateBuyNowOrderMutation();
   const [clearCart] = useClearCartMutation();
 
-  const items: CartItem[] = cartResponse?.data?.items ?? [];
+  const items: CartItem[] = isBuyNow
+    ? buyNowProduct
+      ? [
+          {
+            product: buyNowProduct,
+            quantity: buyNowQuantity,
+          } as CartItem,
+        ]
+      : []
+    : cartResponse?.data?.items ?? [];
+
   const addresses: Address[] = addressResponse?.data ?? [];
+  const placingOrder = placingCartOrder || placingBuyNowOrder;
 
   const [step, setStep] = useState<Step>('shipping');
   const [addressId, setAddressId] = useState('');
@@ -149,24 +174,46 @@ export default function CheckoutScreen({ navigation }: Props) {
     }
 
     if (items.length === 0) {
-      Alert.alert('Empty cart', 'Your cart is empty.');
+      Alert.alert(
+        isBuyNow ? 'Product unavailable' : 'Empty cart',
+        isBuyNow
+          ? 'This product is no longer available for checkout.'
+          : 'Your cart is empty.',
+      );
       return;
     }
 
     try {
-      await createOrder({
-        addressId,
-        paymentMethod: payment,
-      }).unwrap();
+      if (isBuyNow) {
+        if (!buyNowProduct) {
+          Alert.alert(
+            'Product unavailable',
+            'Unable to checkout this product.',
+          );
+          return;
+        }
 
-      // The order is successfully created. Clear the server-side cart so
-      // the cart screen and cart badge become empty automatically.
-      try {
-        await clearCart().unwrap();
-      } catch (clearError) {
-        // Do not mark a successfully placed order as failed if cart cleanup
-        // fails. The order has already been created successfully.
-        console.error('Cart cleanup after order failed:', clearError);
+        await createBuyNowOrder({
+          productId: buyNowProduct._id,
+          quantity: buyNowQuantity,
+          addressId,
+          paymentMethod: 'COD',
+        }).unwrap();
+
+        // Buy Now is independent from the cart.
+        // Do not clear or modify the user's existing cart.
+      } else {
+        await createOrder({
+          addressId,
+          paymentMethod: payment,
+        }).unwrap();
+
+        // Cart checkout clears the cart after a successful order.
+        try {
+          await clearCart().unwrap();
+        } catch (clearError) {
+          console.error('Cart cleanup after order failed:', clearError);
+        }
       }
 
       setStep('success');
@@ -348,13 +395,15 @@ export default function CheckoutScreen({ navigation }: Props) {
               icon="₹"
             />
 
-            <Payment
-              title="Card / UPI"
-              subtitle="Demo Razorpay payment"
-              selected={payment === 'RAZORPAY_FAKE'}
-              onPress={() => setPayment('RAZORPAY_FAKE')}
-              icon="G"
-            />
+            {!isBuyNow && (
+              <Payment
+                title="Card / UPI"
+                subtitle="Demo Razorpay payment"
+                selected={payment === 'RAZORPAY_FAKE'}
+                onPress={() => setPayment('RAZORPAY_FAKE')}
+                icon="G"
+              />
+            )}
 
             <Summary subtotal={subtotal} shipping={shipping} total={total} />
 
