@@ -16,11 +16,10 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PaymentMethod'>;
-type BackendPaymentMethod = 'COD' | 'RAZORPAY_FAKE';
+type BackendPaymentMethod = 'RAZORPAY_FAKE';
 
 const BORDER = '#ECEEF4';
 const BLACK = '#17171A';
-const GREY = '#A5A7AE';
 const Field = ({
   label,
   value,
@@ -60,15 +59,6 @@ export default function PaymentMethodScreen({ navigation }: Props) {
   const [cvv, setCvv] = useState('');
 
   const handleSave = () => {
-    if (method === 'COD') {
-      Alert.alert(
-        'Payment Method',
-        'Cash on Delivery is supported by the current QuickCart backend.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }],
-      );
-      return;
-    }
-
     if (
       !cardHolder.trim() ||
       !cardNumber.trim() ||
@@ -155,20 +145,6 @@ export default function PaymentMethodScreen({ navigation }: Props) {
             </Pressable>
           </View>
 
-          <Pressable style={styles.codRow} onPress={() => setMethod('COD')}>
-            <View
-              style={[styles.radio, method === 'COD' && styles.radioSelected]}
-            >
-              {method === 'COD' ? <View style={styles.radioDot} /> : null}
-            </View>
-            <View style={styles.codTextWrap}>
-              <Text style={styles.codTitle}>Cash on Delivery</Text>
-              <Text style={styles.codSubtitle}>
-                Supported directly by the current backend
-              </Text>
-            </View>
-          </Pressable>
-
           {method === 'RAZORPAY_FAKE' ? (
             <>
               <Field
@@ -176,7 +152,6 @@ export default function PaymentMethodScreen({ navigation }: Props) {
                 value={cardHolder}
                 placeholder="Enter card holder name"
                 onChangeText={setCardHolder}
-                styles={styles}
               />
 
               <Field
@@ -193,7 +168,6 @@ export default function PaymentMethodScreen({ navigation }: Props) {
                       .trim(),
                   )
                 }
-                styles={styles}
               />
 
               <View style={styles.splitRow}>
@@ -211,7 +185,6 @@ export default function PaymentMethodScreen({ navigation }: Props) {
                           : digits,
                       );
                     }}
-                    styles={styles}
                   />
                 </View>
                 <View style={styles.half}>
@@ -224,7 +197,6 @@ export default function PaymentMethodScreen({ navigation }: Props) {
                     onChangeText={value =>
                       setCvv(value.replace(/\D/g, '').slice(0, 4))
                     }
-                    styles={styles}
                   />
                 </View>
               </View>
@@ -305,45 +277,7 @@ const styles = StyleSheet.create({
     fontFamily: 'PlusJakartaSans-Bold',
     color: '#4285F4',
   },
-  codRow: {
-    minHeight: 60,
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 11,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#A8ABB3',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  radioSelected: { borderColor: BLACK },
-  radioDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: BLACK,
-  },
-  codTextWrap: { flex: 1 },
-  codTitle: {
-    fontFamily: 'PlusJakartaSans-Medium',
-    fontSize: 13,
-    color: BLACK,
-  },
-  codSubtitle: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 10,
-    color: GREY,
-    marginTop: 2,
-  },
+
   fieldBlock: { marginBottom: 14 },
   label: {
     fontFamily: 'PlusJakartaSans-Regular',

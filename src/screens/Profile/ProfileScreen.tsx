@@ -295,12 +295,12 @@ const ProfileScreen = () => {
           <MenuRow
             icon={<AddressIcon color={theme.colors.grey150} />}
             label="Shipping Address"
-            onPress={() => handleComingSoon('Shipping Address')}
+            onPress={() => navigation.navigate('ShippingAddress')}
           />
           <MenuRow
             icon={<PaymentIcon color={theme.colors.grey150} />}
             label="Payment Method"
-            onPress={() => handleComingSoon('Payment Method')}
+            onPress={() => navigation.navigate('PaymentMethod')}
           />
           <MenuRow
             icon={<OrdersIcon color={theme.colors.grey150} />}
@@ -356,10 +356,8 @@ const ProfileScreen = () => {
                 <View
                   style={[
                     styles.switchThumb,
-                    {
-                      backgroundColor: theme.colors.white,
-                      alignSelf: mode === 'dark' ? 'flex-end' : 'flex-start',
-                    },
+                    mode === 'dark' && styles.switchThumbActive,
+                    { backgroundColor: theme.colors.white },
                   ]}
                 />
               </View>

@@ -210,7 +210,6 @@ export default function ShippingAddressScreen({ navigation }: Props) {
               value={form.fullName}
               placeholder="Enter full name"
               onChangeText={value => updateField('fullName', value)}
-              styles={styles}
             />
 
             <Field
@@ -219,7 +218,6 @@ export default function ShippingAddressScreen({ navigation }: Props) {
               placeholder="Enter phone number"
               keyboardType="phone-pad"
               onChangeText={value => updateField('phone', value)}
-              styles={styles}
             />
 
             <Field
@@ -227,7 +225,6 @@ export default function ShippingAddressScreen({ navigation }: Props) {
               value={form.addressLine}
               placeholder="Enter street address"
               onChangeText={value => updateField('addressLine', value)}
-              styles={styles}
             />
 
             <View style={styles.selectField}>
@@ -250,7 +247,6 @@ export default function ShippingAddressScreen({ navigation }: Props) {
               placeholder="Enter postal code"
               keyboardType="number-pad"
               onChangeText={value => updateField('pincode', value)}
-              styles={styles}
             />
 
             <Pressable
