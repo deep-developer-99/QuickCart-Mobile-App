@@ -16,6 +16,8 @@ import SearchScreen from '../screens/search/SearchScreen';
 import OrderHistoryScreen from '../screens/OrderHistory/OrderHistoryScreen';
 import ProductDetailsScreen from '../screens/ProductDetails/ProductDetailsScreen';
 import CheckoutScreen from '../screens/Checkout/CheckoutScreen';
+import ShippingAddressScreen from '../screens/ShippingAddress/ShippingAddressScreen';
+import PaymentMethodScreen from '../screens/PaymentMethod/PaymentMethodScreen';
 
 import type { CartProduct } from '../api/quickCartApi';
 import { useLazyGetMeQuery } from '../api/quickCartApi';
@@ -40,6 +42,8 @@ export type RootStackParamList = {
         quantity?: number;
       }
     | undefined;
+  ShippingAddress: undefined;
+  PaymentMethod: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -127,6 +131,11 @@ const RootNavigator = () => {
           />
 
           <Stack.Screen name="Checkout" component={CheckoutScreen} />
+          <Stack.Screen
+            name="ShippingAddress"
+            component={ShippingAddressScreen}
+          />
+          <Stack.Screen name="PaymentMethod" component={PaymentMethodScreen} />
         </Stack.Navigator>
       ) : (
         <AuthNavigator />
