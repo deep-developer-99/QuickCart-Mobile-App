@@ -30,6 +30,7 @@ import {
 } from '../../api/quickCartApi';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useTheme } from '../../theme';
+import type { ThemeColors } from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Checkout'>;
 
@@ -37,12 +38,7 @@ type Step = 'shipping' | 'payment' | 'review' | 'items' | 'success';
 type PaymentMethod = 'COD' | 'RAZORPAY_FAKE';
 
 export default function CheckoutScreen({ navigation, route }: Props) {
-  const { theme } = useTheme();
   const styles = useStyles();
-  const GREEN = theme.colors.cyan;
-  const BLACK = theme.colors.black;
-  const GREY = theme.colors.grey150;
-  const BORDER = theme.colors.grey50;
   const checkoutMode = route.params?.mode ?? 'cart';
   const buyNowProduct = route.params?.product;
   const buyNowQuantity = route.params?.quantity ?? 1;

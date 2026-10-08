@@ -398,17 +398,21 @@ const Header = ({
   title: string;
   onBack: () => void;
   right?: React.ReactNode;
-}) => (
-  <View style={styles.header}>
-    <Pressable onPress={onBack} hitSlop={10}>
-      <Text style={styles.backIcon}>‹</Text>
-    </Pressable>
-    <Text style={styles.headerTitle} numberOfLines={1}>
-      {title}
-    </Text>
-    {right ?? <View style={styles.headerSpacer} />}
-  </View>
-);
+}) => {
+  const styles = useStyles();
+
+  return (
+    <View style={styles.header}>
+      <Pressable onPress={onBack} hitSlop={10}>
+        <Text style={styles.backIcon}>‹</Text>
+      </Pressable>
+      <Text style={styles.headerTitle} numberOfLines={1}>
+        {title}
+      </Text>
+      {right ?? <View style={styles.headerSpacer} />}
+    </View>
+  );
+};
 
 const FilterModal = ({
   visible,
@@ -423,6 +427,7 @@ const FilterModal = ({
   onClose: () => void;
   onApply: () => void;
 }) => {
+  const styles = useStyles();
   const options: Array<{ key: SortOption; label: string }> = [
     { key: 'priceLow', label: 'Price (Low to High)' },
     { key: 'priceHigh', label: 'Price (High to Low)' },

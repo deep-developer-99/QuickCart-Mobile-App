@@ -62,7 +62,6 @@ const productEmoji = (name: string) => {
 
 const HomeScreen = () => {
   const styles = useStyles();
-  const { theme } = useTheme();
   const navigation = useNavigation<any>();
   const [addToWishlist] = useAddToWishlistMutation();
   const [removeFromWishlist] = useRemoveFromWishlistMutation();

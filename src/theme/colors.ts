@@ -6,6 +6,7 @@ export const lightColors = {
   grey50: '#F4F5FD',
   grey100: '#C0C0C0',
   grey150: '#6F7384',
+  border: '#F4F5FD',
   red: '#EE4D4D',
   generalCyan50: '#F4FDFA',
   blue: '#1F88DA',
@@ -31,6 +32,7 @@ export const darkColors = {
   grey50: '#282828',
   grey100: '#C0C0C0',
   grey150: '#A2A2A6',
+  border: '#282828',
   red: '#EE4D4D',
   generalCyan50: '#212322',
   blue: '#1F88DA',
@@ -47,7 +49,9 @@ export const darkColors = {
   control: '#282828',
 } as const;
 
-export type ThemeColors = typeof lightColors;
+export type ThemeColors = {
+  [K in keyof typeof lightColors]: string;
+};
 
 // Kept for compatibility with non-themed utilities and existing imports.
 export const colors = lightColors;

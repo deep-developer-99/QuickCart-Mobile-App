@@ -10,13 +10,12 @@ import { store } from './src/store/store';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 
 const ThemedApp = () => {
-  const { mode, theme } = useTheme();
+  const { mode } = useTheme();
 
   return (
     <>
       <StatusBar
         barStyle={mode === 'dark' ? 'light-content' : 'dark-content'}
-        backgroundColor={theme.colors.background}
       />
       <RootNavigator />
     </>
