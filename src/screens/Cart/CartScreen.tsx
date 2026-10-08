@@ -24,11 +24,14 @@ import {
   useRemoveCartItemMutation,
   useUpdateCartItemMutation,
 } from '../../api/quickCartApi';
-import { colors, radius, spacing, typography } from '../../theme';
+import { radius, spacing, typography, useTheme } from '../../theme';
+import type { ThemeColors } from '../../theme';
 
 const EMPTY_CART_ITEMS: CartItem[] = [];
 
 const CartScreen = () => {
+  const { theme } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
 
   const {
@@ -118,7 +121,7 @@ const CartScreen = () => {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loader}>
-          <ActivityIndicator size="small" color={colors.black} />
+          <ActivityIndicator size="small" color={theme.colors.black} />
         </View>
       </SafeAreaView>
     );
@@ -180,7 +183,7 @@ const CartScreen = () => {
           >
             {isFetching && (
               <View style={styles.refreshingRow}>
-                <ActivityIndicator size="small" color={colors.cyan} />
+                <ActivityIndicator size="small" color={theme.colors.cyan} />
               </View>
             )}
 
@@ -329,7 +332,7 @@ const CartScreen = () => {
               value={voucherCode}
               onChangeText={setVoucherCode}
               placeholder="Enter Voucher Code"
-              placeholderTextColor="#B9BBC4"
+              placeholderTextColor={theme.colors.grey150}
               autoCapitalize="characters"
               style={styles.voucherInput}
             />
@@ -350,294 +353,300 @@ const CartScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.white,
-  },
-  header: {
-    height: 60,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F1F5',
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  backIcon: {
-    fontSize: 36,
-    lineHeight: 36,
-    color: colors.black,
-    fontWeight: '300',
-  },
-  headerTitle: {
-    ...typography.body1Medium,
-    color: colors.black,
-  },
-  voucherButton: {
-    marginLeft: 'auto',
-  },
-  voucherText: {
-    ...typography.body2Medium,
-    color: colors.cyan,
-  },
-  headerSpacer: {
-    marginLeft: 'auto',
-    width: 80,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: 20,
-  },
-  refreshingRow: {
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cartItem: {
-    flexDirection: 'row',
-    paddingVertical: spacing.sm,
-  },
-  imageBox: {
-    width: 120,
-    height: 120,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-    backgroundColor: '#F1F3F4',
-  },
-  productImage: {
-    width: '100%',
-    height: '100%',
-  },
-  productDetails: {
-    flex: 1,
-    marginLeft: spacing.sm,
-    paddingVertical: 2,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  productName: {
-    ...typography.body2Regular,
-    color: colors.black,
-    flex: 1,
-    paddingRight: spacing.xs,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#D9DCE5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 4,
-  },
-  checkboxSelected: {
-    backgroundColor: colors.cyan,
-    borderColor: colors.cyan,
-  },
-  checkmark: {
-    color: colors.white,
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 16,
-  },
-  currentPrice: {
-    ...typography.body2Medium,
-    color: colors.black,
-    marginTop: 5,
-  },
-  originalPrice: {
-    ...typography.captionRegular,
-    color: colors.grey150,
-    textDecorationLine: 'line-through',
-    marginTop: 1,
-  },
-  itemBottomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: spacing.sm,
-  },
-  quantityBox: {
-    height: 34,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E4EB',
-    borderRadius: radius.sm,
-  },
-  quantityButton: {
-    width: 32,
-    height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quantitySymbol: {
-    fontSize: 21,
-    color: colors.black,
-  },
-  quantity: {
-    ...typography.body2Medium,
-    color: colors.black,
-    minWidth: 25,
-    textAlign: 'center',
-  },
-  deleteButton: {
-    width: 34,
-    height: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteIcon: {
-    fontSize: 22,
-    color: colors.red,
-    transform: [{ rotate: '180deg' }],
-  },
-  orderInfo: {
-    marginTop: 38,
-    paddingBottom: 12,
-  },
-  orderInfoTitle: {
-    ...typography.body1Medium,
-    color: colors.black,
-    marginBottom: 18,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  infoLabel: {
-    ...typography.captionRegular,
-    color: colors.grey150,
-  },
-  infoValue: {
-    ...typography.captionRegular,
-    color: colors.grey150,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 2,
-  },
-  totalLabel: {
-    ...typography.body1Medium,
-    color: colors.black,
-  },
-  totalValue: {
-    ...typography.body1Medium,
-    color: colors.black,
-  },
-  checkoutContainer: {
-    paddingHorizontal: spacing.md,
-    paddingTop: 10,
-    paddingBottom: spacing.md,
-    backgroundColor: colors.white,
-  },
-  checkoutButton: {
-    height: 61,
-    borderRadius: radius.md,
-    backgroundColor: colors.black,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkoutDisabled: {
-    opacity: 0.5,
-  },
-  checkoutText: {
-    ...typography.body2Medium,
-    color: colors.white,
-  },
-  loader: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  errorTitle: {
-    ...typography.body1Medium,
-    color: colors.black,
-    textAlign: 'center',
-  },
-  errorText: {
-    ...typography.body2Regular,
-    color: colors.grey150,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-  },
-  retryButton: {
-    marginTop: spacing.lg,
-    height: 48,
-    paddingHorizontal: 28,
-    borderRadius: radius.md,
-    backgroundColor: colors.black,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  retryText: {
-    ...typography.body2Medium,
-    color: colors.white,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.48)',
-    justifyContent: 'flex-end',
-  },
-  voucherSheet: {
-    backgroundColor: colors.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: spacing.md,
-    paddingTop: 8,
-    paddingBottom: 34,
-  },
-  sheetHandle: {
-    width: 64,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#EDEEF3',
-    alignSelf: 'center',
-    marginBottom: 28,
-  },
-  sheetTitle: {
-    ...typography.body1Medium,
-    color: colors.black,
-    marginBottom: 18,
-  },
-  voucherInput: {
-    height: 58,
-    borderWidth: 1,
-    borderColor: '#E8EAF1',
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    ...typography.body2Regular,
-    color: colors.black,
-  },
-  applyButton: {
-    height: 60,
-    borderRadius: radius.md,
-    backgroundColor: colors.black,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  applyText: {
-    ...typography.body2Medium,
-    color: colors.white,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      height: 60,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.grey50,
+    },
+    backButton: {
+      width: 36,
+      height: 36,
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+    },
+    backIcon: {
+      fontSize: 36,
+      lineHeight: 36,
+      color: colors.text,
+      fontWeight: '300',
+    },
+    headerTitle: {
+      ...typography.body1Medium,
+      color: colors.text,
+    },
+    voucherButton: {
+      marginLeft: 'auto',
+    },
+    voucherText: {
+      ...typography.body2Medium,
+      color: colors.cyan,
+    },
+    headerSpacer: {
+      marginLeft: 'auto',
+      width: 80,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.md,
+      paddingBottom: 20,
+    },
+    refreshingRow: {
+      height: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cartItem: {
+      flexDirection: 'row',
+      paddingVertical: spacing.sm,
+    },
+    imageBox: {
+      width: 120,
+      height: 120,
+      borderRadius: radius.lg,
+      overflow: 'hidden',
+      backgroundColor: colors.cyan50,
+    },
+    productImage: {
+      width: '100%',
+      height: '100%',
+    },
+    productDetails: {
+      flex: 1,
+      marginLeft: spacing.sm,
+      paddingVertical: 2,
+    },
+    nameRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+    },
+    productName: {
+      ...typography.body2Regular,
+      color: colors.text,
+      flex: 1,
+      paddingRight: spacing.xs,
+    },
+    checkbox: {
+      width: 20,
+      height: 20,
+      borderRadius: 5,
+      borderWidth: 1,
+      borderColor: colors.grey100,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: 4,
+    },
+    checkboxSelected: {
+      backgroundColor: colors.cyan,
+      borderColor: colors.cyan,
+    },
+    checkmark: {
+      color: colors.white,
+      fontSize: 14,
+      fontWeight: '700',
+      lineHeight: 16,
+    },
+    currentPrice: {
+      ...typography.body2Medium,
+      color: colors.text,
+      marginTop: 5,
+    },
+    originalPrice: {
+      ...typography.captionRegular,
+      color: colors.secondaryText,
+      textDecorationLine: 'line-through',
+      marginTop: 1,
+    },
+    itemBottomRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: spacing.sm,
+    },
+    quantityBox: {
+      height: 34,
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.grey50,
+      borderRadius: radius.sm,
+    },
+    quantityButton: {
+      width: 32,
+      height: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    quantitySymbol: {
+      fontSize: 21,
+      color: colors.text,
+    },
+    quantity: {
+      ...typography.body2Medium,
+      color: colors.text,
+      minWidth: 25,
+      textAlign: 'center',
+    },
+    deleteButton: {
+      width: 34,
+      height: 34,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    deleteIcon: {
+      fontSize: 22,
+      color: colors.red,
+      transform: [{ rotate: '180deg' }],
+    },
+    orderInfo: {
+      marginTop: 38,
+      paddingBottom: 12,
+    },
+    orderInfoTitle: {
+      ...typography.body1Medium,
+      color: colors.text,
+      marginBottom: 18,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 14,
+    },
+    infoLabel: {
+      ...typography.captionRegular,
+      color: colors.secondaryText,
+    },
+    infoValue: {
+      ...typography.captionRegular,
+      color: colors.secondaryText,
+    },
+    totalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 2,
+    },
+    totalLabel: {
+      ...typography.body1Medium,
+      color: colors.text,
+    },
+    totalValue: {
+      ...typography.body1Medium,
+      color: colors.text,
+    },
+    checkoutContainer: {
+      paddingHorizontal: spacing.md,
+      paddingTop: 10,
+      paddingBottom: spacing.md,
+      backgroundColor: colors.surface,
+    },
+    checkoutButton: {
+      height: 61,
+      borderRadius: radius.md,
+      backgroundColor: colors.black,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkoutDisabled: {
+      opacity: 0.5,
+    },
+    checkoutText: {
+      ...typography.body2Medium,
+      color: colors.white,
+    },
+    loader: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    errorContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.lg,
+    },
+    errorTitle: {
+      ...typography.body1Medium,
+      color: colors.text,
+      textAlign: 'center',
+    },
+    errorText: {
+      ...typography.body2Regular,
+      color: colors.secondaryText,
+      textAlign: 'center',
+      marginTop: spacing.sm,
+    },
+    retryButton: {
+      marginTop: spacing.lg,
+      height: 48,
+      paddingHorizontal: 28,
+      borderRadius: radius.md,
+      backgroundColor: colors.black,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    retryText: {
+      ...typography.body2Medium,
+      color: colors.white,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.48)',
+      justifyContent: 'flex-end',
+    },
+    voucherSheet: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingHorizontal: spacing.md,
+      paddingTop: 8,
+      paddingBottom: 34,
+    },
+    sheetHandle: {
+      width: 64,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.grey50,
+      alignSelf: 'center',
+      marginBottom: 28,
+    },
+    sheetTitle: {
+      ...typography.body1Medium,
+      color: colors.text,
+      marginBottom: 18,
+    },
+    voucherInput: {
+      height: 58,
+      borderWidth: 1,
+      borderColor: colors.grey50,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      ...typography.body2Regular,
+      color: colors.text,
+    },
+    applyButton: {
+      height: 60,
+      borderRadius: radius.md,
+      backgroundColor: colors.black,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 24,
+    },
+    applyText: {
+      ...typography.body2Medium,
+      color: colors.white,
+    },
+  });
+
+const useStyles = () => {
+  const { theme } = useTheme();
+  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
+};
 
 export default CartScreen;

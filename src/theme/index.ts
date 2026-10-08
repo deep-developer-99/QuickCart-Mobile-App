@@ -1,4 +1,8 @@
-export { colors } from './colors';
+export { colors, lightColors, darkColors } from './colors';
+export type { ThemeColors } from './colors';
+export { lightTheme, darkTheme } from './themes';
+export type { AppTheme } from './themes';
+export { ThemeProvider, useTheme } from './ThemeContext';
 export { typography } from './typography';
 export { spacing } from './spacing';
 export { radius } from './radius';

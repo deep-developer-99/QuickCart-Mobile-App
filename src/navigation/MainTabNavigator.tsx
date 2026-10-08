@@ -1,3 +1,5 @@
+import { useTheme } from '../theme';
+import type { ThemeColors } from '../theme';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -45,6 +47,7 @@ const tabIcons = {
 };
 
 const TabBarIcon = ({ color, routeName }: TabBarIconProps) => {
+  const styles = useStyles();
   const { data: cartResponse } = useGetCartQuery();
   const { data: wishlistResponse } = useGetWishlistQuery();
 
@@ -89,14 +92,16 @@ const renderProfileIcon = ({ color }: { color: string }) => (
 );
 
 const MainTabNavigator = () => {
+  const styles = useStyles();
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#21D4B4',
-        tabBarInactiveTintColor: '#6F7384',
+        tabBarActiveTintColor: theme.colors.cyan,
+        tabBarInactiveTintColor: theme.colors.grey150,
         tabBarLabelStyle: styles.tabBarLabel,
         tabBarStyle: [
           styles.tabBar,
@@ -136,48 +141,54 @@ const MainTabNavigator = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  iconContainer: {
-    width: 30,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cartBadge: {
-    position: 'absolute',
-    right: 1,
-    top: 1,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#EE4D4D',
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-  },
-  wishlistBadge: {
-    position: 'absolute',
-    right: 1,
-    top: 1,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#EE4D4D',
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-  },
-  tabBarLabel: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 10,
-    marginBottom: 3,
-  },
-  tabBar: {
-    height: 68,
-    paddingTop: 5,
-    paddingBottom: 7,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F1F5',
-    backgroundColor: '#FFFFFF',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    iconContainer: {
+      width: 30,
+      height: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cartBadge: {
+      position: 'absolute',
+      right: 1,
+      top: 1,
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.red,
+      borderWidth: 1,
+      borderColor: colors.white,
+    },
+    wishlistBadge: {
+      position: 'absolute',
+      right: 1,
+      top: 1,
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.red,
+      borderWidth: 1,
+      borderColor: colors.white,
+    },
+    tabBarLabel: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 10,
+      marginBottom: 3,
+    },
+    tabBar: {
+      height: 68,
+      paddingTop: 5,
+      paddingBottom: 7,
+      borderTopWidth: 1,
+      borderTopColor: colors.grey50,
+      backgroundColor: colors.surface,
+    },
+  });
+
+const useStyles = () => {
+  const { theme } = useTheme();
+  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
+};
 
 export default MainTabNavigator;

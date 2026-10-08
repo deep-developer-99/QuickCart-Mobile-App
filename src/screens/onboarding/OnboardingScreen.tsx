@@ -12,6 +12,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/AuthNavigator';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { OnboardingScreenStyles } from './OnboardingScreen.styles';
+import { useTheme } from '../../theme';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Onboarding'>;
 
@@ -43,6 +44,8 @@ const onboardingData: OnboardingItem[] = [
 ];
 
 const OnboardingScreen = ({ navigation }: Props) => {
+  const { theme } = useTheme();
+  const styles = OnboardingScreenStyles(theme.colors);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const flatListRef = useRef<FlatList<OnboardingItem>>(null);
@@ -69,24 +72,20 @@ const OnboardingScreen = ({ navigation }: Props) => {
 
   const renderItem = ({ item }: { item: OnboardingItem }) => {
     return (
-      <View style={OnboardingScreenStyles.slide}>
-        <View style={OnboardingScreenStyles.imagePlaceholder}>
-          <Text style={OnboardingScreenStyles.imagePlaceholderText}>
-            QuickCart
-          </Text>
+      <View style={styles.slide}>
+        <View style={styles.imagePlaceholder}>
+          <Text style={styles.imagePlaceholderText}>QuickCart</Text>
         </View>
 
-        <Text style={OnboardingScreenStyles.title}>{item.title}</Text>
+        <Text style={styles.title}>{item.title}</Text>
 
-        <Text style={OnboardingScreenStyles.description}>
-          {item.description}
-        </Text>
+        <Text style={styles.description}>{item.description}</Text>
       </View>
     );
   };
 
   return (
-    <SafeAreaView style={OnboardingScreenStyles.container}>
+    <SafeAreaView style={styles.container}>
       <FlatList
         ref={flatListRef}
         data={onboardingData}
@@ -98,27 +97,20 @@ const OnboardingScreen = ({ navigation }: Props) => {
         onMomentumScrollEnd={handleScroll}
       />
 
-      <View style={OnboardingScreenStyles.bottomSection}>
+      <View style={styles.bottomSection}>
         {/* Pagination dots */}
-        <View style={OnboardingScreenStyles.dots}>
+        <View style={styles.dots}>
           {onboardingData.map((item, index) => (
             <View
               key={item.id}
-              style={
-                index === currentIndex
-                  ? OnboardingScreenStyles.activeDot
-                  : OnboardingScreenStyles.dot
-              }
+              style={index === currentIndex ? styles.activeDot : styles.dot}
             />
           ))}
         </View>
 
         {/* Button */}
-        <Pressable
-          style={OnboardingScreenStyles.button}
-          onPress={handleButtonPress}
-        >
-          <Text style={OnboardingScreenStyles.buttonText}>
+        <Pressable style={styles.button} onPress={handleButtonPress}>
+          <Text style={styles.buttonText}>
             {currentIndex === onboardingData.length - 1
               ? 'Get Started'
               : 'Next'}

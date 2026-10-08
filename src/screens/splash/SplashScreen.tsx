@@ -4,11 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { SplashScreenStyles } from './SplashScreen.styles';
+import { useTheme } from '../../theme';
 import { AuthStackParamList } from '../../navigation/AuthNavigator';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Splash'>;
 
 const SplashScreen = ({ navigation }: Props) => {
+  const { theme } = useTheme();
+  const styles = SplashScreenStyles(theme.colors);
   useEffect(() => {
     const timer = setTimeout(() => {
       navigation.replace('Onboarding');
@@ -18,12 +21,10 @@ const SplashScreen = ({ navigation }: Props) => {
   }, [navigation]);
 
   return (
-    <SafeAreaView style={SplashScreenStyles.container}>
-      <Text style={SplashScreenStyles.logo}>QuickCart</Text>
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.logo}>QuickCart</Text>
 
-      <Text style={SplashScreenStyles.tagline}>
-        Everything you need, delivered fast.
-      </Text>
+      <Text style={styles.tagline}>Everything you need, delivered fast.</Text>
     </SafeAreaView>
   );
 };

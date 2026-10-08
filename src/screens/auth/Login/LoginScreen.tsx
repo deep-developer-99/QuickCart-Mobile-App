@@ -17,6 +17,7 @@ import {
 } from '../../../api/quickCartApi';
 import { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import { LoginScreenStyles } from './LoginScreen.styles';
+import { useTheme } from '../../../theme';
 import { signInWithGoogle } from '../../../services/googleSignIn';
 import { saveToken } from '../../../services/secureStorage';
 import { setCredentials } from '../../../store/slices/authSlice';
@@ -25,6 +26,8 @@ import type { AppDispatch } from '../../../store/store';
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
 const LoginScreen = ({ navigation }: Props) => {
+  const { theme } = useTheme();
+  const styles = LoginScreenStyles(theme.colors);
   const [mobileNumber, setMobileNumber] = useState('');
 
   const [sendOtp, { isLoading }] = useSendOtpMutation();
@@ -83,32 +86,32 @@ const LoginScreen = ({ navigation }: Props) => {
   };
 
   return (
-    <SafeAreaView style={LoginScreenStyles.safeArea} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
-        style={LoginScreenStyles.container}
+        style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={LoginScreenStyles.content}>
-          <Text style={LoginScreenStyles.title}>Welcome to QuickCart</Text>
+        <View style={styles.content}>
+          <Text style={styles.title}>Welcome to QuickCart</Text>
 
-          <Text style={LoginScreenStyles.subtitle}>
+          <Text style={styles.subtitle}>
             Login or create an account to continue
           </Text>
 
-          <View style={LoginScreenStyles.inputSection}>
-            <Text style={LoginScreenStyles.label}>Mobile Number</Text>
+          <View style={styles.inputSection}>
+            <Text style={styles.label}>Mobile Number</Text>
 
-            <View style={LoginScreenStyles.phoneInputContainer}>
-              <Text style={LoginScreenStyles.countryCode}>+91</Text>
+            <View style={styles.phoneInputContainer}>
+              <Text style={styles.countryCode}>+91</Text>
 
               <TextInput
-                style={LoginScreenStyles.input}
+                style={styles.input}
                 value={mobileNumber}
                 onChangeText={text =>
                   setMobileNumber(text.replace(/[^0-9]/g, ''))
                 }
                 placeholder="Enter mobile number"
-                placeholderTextColor="#6F7384"
+                placeholderTextColor={theme.colors.grey150}
                 keyboardType="number-pad"
                 maxLength={10}
               />
@@ -117,34 +120,33 @@ const LoginScreen = ({ navigation }: Props) => {
 
           <Pressable
             style={[
-              LoginScreenStyles.continueButton,
-              mobileNumber.length !== 10 &&
-                LoginScreenStyles.continueButtonDisabled,
+              styles.continueButton,
+              mobileNumber.length !== 10 && styles.continueButtonDisabled,
             ]}
             onPress={handleContinue}
             disabled={mobileNumber.length !== 10 || isLoading}
           >
-            <Text style={LoginScreenStyles.continueButtonText}>
+            <Text style={styles.continueButtonText}>
               {isLoading ? 'Sending OTP...' : 'Continue'}
             </Text>
           </Pressable>
 
-          <View style={LoginScreenStyles.dividerContainer}>
-            <View style={LoginScreenStyles.divider} />
+          <View style={styles.dividerContainer}>
+            <View style={styles.divider} />
 
-            <Text style={LoginScreenStyles.orText}>OR</Text>
+            <Text style={styles.orText}>OR</Text>
 
-            <View style={LoginScreenStyles.divider} />
+            <View style={styles.divider} />
           </View>
 
           <Pressable
-            style={LoginScreenStyles.googleButton}
+            style={styles.googleButton}
             onPress={handleGoogleLogin}
             disabled={isGoogleLoading}
           >
-            <Text style={LoginScreenStyles.googleIcon}>G</Text>
+            <Text style={styles.googleIcon}>G</Text>
 
-            <Text style={LoginScreenStyles.googleButtonText}>
+            <Text style={styles.googleButtonText}>
               {isGoogleLoading ? 'Signing in...' : 'Continue with Google'}
             </Text>
           </Pressable>

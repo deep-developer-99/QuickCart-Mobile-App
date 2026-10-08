@@ -6,11 +6,13 @@ import {
   getWishlistProducts,
   useGetWishlistQuery,
 } from '../../api/quickCartApi';
-import { colors, typography } from '../../theme';
+import { typography, useTheme } from '../../theme';
+import type { ThemeColors } from '../../theme';
 import EmptyWishlist from './EmptyWishlist';
 import WishlistProducts from './WishlistProducts';
 
 const WishlistScreen = () => {
+  const styles = useStyles();
   const {
     data: wishlistResponse,
     isLoading,
@@ -67,48 +69,54 @@ const WishlistScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.white,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    ...typography.body2Regular,
-    color: '#777B89',
-    marginTop: 10,
-  },
-  errorContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-  },
-  errorTitle: {
-    ...typography.heading3SemiBold,
-    color: colors.black,
-    textAlign: 'center',
-  },
-  errorText: {
-    ...typography.body2Regular,
-    color: '#777B89',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  retryText: {
-    ...typography.body2Medium,
-    color: '#21D4B4',
-    marginTop: 18,
-  },
-  refreshIndicator: {
-    position: 'absolute',
-    top: 8,
-    right: 16,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    loadingText: {
+      ...typography.body2Regular,
+      color: colors.secondaryText,
+      marginTop: 10,
+    },
+    errorContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 32,
+    },
+    errorTitle: {
+      ...typography.heading3SemiBold,
+      color: colors.text,
+      textAlign: 'center',
+    },
+    errorText: {
+      ...typography.body2Regular,
+      color: colors.secondaryText,
+      textAlign: 'center',
+      marginTop: 8,
+    },
+    retryText: {
+      ...typography.body2Medium,
+      color: colors.cyan,
+      marginTop: 18,
+    },
+    refreshIndicator: {
+      position: 'absolute',
+      top: 8,
+      right: 16,
+    },
+  });
+
+const useStyles = () => {
+  const { theme } = useTheme();
+  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
+};
 
 export default WishlistScreen;

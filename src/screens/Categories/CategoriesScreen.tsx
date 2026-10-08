@@ -20,7 +20,8 @@ import {
   useRemoveFromWishlistMutation,
 } from '../../api/quickCartApi';
 import type { CartProduct } from '../../store/slices/cartSlice';
-import { colors, radius, spacing, typography } from '../../theme';
+import { radius, spacing, typography, useTheme } from '../../theme';
+import type { ThemeColors } from '../../theme';
 
 interface Category {
   _id: string;
@@ -67,6 +68,8 @@ const getProductCategory = (product: Product) => {
 };
 
 const CategoriesScreen = () => {
+  const { theme } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<any>();
   const [addToWishlist] = useAddToWishlistMutation();
   const [removeFromWishlist] = useRemoveFromWishlistMutation();
@@ -161,7 +164,7 @@ const CategoriesScreen = () => {
               value={searchText}
               onChangeText={setSearchText}
               placeholder="Search"
-              placeholderTextColor={colors.grey150}
+              placeholderTextColor={theme.colors.grey150}
               style={styles.searchInput}
               autoFocus
             />
@@ -350,7 +353,7 @@ const CategoriesScreen = () => {
                     <View
                       style={[
                         styles.colorDot,
-                        { backgroundColor: colors.grey100 },
+                        { backgroundColor: theme.colors.grey100 },
                       ]}
                     />
                     <Text style={styles.colorText}>All 5 Colors</Text>
@@ -467,235 +470,241 @@ const FilterModal = ({
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  container: { flex: 1, backgroundColor: colors.white },
-  header: {
-    height: 60,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    paddingHorizontal: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F1F5',
-  },
-  backIcon: { fontSize: 38, lineHeight: 38, color: colors.black, width: 35 },
-  headerTitle: { ...typography.body1Regular, color: colors.black, flex: 1 },
-  headerSpacer: { width: 60 },
-  headerActions: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: spacing.lg,
-  },
-  headerIcon: { fontSize: 29, color: colors.black },
-  categoryGrid: {
-    padding: spacing.lg,
-    flexDirection: 'row' as const,
-    flexWrap: 'wrap' as const,
-    justifyContent: 'space-between' as const,
-    paddingBottom: 90,
-  },
-  categoryTile: {
-    width: '48.5%' as const,
-    height: 100,
-    borderWidth: 1,
-    borderColor: '#EEF0F8',
-    borderRadius: radius.lg,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    marginBottom: spacing.md,
-  },
-  categoryImage: { width: 44, height: 44, marginBottom: spacing.xs },
-  categoryEmoji: { fontSize: 30, marginBottom: spacing.xs },
-  categoryName: {
-    ...typography.body2Regular,
-    color: colors.black,
-    textAlign: 'center' as const,
-    paddingHorizontal: spacing.sm,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    padding: spacing.xxl,
-  },
-  emptyTitle: { ...typography.heading3Bold, color: colors.black },
-  emptyText: {
-    ...typography.body2Regular,
-    color: colors.grey150,
-    marginTop: spacing.xs,
-  },
-  productGrid: {
-    padding: spacing.lg,
-    flexDirection: 'row' as const,
-    flexWrap: 'wrap' as const,
-    justifyContent: 'space-between' as const,
-    paddingBottom: 90,
-  },
-  productCard: { width: '48.2%' as const, marginBottom: spacing.lg },
-  productImageWrap: {
-    height: 138,
-    borderRadius: radius.xl,
-    overflow: 'hidden' as const,
-    backgroundColor: colors.grey50,
-    position: 'relative' as const,
-  },
-  productImage: { width: '100%', height: '100%' },
-  productFallback: {
-    flex: 1,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-  },
-  productEmoji: { fontSize: 52 },
-  heartButton: {
-    position: 'absolute' as const,
-    top: 7,
-    right: 7,
-    width: 27,
-    height: 27,
-    borderRadius: radius.pill,
-    backgroundColor: '#1D1D1D',
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-  },
-  heartText: { color: colors.white, fontSize: 17 },
-  colorRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    marginTop: spacing.sm,
-  },
-  colorDot: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.pill,
-    borderWidth: 2,
-    borderColor: colors.white,
-    marginRight: -5,
-  },
-  colorDotDark: { backgroundColor: '#252525' },
-  colorDotBlue: { backgroundColor: '#1F88DA' },
-  colorText: {
-    ...typography.captionRegular,
-    color: colors.grey150,
-    textDecorationLine: 'underline' as const,
-    marginLeft: spacing.sm,
-  },
-  productName: {
-    ...typography.body2Regular,
-    color: colors.black,
-    marginTop: spacing.sm,
-  },
-  productPrice: { ...typography.body2Medium, color: colors.black },
-  originalPrice: {
-    ...typography.captionRegular,
-    color: colors.grey100,
-    textDecorationLine: 'line-through' as const,
-  },
-  searchHeader: {
-    height: 60,
-    paddingHorizontal: spacing.lg,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between' as const,
-  },
-  logoText: { ...typography.heading3Bold, color: colors.black },
-  closeText: { fontSize: 32, color: colors.black },
-  searchBox: {
-    marginHorizontal: spacing.lg,
-    height: 56,
-    borderWidth: 1,
-    borderColor: '#EEF0F8',
-    borderRadius: radius.md,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    paddingHorizontal: spacing.md,
-  },
-  searchIcon: { fontSize: 28, color: colors.grey150 },
-  searchInput: {
-    ...typography.body2Regular,
-    flex: 1,
-    color: colors.black,
-    marginHorizontal: spacing.sm,
-  },
-  filterIcon: { fontSize: 26, color: colors.grey150 },
-  recentTitle: {
-    ...typography.captionSemiBold,
-    color: colors.black,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.xl,
-    marginBottom: spacing.sm,
-  },
-  recentRow: {
-    height: 49,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEF0F8',
-    paddingHorizontal: spacing.lg,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'space-between',
-  },
-  recentText: { ...typography.body2Regular, color: colors.black },
-  recentArrow: { fontSize: 24, color: colors.grey100 },
-  modalBackdrop: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.48)',
-  },
-  modalDismiss: { flex: 1 },
-  filterSheet: {
-    backgroundColor: colors.white,
-    borderTopLeftRadius: radius.xxl,
-    borderTopRightRadius: radius.xxl,
-    paddingBottom: 24,
-  },
-  sheetHandle: {
-    width: 64,
-    height: 4,
-    borderRadius: radius.pill,
-    backgroundColor: colors.grey50,
-    alignSelf: 'center',
-    marginTop: spacing.sm,
-  },
-  filterTitle: {
-    ...typography.body1Medium,
-    color: colors.black,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  filterRow: {
-    height: 56,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    paddingHorizontal: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEF0F8',
-  },
-  checkbox: {
-    width: 28,
-    height: 28,
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: colors.black,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    marginRight: spacing.md,
-  },
-  checkboxChecked: { backgroundColor: colors.blue, borderColor: colors.blue },
-  checkmark: { color: colors.white, fontSize: 18, fontWeight: '700' },
-  filterLabel: { ...typography.body2Regular, color: colors.black },
-  applyButton: {
-    height: 60,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.xl,
-    borderRadius: radius.md,
-    backgroundColor: colors.black,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-  },
-  applyText: { ...typography.body2Medium, color: colors.white },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: 'transparent',
+    },
+    container: { flex: 1, backgroundColor: colors.background },
+    header: {
+      height: 60,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.grey50,
+    },
+    backIcon: { fontSize: 38, lineHeight: 38, color: colors.text, width: 35 },
+    headerTitle: { ...typography.body1Regular, color: colors.text, flex: 1 },
+    headerSpacer: { width: 60 },
+    headerActions: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: spacing.lg,
+    },
+    headerIcon: { fontSize: 29, color: colors.text },
+    categoryGrid: {
+      padding: spacing.lg,
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      justifyContent: 'space-between' as const,
+      paddingBottom: 90,
+    },
+    categoryTile: {
+      width: '48.5%' as const,
+      height: 100,
+      borderWidth: 1,
+      borderColor: colors.grey50,
+      borderRadius: radius.lg,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      marginBottom: spacing.md,
+    },
+    categoryImage: { width: 44, height: 44, marginBottom: spacing.xs },
+    categoryEmoji: { fontSize: 30, marginBottom: spacing.xs },
+    categoryName: {
+      ...typography.body2Regular,
+      color: colors.text,
+      textAlign: 'center' as const,
+      paddingHorizontal: spacing.sm,
+    },
+    center: {
+      flex: 1,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      padding: spacing.xxl,
+    },
+    emptyTitle: { ...typography.heading3Bold, color: colors.text },
+    emptyText: {
+      ...typography.body2Regular,
+      color: colors.secondaryText,
+      marginTop: spacing.xs,
+    },
+    productGrid: {
+      padding: spacing.lg,
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      justifyContent: 'space-between' as const,
+      paddingBottom: 90,
+    },
+    productCard: { width: '48.2%' as const, marginBottom: spacing.lg },
+    productImageWrap: {
+      height: 138,
+      borderRadius: radius.xl,
+      overflow: 'hidden' as const,
+      backgroundColor: colors.grey50,
+      position: 'relative' as const,
+    },
+    productImage: { width: '100%', height: '100%' },
+    productFallback: {
+      flex: 1,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    productEmoji: { fontSize: 52 },
+    heartButton: {
+      position: 'absolute' as const,
+      top: 7,
+      right: 7,
+      width: 27,
+      height: 27,
+      borderRadius: radius.pill,
+      backgroundColor: colors.black,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    heartText: { color: colors.white, fontSize: 17 },
+    colorRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      marginTop: spacing.sm,
+    },
+    colorDot: {
+      width: 22,
+      height: 22,
+      borderRadius: radius.pill,
+      borderWidth: 2,
+      borderColor: colors.white,
+      marginRight: -5,
+    },
+    colorDotDark: { backgroundColor: colors.grey50 },
+    colorDotBlue: { backgroundColor: '#1F88DA' },
+    colorText: {
+      ...typography.captionRegular,
+      color: colors.secondaryText,
+      textDecorationLine: 'underline' as const,
+      marginLeft: spacing.sm,
+    },
+    productName: {
+      ...typography.body2Regular,
+      color: colors.text,
+      marginTop: spacing.sm,
+    },
+    productPrice: { ...typography.body2Medium, color: colors.text },
+    originalPrice: {
+      ...typography.captionRegular,
+      color: colors.grey100,
+      textDecorationLine: 'line-through' as const,
+    },
+    searchHeader: {
+      height: 60,
+      paddingHorizontal: spacing.lg,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+    },
+    logoText: { ...typography.heading3Bold, color: colors.text },
+    closeText: { fontSize: 32, color: colors.text },
+    searchBox: {
+      marginHorizontal: spacing.lg,
+      height: 56,
+      borderWidth: 1,
+      borderColor: colors.grey50,
+      borderRadius: radius.md,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: spacing.md,
+    },
+    searchIcon: { fontSize: 28, color: colors.secondaryText },
+    searchInput: {
+      ...typography.body2Regular,
+      flex: 1,
+      color: colors.text,
+      marginHorizontal: spacing.sm,
+    },
+    filterIcon: { fontSize: 26, color: colors.secondaryText },
+    recentTitle: {
+      ...typography.captionSemiBold,
+      color: colors.text,
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.xl,
+      marginBottom: spacing.sm,
+    },
+    recentRow: {
+      height: 49,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.grey50,
+      paddingHorizontal: spacing.lg,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between',
+    },
+    recentText: { ...typography.body2Regular, color: colors.text },
+    recentArrow: { fontSize: 24, color: colors.grey100 },
+    modalBackdrop: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0,0,0,0.48)',
+    },
+    modalDismiss: { flex: 1 },
+    filterSheet: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: radius.xxl,
+      borderTopRightRadius: radius.xxl,
+      paddingBottom: 24,
+    },
+    sheetHandle: {
+      width: 64,
+      height: 4,
+      borderRadius: radius.pill,
+      backgroundColor: colors.grey50,
+      alignSelf: 'center',
+      marginTop: spacing.sm,
+    },
+    filterTitle: {
+      ...typography.body1Medium,
+      color: colors.text,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    filterRow: {
+      height: 56,
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.grey50,
+    },
+    checkbox: {
+      width: 28,
+      height: 28,
+      borderRadius: 7,
+      borderWidth: 2,
+      borderColor: colors.text,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      marginRight: spacing.md,
+    },
+    checkboxChecked: { backgroundColor: colors.blue, borderColor: colors.blue },
+    checkmark: { color: colors.white, fontSize: 18, fontWeight: '700' },
+    filterLabel: { ...typography.body2Regular, color: colors.text },
+    applyButton: {
+      height: 60,
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.xl,
+      borderRadius: radius.md,
+      backgroundColor: colors.black,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    applyText: { ...typography.body2Medium, color: colors.white },
+  });
+
+const useStyles = () => {
+  const { theme } = useTheme();
+  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
+};
 
 export default CategoriesScreen;

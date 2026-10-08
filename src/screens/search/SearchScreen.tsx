@@ -20,7 +20,8 @@ import {
   useRemoveFromWishlistMutation,
   type ProductResponse,
 } from '../../api/quickCartApi';
-import { colors, radius, spacing, typography } from '../../theme';
+import { radius, spacing, typography, useTheme } from '../../theme';
+import type { ThemeColors } from '../../theme';
 
 type Product = ProductResponse['data'][number];
 
@@ -49,6 +50,8 @@ const productEmoji = (name: string) => {
 };
 
 const SearchScreen = () => {
+  const styles = useStyles();
+  const { theme } = useTheme();
   const navigation = useNavigation<any>();
   const [addToWishlist] = useAddToWishlistMutation();
   const [removeFromWishlist] = useRemoveFromWishlistMutation();
@@ -195,11 +198,11 @@ const SearchScreen = () => {
           onChangeText={setSearchText}
           onSubmitEditing={handleSubmitSearch}
           placeholder="Search"
-          placeholderTextColor="#8D91A0"
+          placeholderTextColor={theme.colors.grey150}
           autoFocus
           returnKeyType="search"
           style={styles.searchInput}
-          selectionColor={colors.cyan}
+          selectionColor={theme.colors.cyan}
         />
 
         <Pressable
@@ -346,231 +349,244 @@ const SearchScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
-  header: {
-    height: 62,
-    paddingHorizontal: spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  logoRow: { flexDirection: 'row', alignItems: 'center' },
-  logoMark: {
-    width: 30,
-    height: 30,
-    borderRadius: radius.pill,
-    backgroundColor: colors.cyan,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 4,
-  },
-  logoMarkText: {
-    fontFamily: 'PlusJakartaSans-Bold',
-    fontSize: 17,
-    color: colors.white,
-  },
-  logoText: {
-    fontFamily: 'PlusJakartaSans-Bold',
-    fontSize: 18,
-    color: colors.black,
-  },
-  closeButton: {
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeText: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 32,
-    lineHeight: 32,
-    color: colors.black,
-  },
-  searchBox: {
-    height: 56,
-    marginHorizontal: spacing.lg,
-    borderWidth: 1,
-    borderColor: '#E9EBF3',
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 13,
-  },
-  searchIcon: {
-    width: 21,
-    height: 21,
-    borderWidth: 1.8,
-    borderColor: '#6F7384',
-    borderRadius: radius.pill,
-    position: 'relative',
-    marginRight: 10,
-  },
-  searchHandle: {
-    position: 'absolute',
-    width: 7,
-    height: 1.8,
-    backgroundColor: '#6F7384',
-    right: -5,
-    bottom: 0,
-    transform: [{ rotate: '48deg' }],
-    borderRadius: radius.pill,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 0,
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 13,
-    color: colors.black,
-  },
-  filterButton: {
-    width: 27,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterLineTop: {
-    position: 'absolute',
-    width: 19,
-    height: 1.5,
-    backgroundColor: '#737786',
-    top: 7,
-  },
-  filterLineMiddle: {
-    position: 'absolute',
-    width: 19,
-    height: 1.5,
-    backgroundColor: '#737786',
-    top: 13,
-  },
-  filterLineBottom: {
-    position: 'absolute',
-    width: 19,
-    height: 1.5,
-    backgroundColor: '#737786',
-    top: 19,
-  },
-  filterKnobTop: {
-    position: 'absolute',
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    borderWidth: 1.5,
-    borderColor: '#737786',
-    backgroundColor: colors.white,
-    top: 5,
-    left: 9,
-  },
-  filterKnobMiddle: {
-    position: 'absolute',
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    borderWidth: 1.5,
-    borderColor: '#737786',
-    backgroundColor: colors.white,
-    top: 11,
-    left: 15,
-  },
-  filterKnobBottom: {
-    position: 'absolute',
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    borderWidth: 1.5,
-    borderColor: '#737786',
-    backgroundColor: colors.white,
-    top: 17,
-    left: 7,
-  },
-  recentContent: { paddingTop: 30, paddingBottom: 30 },
-  recentTitle: {
-    ...typography.captionSemiBold,
-    color: colors.black,
-    marginHorizontal: spacing.lg,
-    marginBottom: 12,
-  },
-  recentRow: {
-    minHeight: 48,
-    paddingHorizontal: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEF0F5',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  recentText: { ...typography.body2Regular, color: colors.black },
-  recentArrow: { fontSize: 25, color: '#BFC1C7' },
-  emptyRecentBox: { paddingHorizontal: spacing.lg, paddingTop: 18 },
-  emptyRecentText: { ...typography.captionRegular, color: '#8D91A0' },
-  resultsContent: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: 24,
-    paddingBottom: 30,
-  },
-  resultsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  resultsTitle: { ...typography.captionSemiBold, color: colors.black },
-  productGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  productCard: { width: '48.3%', marginBottom: spacing.xl },
-  productImageContainer: {
-    height: 145,
-    borderRadius: radius.xl,
-    overflow: 'hidden',
-    backgroundColor: colors.grey50,
-    position: 'relative',
-  },
-  productImage: { width: '100%', height: '100%' },
-  productFallback: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  productFallbackEmoji: { fontSize: 54 },
-  heartButton: {
-    position: 'absolute',
-    top: 7,
-    right: 7,
-    width: 28,
-    height: 28,
-    borderRadius: radius.pill,
-    backgroundColor: '#262626',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heartText: { color: colors.white, fontSize: 17 },
-  productName: {
-    ...typography.body2Regular,
-    color: colors.black,
-    marginTop: spacing.sm,
-  },
-  productPrice: { ...typography.body2Medium, color: colors.black },
-  originalPrice: {
-    ...typography.captionRegular,
-    color: colors.grey100,
-    textDecorationLine: 'line-through',
-  },
-  stateBox: {
-    minHeight: 220,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-  },
-  stateTitle: {
-    ...typography.body1Medium,
-    color: colors.black,
-    textAlign: 'center',
-  },
-  stateText: {
-    ...typography.captionRegular,
-    color: colors.grey150,
-    textAlign: 'center',
-    marginTop: spacing.xs,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: {
+      height: 62,
+      paddingHorizontal: spacing.lg,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    logoRow: { flexDirection: 'row', alignItems: 'center' },
+    logoMark: {
+      width: 30,
+      height: 30,
+      borderRadius: radius.pill,
+      backgroundColor: colors.cyan,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 4,
+    },
+    logoMarkText: {
+      fontFamily: 'PlusJakartaSans-Bold',
+      fontSize: 17,
+      color: colors.white,
+    },
+    logoText: {
+      fontFamily: 'PlusJakartaSans-Bold',
+      fontSize: 18,
+      color: colors.text,
+    },
+    closeButton: {
+      width: 30,
+      height: 30,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    closeText: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 32,
+      lineHeight: 32,
+      color: colors.text,
+    },
+    searchBox: {
+      height: 56,
+      marginHorizontal: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.grey50,
+      borderRadius: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 13,
+    },
+    searchIcon: {
+      width: 21,
+      height: 21,
+      borderWidth: 1.8,
+      borderColor: colors.grey150,
+      borderRadius: radius.pill,
+      position: 'relative',
+      marginRight: 10,
+    },
+    searchHandle: {
+      position: 'absolute',
+      width: 7,
+      height: 1.8,
+      backgroundColor: colors.grey150,
+      right: -5,
+      bottom: 0,
+      transform: [{ rotate: '48deg' }],
+      borderRadius: radius.pill,
+    },
+    searchInput: {
+      flex: 1,
+      paddingVertical: 0,
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 13,
+      color: colors.text,
+    },
+    filterButton: {
+      width: 27,
+      height: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    filterLineTop: {
+      position: 'absolute',
+      width: 19,
+      height: 1.5,
+      backgroundColor: colors.grey150,
+      top: 7,
+    },
+    filterLineMiddle: {
+      position: 'absolute',
+      width: 19,
+      height: 1.5,
+      backgroundColor: colors.grey150,
+      top: 13,
+    },
+    filterLineBottom: {
+      position: 'absolute',
+      width: 19,
+      height: 1.5,
+      backgroundColor: colors.grey150,
+      top: 19,
+    },
+    filterKnobTop: {
+      position: 'absolute',
+      width: 5,
+      height: 5,
+      borderRadius: 3,
+      borderWidth: 1.5,
+      borderColor: colors.grey150,
+      backgroundColor: colors.surface,
+      top: 5,
+      left: 9,
+    },
+    filterKnobMiddle: {
+      position: 'absolute',
+      width: 5,
+      height: 5,
+      borderRadius: 3,
+      borderWidth: 1.5,
+      borderColor: colors.grey150,
+      backgroundColor: colors.surface,
+      top: 11,
+      left: 15,
+    },
+    filterKnobBottom: {
+      position: 'absolute',
+      width: 5,
+      height: 5,
+      borderRadius: 3,
+      borderWidth: 1.5,
+      borderColor: colors.grey150,
+      backgroundColor: colors.surface,
+      top: 17,
+      left: 7,
+    },
+    recentContent: { paddingTop: 30, paddingBottom: 30 },
+    recentTitle: {
+      ...typography.captionSemiBold,
+      color: colors.text,
+      marginHorizontal: spacing.lg,
+      marginBottom: 12,
+    },
+    recentRow: {
+      minHeight: 48,
+      paddingHorizontal: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.grey50,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    recentText: { ...typography.body2Regular, color: colors.text },
+    recentArrow: { fontSize: 25, color: '#BFC1C7' },
+    emptyRecentBox: { paddingHorizontal: spacing.lg, paddingTop: 18 },
+    emptyRecentText: {
+      ...typography.captionRegular,
+      color: colors.secondaryText,
+    },
+    resultsContent: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: 24,
+      paddingBottom: 30,
+    },
+    resultsHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    resultsTitle: { ...typography.captionSemiBold, color: colors.text },
+    productGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
+    productCard: { width: '48.3%', marginBottom: spacing.xl },
+    productImageContainer: {
+      height: 145,
+      borderRadius: radius.xl,
+      overflow: 'hidden',
+      backgroundColor: colors.grey50,
+      position: 'relative',
+    },
+    productImage: { width: '100%', height: '100%' },
+    productFallback: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    productFallbackEmoji: { fontSize: 54 },
+    heartButton: {
+      position: 'absolute',
+      top: 7,
+      right: 7,
+      width: 28,
+      height: 28,
+      borderRadius: radius.pill,
+      backgroundColor: colors.grey50,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    heartText: { color: colors.white, fontSize: 17 },
+    productName: {
+      ...typography.body2Regular,
+      color: colors.text,
+      marginTop: spacing.sm,
+    },
+    productPrice: { ...typography.body2Medium, color: colors.text },
+    originalPrice: {
+      ...typography.captionRegular,
+      color: colors.grey100,
+      textDecorationLine: 'line-through',
+    },
+    stateBox: {
+      minHeight: 220,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.xl,
+    },
+    stateTitle: {
+      ...typography.body1Medium,
+      color: colors.text,
+      textAlign: 'center',
+    },
+    stateText: {
+      ...typography.captionRegular,
+      color: colors.secondaryText,
+      textAlign: 'center',
+      marginTop: spacing.xs,
+    },
+  });
+
+const useStyles = () => {
+  const { theme } = useTheme();
+  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
+};
 
 export default SearchScreen;

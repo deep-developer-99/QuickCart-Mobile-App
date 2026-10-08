@@ -10,6 +10,7 @@ import { saveToken } from '../../../services/secureStorage';
 
 import { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import { OTPScreenStyles } from './OTPScreen.styles';
+import { useTheme } from '../../../theme';
 import { useVerifyOtpMutation } from '../../../api/quickCartApi';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'OTP'>;
@@ -17,6 +18,8 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'OTP'>;
 type TextInputRef = React.ElementRef<typeof TextInput>;
 
 const OTPScreen = ({ route }: Props) => {
+  const { theme } = useTheme();
+  const styles = OTPScreenStyles(theme.colors);
   const { phone } = route.params;
   const dispatch = useDispatch<AppDispatch>();
 
@@ -85,22 +88,22 @@ const OTPScreen = ({ route }: Props) => {
   };
 
   return (
-    <SafeAreaView style={OTPScreenStyles.container}>
-      <View style={OTPScreenStyles.content}>
-        <Text style={OTPScreenStyles.title}>Verify your number</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.title}>Verify your number</Text>
 
-        <Text style={OTPScreenStyles.description}>
+        <Text style={styles.description}>
           Enter the 6-digit OTP sent to your mobile number.
         </Text>
 
-        <View style={OTPScreenStyles.otpContainer}>
+        <View style={styles.otpContainer}>
           {otp.map((digit, index) => (
             <TextInput
               key={index}
               ref={ref => {
                 inputRefs.current[index] = ref;
               }}
-              style={OTPScreenStyles.otpInput}
+              style={styles.otpInput}
               value={digit}
               onChangeText={value => handleChange(value, index)}
               keyboardType="number-pad"
@@ -113,22 +116,20 @@ const OTPScreen = ({ route }: Props) => {
 
         <Pressable
           style={[
-            OTPScreenStyles.verifyButton,
+            styles.verifyButton,
             (otp.join('').length !== 6 || isLoading) &&
-              OTPScreenStyles.verifyButtonDisabled,
+              styles.verifyButtonDisabled,
           ]}
           onPress={handleVerify}
           disabled={otp.join('').length !== 6 || isLoading}
         >
-          <Text style={OTPScreenStyles.verifyButtonText}>
+          <Text style={styles.verifyButtonText}>
             {isLoading ? 'Verifying...' : 'Verify OTP'}
           </Text>
         </Pressable>
 
         <Pressable onPress={handleResend} disabled={isLoading}>
-          <Text style={OTPScreenStyles.resendText}>
-            Didn't receive the OTP? Resend
-          </Text>
+          <Text style={styles.resendText}>Didn't receive the OTP? Resend</Text>
         </Pressable>
       </View>
     </SafeAreaView>

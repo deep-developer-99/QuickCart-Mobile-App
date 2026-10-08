@@ -1,3 +1,5 @@
+import { useTheme } from '../../theme';
+import type { ThemeColors } from '../../theme';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -149,6 +151,7 @@ const EmptyOrdersIllustration = () => (
 );
 
 const OrderHistoryScreen = () => {
+  const styles = useStyles();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
@@ -362,280 +365,286 @@ const OrderHistoryScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
 
-  header: {
-    height: 76,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEF0F5',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
+    header: {
+      height: 76,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.grey50,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+    },
 
-  backButton: {
-    width: 34,
-    height: 42,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
+    backButton: {
+      width: 34,
+      height: 42,
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+    },
 
-  backArrow: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 40,
-    lineHeight: 40,
-    color: '#17171A',
-    marginTop: -5,
-  },
+    backArrow: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 40,
+      lineHeight: 40,
+      color: colors.text,
+      marginTop: -5,
+    },
 
-  headerTitle: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 16,
-    color: '#17171A',
-    marginLeft: 8,
-  },
+    headerTitle: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 16,
+      color: colors.text,
+      marginLeft: 8,
+    },
 
-  tabs: {
-    height: 48,
-    marginHorizontal: 16,
-    marginTop: 8,
-    padding: 4,
-    borderRadius: 12,
-    backgroundColor: '#F3F3FB',
-    flexDirection: 'row',
-  },
+    tabs: {
+      height: 48,
+      marginHorizontal: 16,
+      marginTop: 8,
+      padding: 4,
+      borderRadius: 12,
+      backgroundColor: colors.grey50,
+      flexDirection: 'row',
+    },
 
-  tab: {
-    flex: 1,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    tab: {
+      flex: 1,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
-  activeTab: {
-    backgroundColor: '#1C1C1E',
-  },
+    activeTab: {
+      backgroundColor: colors.black,
+    },
 
-  tabText: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 14,
-    color: '#17171A',
-  },
+    tabText: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 14,
+      color: colors.text,
+    },
 
-  activeTabText: {
-    color: '#FFFFFF',
-  },
+    activeTabText: {
+      color: colors.white,
+    },
 
-  scrollContent: {
-    paddingTop: 24,
-    paddingHorizontal: 16,
-    paddingBottom: 30,
-  },
+    scrollContent: {
+      paddingTop: 24,
+      paddingHorizontal: 16,
+      paddingBottom: 30,
+    },
 
-  emptyScrollContent: {
-    flexGrow: 1,
-  },
+    emptyScrollContent: {
+      flexGrow: 1,
+    },
 
-  orderBlock: {
-    marginBottom: 18,
-  },
+    orderBlock: {
+      marginBottom: 18,
+    },
 
-  metaRow: {
-    minHeight: 32,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
+    metaRow: {
+      minHeight: 32,
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+    },
 
-  statusBadge: {
-    minHeight: 25,
-    paddingHorizontal: 7,
-    borderRadius: 7,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    statusBadge: {
+      minHeight: 25,
+      paddingHorizontal: 7,
+      borderRadius: 7,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
-  ongoingBadge: {
-    backgroundColor: '#F05A5A',
-  },
+    ongoingBadge: {
+      backgroundColor: colors.red,
+    },
 
-  completedBadge: {
-    backgroundColor: '#2497D9',
-  },
+    completedBadge: {
+      backgroundColor: '#2497D9',
+    },
 
-  statusText: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 10,
-    color: '#FFFFFF',
-  },
+    statusText: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 10,
+      color: colors.white,
+    },
 
-  dateText: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 10,
-    color: '#B7B7BE',
-    marginTop: 6,
-  },
+    dateText: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 10,
+      color: colors.grey100,
+      marginTop: 6,
+    },
 
-  orderItem: {
-    flexDirection: 'row',
-  },
+    orderItem: {
+      flexDirection: 'row',
+    },
 
-  additionalItem: {
-    marginTop: 16,
-  },
+    additionalItem: {
+      marginTop: 16,
+    },
 
-  productImageBox: {
-    width: 120,
-    height: 120,
-    borderRadius: 11,
-    overflow: 'hidden',
-    backgroundColor: '#EEF4F4',
-  },
+    productImageBox: {
+      width: 120,
+      height: 120,
+      borderRadius: 11,
+      overflow: 'hidden',
+      backgroundColor: colors.cyan50,
+    },
 
-  productImage: {
-    width: '100%',
-    height: '100%',
-  },
+    productImage: {
+      width: '100%',
+      height: '100%',
+    },
 
-  imageFallback: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    imageFallback: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
-  fallbackText: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 11,
-    color: '#8C909A',
-  },
+    fallbackText: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 11,
+      color: colors.secondaryText,
+    },
 
-  productInfo: {
-    flex: 1,
-    paddingLeft: 8,
-  },
+    productInfo: {
+      flex: 1,
+      paddingLeft: 8,
+    },
 
-  productName: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#17171A',
-    marginBottom: 7,
-  },
+    productName: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.text,
+      marginBottom: 7,
+    },
 
-  price: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 13,
-    color: '#17171A',
-  },
+    price: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 13,
+      color: colors.text,
+    },
 
-  oldPrice: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 10,
-    color: '#9EA0A7',
-    textDecorationLine: 'line-through',
-    marginTop: 2,
-  },
+    oldPrice: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 10,
+      color: colors.secondaryText,
+      textDecorationLine: 'line-through',
+      marginTop: 2,
+    },
 
-  quantityBox: {
-    width: 96,
-    height: 34,
-    borderWidth: 1,
-    borderColor: '#E9EBF2',
-    borderRadius: 9,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    marginTop: 8,
-  },
+    quantityBox: {
+      width: 96,
+      height: 34,
+      borderWidth: 1,
+      borderColor: colors.grey50,
+      borderRadius: 9,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-around',
+      marginTop: 8,
+    },
 
-  quantityAction: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 18,
-    color: '#B8BAC2',
-  },
+    quantityAction: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 18,
+      color: colors.grey100,
+    },
 
-  quantity: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 14,
-    color: '#B8BAC2',
-  },
+    quantity: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 14,
+      color: colors.grey100,
+    },
 
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 20,
-  },
+    emptyState: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+      paddingTop: 20,
+      paddingBottom: 20,
+    },
 
-  emptyTitle: {
-    fontFamily: 'PlusJakartaSans-Bold',
-    fontSize: 24,
-    color: '#17171A',
-    textAlign: 'center',
-    marginTop: 4,
-  },
+    emptyTitle: {
+      fontFamily: 'PlusJakartaSans-Bold',
+      fontSize: 24,
+      color: colors.text,
+      textAlign: 'center',
+      marginTop: 4,
+    },
 
-  emptyDescription: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 14,
-    lineHeight: 21,
-    color: '#7B7E88',
-    textAlign: 'center',
-    marginTop: 12,
-    maxWidth: 330,
-  },
+    emptyDescription: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 14,
+      lineHeight: 21,
+      color: colors.secondaryText,
+      textAlign: 'center',
+      marginTop: 12,
+      maxWidth: 330,
+    },
 
-  exploreButton: {
-    width: '100%',
-    height: 60,
-    borderRadius: 14,
-    backgroundColor: '#1C1C1E',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 26,
-  },
+    exploreButton: {
+      width: '100%',
+      height: 60,
+      borderRadius: 14,
+      backgroundColor: colors.black,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 26,
+    },
 
-  exploreButtonText: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 14,
-    color: '#FFFFFF',
-  },
+    exploreButtonText: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 14,
+      color: colors.white,
+    },
 
-  centerState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
+    centerState: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 24,
+    },
 
-  errorText: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 14,
-    color: '#7B7E88',
-    textAlign: 'center',
-  },
+    errorText: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 14,
+      color: colors.secondaryText,
+      textAlign: 'center',
+    },
 
-  retryButton: {
-    marginTop: 12,
-    paddingHorizontal: 20,
-    height: 42,
-    borderRadius: 10,
-    backgroundColor: '#1C1C1E',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    retryButton: {
+      marginTop: 12,
+      paddingHorizontal: 20,
+      height: 42,
+      borderRadius: 10,
+      backgroundColor: colors.black,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
-  retryText: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 13,
-    color: '#FFFFFF',
-  },
-});
+    retryText: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 13,
+      color: colors.white,
+    },
+  });
+
+const useStyles = () => {
+  const { theme } = useTheme();
+  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
+};
 
 export default OrderHistoryScreen;

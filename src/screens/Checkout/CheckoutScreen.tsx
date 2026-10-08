@@ -29,18 +29,20 @@ import {
   useGetCartQuery,
 } from '../../api/quickCartApi';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { useTheme } from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Checkout'>;
 
 type Step = 'shipping' | 'payment' | 'review' | 'items' | 'success';
 type PaymentMethod = 'COD' | 'RAZORPAY_FAKE';
 
-const GREEN = '#21D4B4';
-const BLACK = '#1C1C1C';
-const GREY = '#6F7384';
-const BORDER = '#ECEEF4';
-
 export default function CheckoutScreen({ navigation, route }: Props) {
+  const { theme } = useTheme();
+  const styles = useStyles();
+  const GREEN = theme.colors.cyan;
+  const BLACK = theme.colors.black;
+  const GREY = theme.colors.grey150;
+  const BORDER = theme.colors.grey50;
   const checkoutMode = route.params?.mode ?? 'cart';
   const buyNowProduct = route.params?.product;
   const buyNowQuantity = route.params?.quantity ?? 1;
@@ -460,6 +462,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
 }
 
 function Header({ title, onBack }: { title: string; onBack: () => void }) {
+  const styles = useStyles();
   return (
     <View style={styles.header}>
       <Pressable onPress={onBack} style={styles.back}>
@@ -478,6 +481,7 @@ function Steps({
   current: number;
   onPress: (index: number) => void;
 }) {
+  const styles = useStyles();
   const labels = ['Shipping', 'Payment', 'Review'];
 
   return (
@@ -523,6 +527,7 @@ function Steps({
 }
 
 function SectionTitle({ title }: { title: string }) {
+  const styles = useStyles();
   return <Text style={styles.sectionTitle}>{title}</Text>;
 }
 
@@ -539,13 +544,15 @@ function Field({
   onChange: (value: string) => void;
   keyboard?: 'default' | 'phone-pad' | 'number-pad';
 }) {
+  const styles = useStyles();
+  const { theme } = useTheme();
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         value={value}
         placeholder={placeholder}
-        placeholderTextColor="#B7BAC4"
+        placeholderTextColor={theme.colors.grey150}
         onChangeText={onChange}
         keyboardType={keyboard}
         style={styles.input}
@@ -563,6 +570,7 @@ function AddressCard({
   selected: boolean;
   onPress: () => void;
 }) {
+  const styles = useStyles();
   return (
     <Pressable
       onPress={onPress}
@@ -599,6 +607,7 @@ function Payment({
   onPress: () => void;
   icon: string;
 }) {
+  const styles = useStyles();
   return (
     <Pressable
       onPress={onPress}
@@ -629,6 +638,7 @@ function Summary({
   shipping: number;
   total: number;
 }) {
+  const styles = useStyles();
   return (
     <View style={styles.summary}>
       <Text style={styles.summaryTitle}>Order Info</Text>
@@ -646,6 +656,7 @@ function Summary({
 }
 
 function Row({ label, value }: { label: string; value: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.row}>
       <Text style={styles.muted}>{label}</Text>
@@ -663,6 +674,7 @@ function Button({
   onPress: () => void;
   disabled?: boolean;
 }) {
+  const styles = useStyles();
   return (
     <Pressable
       disabled={disabled}
@@ -675,6 +687,7 @@ function Button({
 }
 
 function Items({ items }: { items: CartItem[] }) {
+  const styles = useStyles();
   if (items.length === 0) {
     return (
       <View style={styles.center}>
@@ -720,467 +733,473 @@ function Items({ items }: { items: CartItem[] }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-
-  content: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-
-  header: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F1F5',
-  },
-
-  back: {
-    width: 36,
-    height: 40,
-    justifyContent: 'center',
-  },
-
-  backText: {
-    fontSize: 36,
-    color: BLACK,
-    fontWeight: '300',
-  },
-
-  headerTitle: {
-    flex: 1,
-    fontSize: 16,
-    color: BLACK,
-    fontWeight: '600',
-  },
-
-  headerSpacer: {
-    width: 36,
-  },
-
-  steps: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-
-  step: {
-    width: 74,
-    alignItems: 'center',
-  },
-
-  circle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#B8BDC8',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  circleCurrent: {
-    backgroundColor: BLACK,
-    borderColor: BLACK,
-  },
-
-  circleDone: {
-    backgroundColor: GREEN,
-    borderColor: GREEN,
-  },
-
-  circleText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: GREY,
-  },
-
-  circleTextActive: {
-    color: '#FFFFFF',
-  },
-
-  stepLabel: {
-    fontSize: 11,
-    color: GREY,
-    marginTop: 5,
-  },
-
-  currentLabel: {
-    color: BLACK,
-    fontWeight: '600',
-  },
-
-  doneLabel: {
-    color: GREEN,
-    fontWeight: '600',
-  },
-
-  line: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#D5D8DE',
-    marginBottom: 18,
-  },
-
-  doneLine: {
-    backgroundColor: GREEN,
-  },
-
-  sectionTitle: {
-    fontSize: 17,
-    color: BLACK,
-    fontWeight: '600',
-    marginBottom: 16,
-  },
-
-  address: {
-    flexDirection: 'row',
-    padding: 14,
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 12,
-    marginBottom: 10,
-  },
-
-  addressSelected: {
-    borderColor: GREEN,
-    backgroundColor: '#F4FFFC',
-  },
-
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#AEB3BE',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: GREEN,
-  },
-
-  addressContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-
-  addressName: {
-    fontSize: 14,
-    color: BLACK,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-
-  addressText: {
-    fontSize: 13,
-    color: GREY,
-    lineHeight: 20,
-  },
-
-  addAddressTitle: {
-    fontSize: 15,
-    color: BLACK,
-    fontWeight: '600',
-    marginTop: 10,
-    marginBottom: 12,
-  },
-
-  field: {
-    marginBottom: 14,
-  },
-
-  label: {
-    fontSize: 13,
-    color: BLACK,
-    marginBottom: 7,
-  },
-
-  input: {
-    height: 52,
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    color: BLACK,
-    fontSize: 14,
-  },
-
-  button: {
-    height: 54,
-    borderRadius: 12,
-    backgroundColor: BLACK,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-  },
-
-  buttonDisabled: {
-    opacity: 0.55,
-  },
-
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-
-  payment: {
-    minHeight: 82,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
-  },
-
-  paymentSelected: {
-    borderColor: GREEN,
-    backgroundColor: '#F4FFFC',
-  },
-
-  paymentIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#F2FBF9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  paymentIconText: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#217C6D',
-  },
-
-  paymentText: {
-    flex: 1,
-    marginLeft: 12,
-  },
-
-  paymentTitle: {
-    fontSize: 14,
-    color: BLACK,
-    fontWeight: '600',
-  },
-
-  paymentSub: {
-    fontSize: 11,
-    color: GREY,
-    marginTop: 4,
-  },
-
-  summary: {
-    marginTop: 20,
-    marginBottom: 10,
-  },
-
-  summaryTitle: {
-    fontSize: 16,
-    color: BLACK,
-    fontWeight: '600',
-    marginBottom: 14,
-  },
-
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 11,
-  },
-
-  muted: {
-    fontSize: 12,
-    color: GREY,
-  },
-
-  value: {
-    fontSize: 12,
-    color: GREY,
-  },
-
-  total: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: '#EDEEF2',
-    paddingTop: 14,
-  },
-
-  totalLabel: {
-    fontSize: 16,
-    color: BLACK,
-    fontWeight: '600',
-  },
-
-  totalValue: {
-    fontSize: 17,
-    color: BLACK,
-    fontWeight: '600',
-  },
-
-  itemsLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 12,
-    marginBottom: 20,
-  },
-
-  itemsLinkTitle: {
-    fontSize: 15,
-    color: BLACK,
-    fontWeight: '600',
-  },
-
-  arrow: {
-    fontSize: 28,
-    color: BLACK,
-  },
-
-  reviewCard: {
-    padding: 14,
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 12,
-    marginBottom: 18,
-  },
-
-  reviewLabel: {
-    fontSize: 14,
-    color: BLACK,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-
-  reviewValue: {
-    fontSize: 14,
-    color: BLACK,
-    fontWeight: '600',
-    marginBottom: 3,
-  },
-
-  reviewText: {
-    fontSize: 13,
-    color: GREY,
-    lineHeight: 20,
-  },
-
-  itemsContent: {
-    padding: 16,
-    paddingBottom: 30,
-  },
-
-  item: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-
-  itemImageBox: {
-    width: 120,
-    height: 120,
-    borderRadius: 12,
-    backgroundColor: '#EFF3F4',
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  itemImage: {
-    width: '100%',
-    height: '100%',
-  },
-
-  itemInfo: {
-    flex: 1,
-    marginLeft: 10,
-  },
-
-  itemName: {
-    fontSize: 13,
-    color: BLACK,
-    lineHeight: 18,
-  },
-
-  itemPrice: {
-    fontSize: 14,
-    color: BLACK,
-    fontWeight: '600',
-    marginTop: 8,
-  },
-
-  qty: {
-    fontSize: 12,
-    color: GREY,
-    marginTop: 8,
-  },
-
-  success: {
-    flex: 1,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  successBox: {
-    width: '100%',
-    height: 300,
-    borderRadius: 28,
-    backgroundColor: '#F2FBF9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  successMark: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: GREEN,
-    color: '#FFFFFF',
-    fontSize: 66,
-    fontWeight: '700',
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    overflow: 'hidden',
-  },
-
-  successTitle: {
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: '700',
-    color: BLACK,
-    textAlign: 'center',
-    marginTop: 26,
-  },
-
-  successText: {
-    fontSize: 13,
-    lineHeight: 21,
-    color: GREY,
-    textAlign: 'center',
-    marginTop: 12,
-    paddingHorizontal: 8,
-  },
-
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+
+    content: {
+      padding: 16,
+      paddingBottom: 100,
+    },
+
+    header: {
+      height: 56,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.grey50,
+    },
+
+    back: {
+      width: 36,
+      height: 40,
+      justifyContent: 'center',
+    },
+
+    backText: {
+      fontSize: 36,
+      color: colors.black,
+      fontWeight: '300',
+    },
+
+    headerTitle: {
+      flex: 1,
+      fontSize: 16,
+      color: colors.black,
+      fontWeight: '600',
+    },
+
+    headerSpacer: {
+      width: 36,
+    },
+
+    steps: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
+
+    step: {
+      width: 74,
+      alignItems: 'center',
+    },
+
+    circle: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.grey100,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    circleCurrent: {
+      backgroundColor: colors.black,
+      borderColor: colors.black,
+    },
+
+    circleDone: {
+      backgroundColor: colors.cyan,
+      borderColor: colors.cyan,
+    },
+
+    circleText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.grey150,
+    },
+
+    circleTextActive: {
+      color: colors.white,
+    },
+
+    stepLabel: {
+      fontSize: 11,
+      color: colors.grey150,
+      marginTop: 5,
+    },
+
+    currentLabel: {
+      color: colors.black,
+      fontWeight: '600',
+    },
+
+    doneLabel: {
+      color: colors.cyan,
+      fontWeight: '600',
+    },
+
+    line: {
+      flex: 1,
+      height: 1,
+      backgroundColor: colors.grey100,
+      marginBottom: 18,
+    },
+
+    doneLine: {
+      backgroundColor: colors.cyan,
+    },
+
+    sectionTitle: {
+      fontSize: 17,
+      color: colors.black,
+      fontWeight: '600',
+      marginBottom: 16,
+    },
+
+    address: {
+      flexDirection: 'row',
+      padding: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      marginBottom: 10,
+    },
+
+    addressSelected: {
+      borderColor: colors.cyan,
+      backgroundColor: colors.cyan50,
+    },
+
+    radio: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.grey100,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    radioInner: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: colors.cyan,
+    },
+
+    addressContent: {
+      flex: 1,
+      marginLeft: 12,
+    },
+
+    addressName: {
+      fontSize: 14,
+      color: colors.black,
+      fontWeight: '600',
+      marginBottom: 4,
+    },
+
+    addressText: {
+      fontSize: 13,
+      color: colors.grey150,
+      lineHeight: 20,
+    },
+
+    addAddressTitle: {
+      fontSize: 15,
+      color: colors.black,
+      fontWeight: '600',
+      marginTop: 10,
+      marginBottom: 12,
+    },
+
+    field: {
+      marginBottom: 14,
+    },
+
+    label: {
+      fontSize: 13,
+      color: colors.black,
+      marginBottom: 7,
+    },
+
+    input: {
+      height: 52,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      color: colors.black,
+      fontSize: 14,
+    },
+
+    button: {
+      height: 54,
+      borderRadius: 12,
+      backgroundColor: colors.black,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 10,
+    },
+
+    buttonDisabled: {
+      opacity: 0.55,
+    },
+
+    buttonText: {
+      color: colors.white,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+
+    payment: {
+      minHeight: 82,
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 12,
+    },
+
+    paymentSelected: {
+      borderColor: colors.cyan,
+      backgroundColor: colors.cyan50,
+    },
+
+    paymentIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 12,
+      backgroundColor: colors.cyan50,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    paymentIconText: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: '#217C6D',
+    },
+
+    paymentText: {
+      flex: 1,
+      marginLeft: 12,
+    },
+
+    paymentTitle: {
+      fontSize: 14,
+      color: colors.black,
+      fontWeight: '600',
+    },
+
+    paymentSub: {
+      fontSize: 11,
+      color: colors.grey150,
+      marginTop: 4,
+    },
+
+    summary: {
+      marginTop: 20,
+      marginBottom: 10,
+    },
+
+    summaryTitle: {
+      fontSize: 16,
+      color: colors.black,
+      fontWeight: '600',
+      marginBottom: 14,
+    },
+
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 11,
+    },
+
+    muted: {
+      fontSize: 12,
+      color: colors.grey150,
+    },
+
+    value: {
+      fontSize: 12,
+      color: colors.grey150,
+    },
+
+    total: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      borderTopWidth: 1,
+      borderTopColor: colors.grey50,
+      paddingTop: 14,
+    },
+
+    totalLabel: {
+      fontSize: 16,
+      color: colors.black,
+      fontWeight: '600',
+    },
+
+    totalValue: {
+      fontSize: 17,
+      color: colors.black,
+      fontWeight: '600',
+    },
+
+    itemsLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      marginBottom: 20,
+    },
+
+    itemsLinkTitle: {
+      fontSize: 15,
+      color: colors.black,
+      fontWeight: '600',
+    },
+
+    arrow: {
+      fontSize: 28,
+      color: colors.black,
+    },
+
+    reviewCard: {
+      padding: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      marginBottom: 18,
+    },
+
+    reviewLabel: {
+      fontSize: 14,
+      color: colors.black,
+      fontWeight: '600',
+      marginBottom: 8,
+    },
+
+    reviewValue: {
+      fontSize: 14,
+      color: colors.black,
+      fontWeight: '600',
+      marginBottom: 3,
+    },
+
+    reviewText: {
+      fontSize: 13,
+      color: colors.grey150,
+      lineHeight: 20,
+    },
+
+    itemsContent: {
+      padding: 16,
+      paddingBottom: 30,
+    },
+
+    item: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: 16,
+    },
+
+    itemImageBox: {
+      width: 120,
+      height: 120,
+      borderRadius: 12,
+      backgroundColor: colors.cyan50,
+      overflow: 'hidden',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    itemImage: {
+      width: '100%',
+      height: '100%',
+    },
+
+    itemInfo: {
+      flex: 1,
+      marginLeft: 10,
+    },
+
+    itemName: {
+      fontSize: 13,
+      color: colors.black,
+      lineHeight: 18,
+    },
+
+    itemPrice: {
+      fontSize: 14,
+      color: colors.black,
+      fontWeight: '600',
+      marginTop: 8,
+    },
+
+    qty: {
+      fontSize: 12,
+      color: colors.grey150,
+      marginTop: 8,
+    },
+
+    success: {
+      flex: 1,
+      padding: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    successBox: {
+      width: '100%',
+      height: 300,
+      borderRadius: 28,
+      backgroundColor: colors.cyan50,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    successMark: {
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      backgroundColor: colors.cyan,
+      color: colors.white,
+      fontSize: 66,
+      fontWeight: '700',
+      textAlign: 'center',
+      textAlignVertical: 'center',
+      overflow: 'hidden',
+    },
+
+    successTitle: {
+      fontSize: 24,
+      lineHeight: 30,
+      fontWeight: '700',
+      color: colors.black,
+      textAlign: 'center',
+      marginTop: 26,
+    },
+
+    successText: {
+      fontSize: 13,
+      lineHeight: 21,
+      color: colors.grey150,
+      textAlign: 'center',
+      marginTop: 12,
+      paddingHorizontal: 8,
+    },
+
+    center: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+  });
+
+const useStyles = () => {
+  const { theme } = useTheme();
+  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
+};

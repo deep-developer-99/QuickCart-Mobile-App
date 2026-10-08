@@ -1,3 +1,5 @@
+import { useTheme } from '../theme';
+import type { ThemeColors } from '../theme';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import {
@@ -43,6 +45,7 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const RootNavigator = () => {
+  const styles = useStyles();
   const dispatch = useDispatch<AppDispatch>();
 
   const isAuthenticated = useSelector(
@@ -132,12 +135,19 @@ const RootNavigator = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    loadingContainer: {
+      flex: 1,
+      backgroundColor: colors.background,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  });
+
+const useStyles = () => {
+  const { theme } = useTheme();
+  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
+};
 
 export default RootNavigator;

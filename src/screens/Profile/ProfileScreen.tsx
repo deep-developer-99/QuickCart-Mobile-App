@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useTheme } from '../../theme';
+import type { ThemeColors } from '../../theme';
 import {
   Alert,
   Image,
@@ -175,11 +177,11 @@ const LogoutIcon = ({ color = '#FFFFFF', size = 25 }: IconProps) => (
   </Svg>
 );
 
-const ChevronRight = () => (
+const ChevronRight = ({ color = '#777C8D' }: { color?: string }) => (
   <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
     <Path
       d="m9 5 7 7-7 7"
-      stroke="#777C8D"
+      stroke={color}
       strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -199,23 +201,29 @@ const MenuRow = ({
   onPress?: () => void;
   showDivider?: boolean;
   right?: React.ReactNode;
-}) => (
-  <Pressable
-    style={[styles.menuRow, showDivider && styles.menuRowDivider]}
-    onPress={onPress}
-  >
-    <View style={styles.menuIcon}>{icon}</View>
-    <Text style={styles.menuText}>{label}</Text>
-    {right ?? <ChevronRight />}
-  </Pressable>
-);
+}) => {
+  const styles = useStyles();
+  const { theme } = useTheme();
+
+  return (
+    <Pressable
+      style={[styles.menuRow, showDivider && styles.menuRowDivider]}
+      onPress={onPress}
+    >
+      <View style={styles.menuIcon}>{icon}</View>
+      <Text style={styles.menuText}>{label}</Text>
+      {right ?? <ChevronRight color={theme.colors.grey150} />}
+    </Pressable>
+  );
+};
 
 const ProfileScreen = () => {
+  const styles = useStyles();
   const dispatch = useDispatch<AppDispatch>();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const user = useSelector((state: RootState) => state.auth.user);
-  const [darkTheme, setDarkTheme] = useState(false);
+  const { mode, toggleTheme, theme } = useTheme();
 
   const initial = user?.name?.charAt(0)?.toUpperCase() || 'U';
 
@@ -277,17 +285,17 @@ const ProfileScreen = () => {
 
         <View>
           <MenuRow
-            icon={<AddressIcon />}
+            icon={<AddressIcon color={theme.colors.grey150} />}
             label="Shipping Address"
             onPress={() => handleComingSoon('Shipping Address')}
           />
           <MenuRow
-            icon={<PaymentIcon />}
+            icon={<PaymentIcon color={theme.colors.grey150} />}
             label="Payment Method"
             onPress={() => handleComingSoon('Payment Method')}
           />
           <MenuRow
-            icon={<OrdersIcon />}
+            icon={<OrdersIcon color={theme.colors.grey150} />}
             label="Order History"
             onPress={() => navigation.navigate('OrderHistory')}
             showDivider={false}
@@ -298,17 +306,17 @@ const ProfileScreen = () => {
 
         <View>
           <MenuRow
-            icon={<PrivacyIcon />}
+            icon={<PrivacyIcon color={theme.colors.grey150} />}
             label="Privacy Policy"
             onPress={() => handleComingSoon('Privacy Policy')}
           />
           <MenuRow
-            icon={<TermsIcon />}
+            icon={<TermsIcon color={theme.colors.grey150} />}
             label="Terms & Conditions"
             onPress={() => handleComingSoon('Terms & Conditions')}
           />
           <MenuRow
-            icon={<FaqIcon />}
+            icon={<FaqIcon color={theme.colors.grey150} />}
             label="FAQs"
             onPress={() => handleComingSoon('FAQs')}
             showDivider={false}
@@ -319,21 +327,21 @@ const ProfileScreen = () => {
 
         <View>
           <MenuRow
-            icon={<DeviceIcon />}
+            icon={<DeviceIcon color={theme.colors.grey150} />}
             label="Dark Theme"
-            onPress={() => setDarkTheme(value => !value)}
+            onPress={toggleTheme}
             showDivider={false}
             right={
               <View
                 style={[
                   styles.switchTrack,
-                  darkTheme && styles.switchTrackActive,
+                  mode === 'dark' && styles.switchTrackActive,
                 ]}
               >
                 <View
                   style={[
                     styles.switchThumb,
-                    darkTheme && styles.switchThumbActive,
+                    mode === 'dark' && styles.switchThumbActive,
                   ]}
                 />
               </View>
@@ -345,139 +353,145 @@ const ProfileScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
 
-  header: {
-    height: 88,
-    backgroundColor: '#21D4B4',
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+    header: {
+      height: 88,
+      backgroundColor: colors.cyan,
+      paddingHorizontal: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
 
-  headerUser: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    minWidth: 0,
-  },
+    headerUser: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      minWidth: 0,
+    },
 
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-  },
+    avatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 8,
+      backgroundColor: colors.surface,
+    },
 
-  avatarFallback: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    avatarFallback: {
+      width: 40,
+      height: 40,
+      borderRadius: 8,
+      backgroundColor: colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
-  avatarText: {
-    fontFamily: 'PlusJakartaSans-Bold',
-    fontSize: 17,
-    color: '#21D4B4',
-  },
+    avatarText: {
+      fontFamily: 'PlusJakartaSans-Bold',
+      fontSize: 17,
+      color: colors.cyan,
+    },
 
-  userInfo: {
-    flex: 1,
-    marginLeft: 12,
-    minWidth: 0,
-  },
+    userInfo: {
+      flex: 1,
+      marginLeft: 12,
+      minWidth: 0,
+    },
 
-  name: {
-    fontFamily: 'PlusJakartaSans-Medium',
-    fontSize: 14,
-    color: '#FFFFFF',
-  },
+    name: {
+      fontFamily: 'PlusJakartaSans-Medium',
+      fontSize: 14,
+      color: colors.white,
+    },
 
-  email: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 11,
-    color: '#FFFFFF',
-    marginTop: 2,
-  },
+    email: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 11,
+      color: colors.white,
+      marginTop: 2,
+    },
 
-  logoutButton: {
-    width: 42,
-    height: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    logoutButton: {
+      width: 42,
+      height: 42,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
-  content: {
-    paddingBottom: 30,
-  },
+    content: {
+      paddingBottom: 30,
+    },
 
-  sectionTitle: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 12,
-    color: '#17171A',
-    marginTop: 20,
-    marginBottom: 8,
-    paddingHorizontal: 16,
-  },
+    sectionTitle: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 12,
+      color: colors.text,
+      marginTop: 20,
+      marginBottom: 8,
+      paddingHorizontal: 16,
+    },
 
-  menuRow: {
-    minHeight: 61,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-  },
+    menuRow: {
+      minHeight: 61,
+      paddingHorizontal: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+    },
 
-  menuRowDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEF0F6',
-  },
+    menuRowDivider: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.grey50,
+    },
 
-  menuIcon: {
-    width: 36,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
+    menuIcon: {
+      width: 36,
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+    },
 
-  menuText: {
-    flex: 1,
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 15,
-    color: '#777C8D',
-  },
+    menuText: {
+      flex: 1,
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 15,
+      color: colors.secondaryText,
+    },
 
-  switchTrack: {
-    width: 30,
-    height: 18,
-    borderRadius: 10,
-    backgroundColor: '#777C8D',
-    padding: 2,
-    justifyContent: 'center',
-  },
+    switchTrack: {
+      width: 30,
+      height: 18,
+      borderRadius: 10,
+      backgroundColor: colors.grey150,
+      padding: 2,
+      justifyContent: 'center',
+    },
 
-  switchTrackActive: {
-    backgroundColor: '#21D4B4',
-  },
+    switchTrackActive: {
+      backgroundColor: colors.cyan,
+    },
 
-  switchThumb: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#FFFFFF',
-    alignSelf: 'flex-start',
-  },
+    switchThumb: {
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      backgroundColor: colors.surface,
+      alignSelf: 'flex-start',
+    },
 
-  switchThumbActive: {
-    alignSelf: 'flex-end',
-  },
-});
+    switchThumbActive: {
+      alignSelf: 'flex-end',
+    },
+  });
+
+const useStyles = () => {
+  const { theme } = useTheme();
+  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
+};
 
 export default ProfileScreen;

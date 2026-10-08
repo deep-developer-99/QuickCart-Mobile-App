@@ -7,7 +7,8 @@ import {
 } from '@react-navigation/native';
 import Svg, { Circle, Ellipse, G, Line, Path, Rect } from 'react-native-svg';
 
-import { colors, radius, spacing, typography } from '../../theme';
+import { radius, spacing, typography, useTheme } from '../../theme';
+import type { ThemeColors } from '../../theme';
 
 const EmptyCartIllustration = () => (
   <Svg width={210} height={190} viewBox="0 0 210 190" fill="none">
@@ -131,6 +132,7 @@ const EmptyCartIllustration = () => (
 );
 
 const EmptyCart = () => {
+  const styles = useStyles();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
 
   return (
@@ -156,46 +158,52 @@ const EmptyCart = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: 55,
-  },
-  illustration: {
-    width: 210,
-    height: 190,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    ...typography.heading2Bold,
-    color: colors.black,
-    marginTop: 18,
-    textAlign: 'center',
-  },
-  description: {
-    ...typography.body2Regular,
-    color: colors.grey150,
-    textAlign: 'center',
-    marginTop: 12,
-    maxWidth: 330,
-    lineHeight: 22,
-  },
-  button: {
-    width: '100%',
-    height: 60,
-    marginTop: 24,
-    borderRadius: radius.md,
-    backgroundColor: colors.black,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    ...typography.button2,
-    color: colors.white,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingTop: 55,
+    },
+    illustration: {
+      width: 210,
+      height: 190,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    title: {
+      ...typography.heading2Bold,
+      color: colors.text,
+      marginTop: 18,
+      textAlign: 'center',
+    },
+    description: {
+      ...typography.body2Regular,
+      color: colors.secondaryText,
+      textAlign: 'center',
+      marginTop: 12,
+      maxWidth: 330,
+      lineHeight: 22,
+    },
+    button: {
+      width: '100%',
+      height: 60,
+      marginTop: 24,
+      borderRadius: radius.md,
+      backgroundColor: colors.black,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    buttonText: {
+      ...typography.button2,
+      color: colors.white,
+    },
+  });
+
+const useStyles = () => {
+  const { theme } = useTheme();
+  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
+};
 
 export default EmptyCart;

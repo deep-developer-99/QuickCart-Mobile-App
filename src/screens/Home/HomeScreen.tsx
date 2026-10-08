@@ -24,7 +24,8 @@ import {
 } from '../../api/quickCartApi';
 import type { CartProduct } from '../../store/slices/cartSlice';
 import type { RootState } from '../../store/store';
-import { colors, radius, spacing, typography } from '../../theme';
+import { radius, spacing, typography, useTheme } from '../../theme';
+import type { ThemeColors } from '../../theme';
 
 interface Category {
   _id: string;
@@ -60,6 +61,8 @@ const productEmoji = (name: string) => {
 };
 
 const HomeScreen = () => {
+  const styles = useStyles();
+  const { theme } = useTheme();
   const navigation = useNavigation<any>();
   const [addToWishlist] = useAddToWishlistMutation();
   const [removeFromWishlist] = useRemoveFromWishlistMutation();
@@ -323,8 +326,8 @@ const HomeScreen = () => {
   );
 };
 
-const styles = {
-  container: { flex: 1, backgroundColor: colors.white },
+const createStyles = (colors: ThemeColors) => ({
+  container: { flex: 1, backgroundColor: colors.background },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   headerTop: {
     flexDirection: 'row' as const,
@@ -346,7 +349,7 @@ const styles = {
     fontSize: 18,
     color: colors.white,
   },
-  logoText: { ...typography.heading3Bold, color: colors.black, fontSize: 18 },
+  logoText: { ...typography.heading3Bold, color: colors.text, fontSize: 18 },
   headerActions: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
@@ -356,7 +359,7 @@ const styles = {
     width: 25,
     height: 25,
     borderWidth: 2,
-    borderColor: colors.black,
+    borderColor: colors.text,
     borderRadius: radius.pill,
     position: 'relative' as const,
   },
@@ -378,15 +381,15 @@ const styles = {
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
-  avatarText: { ...typography.captionSemiBold, color: colors.grey150 },
+  avatarText: { ...typography.captionSemiBold, color: colors.secondaryText },
   locationRow: {
     marginTop: spacing.md,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
   },
   locationPin: { fontSize: 15, marginRight: spacing.xs },
-  locationText: { ...typography.captionRegular, color: colors.grey150 },
-  locationStrong: { ...typography.captionSemiBold, color: colors.black },
+  locationText: { ...typography.captionRegular, color: colors.secondaryText },
+  locationStrong: { ...typography.captionSemiBold, color: colors.text },
   banner: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.lg,
@@ -458,7 +461,7 @@ const styles = {
     justifyContent: 'space-between' as const,
     marginBottom: spacing.md,
   },
-  sectionTitle: { ...typography.heading3Bold, color: colors.black },
+  sectionTitle: { ...typography.heading3Bold, color: colors.text },
   seeAll: { ...typography.captionSemiBold, color: colors.cyan },
   categoryList: { paddingHorizontal: spacing.lg },
   categoryCard: {
@@ -466,7 +469,7 @@ const styles = {
     height: 78,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#EEF0F6',
+    borderColor: colors.grey50,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     marginRight: spacing.sm,
@@ -481,7 +484,7 @@ const styles = {
   categoryImage: { width: 32, height: 32 },
   categoryName: {
     ...typography.overlineRegular,
-    color: colors.black,
+    color: colors.text,
     fontSize: 9,
     textAlign: 'center' as const,
   },
@@ -513,17 +516,17 @@ const styles = {
     width: 27,
     height: 27,
     borderRadius: radius.pill,
-    backgroundColor: '#262626',
+    backgroundColor: colors.grey50,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
   heartText: { color: colors.white, fontSize: 17 },
   productName: {
     ...typography.body2Regular,
-    color: colors.black,
+    color: colors.text,
     marginTop: spacing.sm,
   },
-  productPrice: { ...typography.body2Medium, color: colors.black },
+  productPrice: { ...typography.body2Medium, color: colors.text },
   originalPrice: {
     ...typography.captionRegular,
     color: colors.grey100,
@@ -534,6 +537,11 @@ const styles = {
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
+});
+
+const useStyles = () => {
+  const { theme } = useTheme();
+  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
 };
 
 export default HomeScreen;
