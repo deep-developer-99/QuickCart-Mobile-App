@@ -34,7 +34,7 @@ export interface MyOrder {
   items: OrderItem[];
   totalAmount: number;
   status: OrderStatus;
-  paymentMethod: 'COD' | 'RAZORPAY';
+  paymentMethod: 'COD' | 'RAZORPAY' | 'RAZORPAY_FAKE';
   createdAt: string;
   updatedAt?: string;
   address?: unknown;
@@ -46,8 +46,28 @@ interface OrdersResponse {
   data: MyOrder[];
 }
 
+export interface CreateOrderRequest {
+  addressId: string;
+  paymentMethod: 'COD' | 'RAZORPAY_FAKE';
+  paymentId?: string;
+}
+
+interface CreateOrderResponse {
+  success: boolean;
+  message: string;
+  data: MyOrder;
+}
+
 export const orderApi = quickCartApi.injectEndpoints({
   endpoints: builder => ({
+    createOrder: builder.mutation<CreateOrderResponse, CreateOrderRequest>({
+      query: body => ({
+        url: '/orders',
+        method: 'POST',
+        body,
+      }),
+    }),
+
     getMyOrders: builder.query<OrdersResponse, void>({
       query: () => ({
         url: '/orders/my-orders',
@@ -58,4 +78,4 @@ export const orderApi = quickCartApi.injectEndpoints({
   overrideExisting: false,
 });
 
-export const { useGetMyOrdersQuery } = orderApi;
+export const { useCreateOrderMutation, useGetMyOrdersQuery } = orderApi;

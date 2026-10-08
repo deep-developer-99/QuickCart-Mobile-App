@@ -9,9 +9,12 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import AuthNavigator from './AuthNavigator';
 import MainTabNavigator, { type MainTabParamList } from './MainTabNavigator';
+
 import SearchScreen from '../screens/search/SearchScreen';
 import OrderHistoryScreen from '../screens/OrderHistory/OrderHistoryScreen';
 import ProductDetailsScreen from '../screens/ProductDetails/ProductDetailsScreen';
+import CheckoutScreen from '../screens/Checkout/CheckoutScreen';
+
 import type { CartProduct } from '../api/quickCartApi';
 import { useLazyGetMeQuery } from '../api/quickCartApi';
 import { getToken, removeToken } from '../services/secureStorage';
@@ -22,13 +25,20 @@ export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   Search: undefined;
   OrderHistory: undefined;
-  ProductDetails: { product: CartProduct };
+
+  // ProductDetails receives the product selected from Home/Categories/Wishlist.
+  ProductDetails: {
+    product: CartProduct;
+  };
+
+  Checkout: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const RootNavigator = () => {
   const dispatch = useDispatch<AppDispatch>();
+
   const isAuthenticated = useSelector(
     (state: RootState) => state.auth.isAuthenticated,
   );
@@ -44,7 +54,9 @@ const RootNavigator = () => {
         const token = await getToken();
 
         if (!token) {
-          if (mounted) setCheckingAuth(false);
+          if (mounted) {
+            setCheckingAuth(false);
+          }
           return;
         }
 
@@ -104,6 +116,8 @@ const RootNavigator = () => {
             name="ProductDetails"
             component={ProductDetailsScreen}
           />
+
+          <Stack.Screen name="Checkout" component={CheckoutScreen} />
         </Stack.Navigator>
       ) : (
         <AuthNavigator />
