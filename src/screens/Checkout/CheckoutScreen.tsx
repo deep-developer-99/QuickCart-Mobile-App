@@ -20,7 +20,11 @@ import {
   useGetAddressesQuery,
 } from '../../api/addressApi';
 import { useCreateOrderMutation } from '../../api/orderApi';
-import { type CartItem, useGetCartQuery } from '../../api/quickCartApi';
+import {
+  type CartItem,
+  useClearCartMutation,
+  useGetCartQuery,
+} from '../../api/quickCartApi';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Checkout'>;
@@ -41,6 +45,7 @@ export default function CheckoutScreen({ navigation }: Props) {
   const [createAddress, { isLoading: savingAddress }] =
     useCreateAddressMutation();
   const [createOrder, { isLoading: placingOrder }] = useCreateOrderMutation();
+  const [clearCart] = useClearCartMutation();
 
   const items: CartItem[] = cartResponse?.data?.items ?? [];
   const addresses: Address[] = addressResponse?.data ?? [];
@@ -153,6 +158,16 @@ export default function CheckoutScreen({ navigation }: Props) {
         addressId,
         paymentMethod: payment,
       }).unwrap();
+
+      // The order is successfully created. Clear the server-side cart so
+      // the cart screen and cart badge become empty automatically.
+      try {
+        await clearCart().unwrap();
+      } catch (clearError) {
+        // Do not mark a successfully placed order as failed if cart cleanup
+        // fails. The order has already been created successfully.
+        console.error('Cart cleanup after order failed:', clearError);
+      }
 
       setStep('success');
     } catch (error: any) {
