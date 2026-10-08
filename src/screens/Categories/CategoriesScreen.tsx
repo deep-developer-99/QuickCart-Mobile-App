@@ -347,18 +347,6 @@ const CategoriesScreen = () => {
                     </Pressable>
                   </View>
 
-                  <View style={styles.colorRow}>
-                    <View style={[styles.colorDot, styles.colorDotDark]} />
-                    <View style={[styles.colorDot, styles.colorDotBlue]} />
-                    <View
-                      style={[
-                        styles.colorDot,
-                        { backgroundColor: theme.colors.grey100 },
-                      ]}
-                    />
-                    <Text style={styles.colorText}>All 5 Colors</Text>
-                  </View>
-
                   <Text style={styles.productName} numberOfLines={1}>
                     {product.name}
                   </Text>
@@ -570,27 +558,7 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: 'center' as const,
     },
     heartText: { color: colors.white, fontSize: 17 },
-    colorRow: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      marginTop: spacing.sm,
-    },
-    colorDot: {
-      width: 22,
-      height: 22,
-      borderRadius: radius.pill,
-      borderWidth: 2,
-      borderColor: colors.white,
-      marginRight: -5,
-    },
-    colorDotDark: { backgroundColor: colors.grey50 },
-    colorDotBlue: { backgroundColor: '#1F88DA' },
-    colorText: {
-      ...typography.captionRegular,
-      color: colors.secondaryText,
-      textDecorationLine: 'underline' as const,
-      marginLeft: spacing.sm,
-    },
+
     productName: {
       ...typography.body2Regular,
       color: colors.text,
