@@ -34,7 +34,7 @@ export interface MyOrder {
   items: OrderItem[];
   totalAmount: number;
   status: OrderStatus;
-  paymentMethod: 'COD' | 'RAZORPAY' | 'RAZORPAY_FAKE';
+  paymentMethod: 'COD' | 'RAZORPAY' | 'RAZORPAY_FAKE' | 'PAYTM';
   createdAt: string;
   updatedAt?: string;
   address?: unknown;
@@ -48,7 +48,7 @@ interface OrdersResponse {
 
 export interface CreateOrderRequest {
   addressId: string;
-  paymentMethod: 'COD' | 'RAZORPAY_FAKE';
+  paymentMethod: 'COD';
   paymentId?: string;
 }
 

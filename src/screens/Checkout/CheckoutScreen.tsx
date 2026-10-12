@@ -24,6 +24,11 @@ import {
   useCreateOrderMutation,
 } from '../../api/orderApi';
 import {
+  useCreatePaytmSessionMutation,
+  useVerifyPaytmPaymentMutation,
+} from '../../api/paytmPaymentApi';
+import { startPaytmTransaction } from '../../services/paytmPaymentService';
+import {
   type CartItem,
   useClearCartMutation,
   useGetCartQuery,
@@ -35,7 +40,7 @@ import type { ThemeColors } from '../../theme';
 type Props = NativeStackScreenProps<RootStackParamList, 'Checkout'>;
 
 type Step = 'shipping' | 'payment' | 'review' | 'items' | 'success';
-type PaymentMethod = 'COD' | 'RAZORPAY_FAKE';
+type PaymentMethod = 'COD' | 'PAYTM';
 
 export default function CheckoutScreen({ navigation, route }: Props) {
   const styles = useStyles();
@@ -58,6 +63,10 @@ export default function CheckoutScreen({ navigation, route }: Props) {
   const [createBuyNowOrder, { isLoading: placingBuyNowOrder }] =
     useCreateBuyNowOrderMutation();
   const [clearCart] = useClearCartMutation();
+  const [createPaytmSession, { isLoading: creatingPaytmSession }] =
+    useCreatePaytmSessionMutation();
+  const [verifyPaytmPayment, { isLoading: verifyingPaytmPayment }] =
+    useVerifyPaytmPaymentMutation();
 
   const items: CartItem[] = isBuyNow
     ? buyNowProduct
@@ -71,7 +80,11 @@ export default function CheckoutScreen({ navigation, route }: Props) {
     : cartResponse?.data?.items ?? [];
 
   const addresses: Address[] = addressResponse?.data ?? [];
-  const placingOrder = placingCartOrder || placingBuyNowOrder;
+  const placingOrder =
+    placingCartOrder ||
+    placingBuyNowOrder ||
+    creatingPaytmSession ||
+    verifyingPaytmPayment;
 
   const [step, setStep] = useState<Step>('shipping');
   const [addressId, setAddressId] = useState('');
@@ -182,6 +195,69 @@ export default function CheckoutScreen({ navigation, route }: Props) {
     }
 
     try {
+      if (payment === 'PAYTM') {
+        if (isBuyNow && !buyNowProduct) {
+          Alert.alert(
+            'Product unavailable',
+            'Unable to checkout this product.',
+          );
+          return;
+        }
+
+        const session = await createPaytmSession({
+          addressId,
+          checkoutMode: isBuyNow ? 'buyNow' : 'cart',
+          ...(isBuyNow
+            ? {
+                productId: buyNowProduct!._id,
+                quantity: buyNowQuantity,
+              }
+            : {}),
+        }).unwrap();
+
+        // Paytm's callback is not trusted as proof of payment. We always ask
+        // QuickCart's backend to verify the final status with Paytm.
+        try {
+          await startPaytmTransaction(session.data);
+        } catch (sdkError) {
+          // The app can return an error even when the provider transaction is
+          // still processing. Check the server status before deciding.
+          console.warn(
+            'Paytm SDK returned without a confirmed result:',
+            sdkError,
+          );
+        }
+
+        const verification = await verifyPaytmPayment({
+          paymentId: session.data.paymentId,
+        }).unwrap();
+
+        if (verification.data.status === 'paid') {
+          // The backend finalizes the order and clears the cart transactionally.
+          try {
+            await clearCart().unwrap();
+          } catch (clearError) {
+            console.warn('Cart refresh after Paytm order failed:', clearError);
+          }
+          setStep('success');
+          return;
+        }
+
+        if (verification.data.status === 'pending') {
+          Alert.alert(
+            'Payment processing',
+            'Paytm is still processing your payment. Check My Orders before trying again.',
+          );
+          return;
+        }
+
+        Alert.alert(
+          'Payment not completed',
+          'Paytm could not confirm a successful payment. You can try again or choose Cash on Delivery.',
+        );
+        return;
+      }
+
       if (isBuyNow) {
         if (!buyNowProduct) {
           Alert.alert(
@@ -197,16 +273,9 @@ export default function CheckoutScreen({ navigation, route }: Props) {
           addressId,
           paymentMethod: 'COD',
         }).unwrap();
-
-        // Buy Now is independent from the cart.
-        // Do not clear or modify the user's existing cart.
+        // Buy Now is independent from the cart; never clear the cart here.
       } else {
-        await createOrder({
-          addressId,
-          paymentMethod: payment,
-        }).unwrap();
-
-        // Cart checkout clears the cart after a successful order.
+        await createOrder({ addressId, paymentMethod: 'COD' }).unwrap();
         try {
           await clearCart().unwrap();
         } catch (clearError) {
@@ -217,8 +286,11 @@ export default function CheckoutScreen({ navigation, route }: Props) {
       setStep('success');
     } catch (error: any) {
       Alert.alert(
-        'Order failed',
-        error?.data?.message ?? 'Unable to place order.',
+        payment === 'PAYTM' ? 'Payment status unavailable' : 'Order failed',
+        error?.data?.message ??
+          (payment === 'PAYTM'
+            ? 'We could not confirm the payment status. Please check My Orders before retrying.'
+            : 'Unable to place order.'),
       );
     }
   };
@@ -393,15 +465,13 @@ export default function CheckoutScreen({ navigation, route }: Props) {
               icon="₹"
             />
 
-            {!isBuyNow && (
-              <Payment
-                title="Card / UPI"
-                subtitle="Demo Razorpay payment"
-                selected={payment === 'RAZORPAY_FAKE'}
-                onPress={() => setPayment('RAZORPAY_FAKE')}
-                icon="G"
-              />
-            )}
+            <Payment
+              title="Paytm Payment Gateway"
+              subtitle="UPI, cards and other enabled payment methods"
+              selected={payment === 'PAYTM'}
+              onPress={() => setPayment('PAYTM')}
+              icon="P"
+            />
 
             <Summary subtotal={subtotal} shipping={shipping} total={total} />
 
@@ -446,7 +516,15 @@ export default function CheckoutScreen({ navigation, route }: Props) {
             <Summary subtotal={subtotal} shipping={shipping} total={total} />
 
             <Button
-              title={placingOrder ? 'Placing Order...' : 'Place Order'}
+              title={
+                placingOrder
+                  ? payment === 'PAYTM'
+                    ? 'Processing Payment...'
+                    : 'Placing Order...'
+                  : payment === 'PAYTM'
+                  ? `Pay ₹${total.toFixed(2)}`
+                  : 'Place Order'
+              }
               disabled={placingOrder}
               onPress={placeOrder}
             />
