@@ -156,7 +156,7 @@ const CartScreen = () => {
             }
           }}
         >
-          <Text style={styles.backIcon}>‹</Text>
+          <Text style={styles.backIcon}>←</Text>
         </Pressable>
 
         <Text style={styles.headerTitle}>My Cart</Text>
@@ -374,8 +374,8 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: 'center',
     },
     backIcon: {
-      fontSize: 36,
-      lineHeight: 36,
+      fontSize: 30,
+      lineHeight: 34,
       color: colors.text,
       fontWeight: '300',
     },

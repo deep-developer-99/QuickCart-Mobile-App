@@ -40,7 +40,14 @@ import type { ThemeColors } from '../../theme';
 type Props = NativeStackScreenProps<RootStackParamList, 'Checkout'>;
 
 type Step = 'shipping' | 'payment' | 'review' | 'items' | 'success';
-type PaymentMethod = 'COD' | 'PAYTM';
+type PaymentMethod =
+  | 'COD'
+  | 'UPI_GPAY'
+  | 'UPI_PHONEPE'
+  | 'UPI_PAYTM'
+  | 'UPI_OTHER'
+  | 'CARD'
+  | 'WALLET';
 
 export default function CheckoutScreen({ navigation, route }: Props) {
   const styles = useStyles();
@@ -89,6 +96,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
   const [step, setStep] = useState<Step>('shipping');
   const [addressId, setAddressId] = useState('');
   const [payment, setPayment] = useState<PaymentMethod>('COD');
+  const isOnlinePayment = payment !== 'COD';
 
   const [form, setForm] = useState<CreateAddressData>({
     fullName: '',
@@ -195,7 +203,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
     }
 
     try {
-      if (payment === 'PAYTM') {
+      if (isOnlinePayment) {
         if (isBuyNow && !buyNowProduct) {
           Alert.alert(
             'Product unavailable',
@@ -286,9 +294,9 @@ export default function CheckoutScreen({ navigation, route }: Props) {
       setStep('success');
     } catch (error: any) {
       Alert.alert(
-        payment === 'PAYTM' ? 'Payment status unavailable' : 'Order failed',
+        isOnlinePayment ? 'Payment status unavailable' : 'Order failed',
         error?.data?.message ??
-          (payment === 'PAYTM'
+          (isOnlinePayment
             ? 'We could not confirm the payment status. Please check My Orders before retrying.'
             : 'Unable to place order.'),
       );
@@ -457,21 +465,79 @@ export default function CheckoutScreen({ navigation, route }: Props) {
           <>
             <SectionTitle title="Payment" />
 
-            <Payment
-              title="Cash on Delivery"
-              subtitle="Pay when your order arrives"
-              selected={payment === 'COD'}
-              onPress={() => setPayment('COD')}
-              icon="₹"
-            />
+            <View style={styles.paymentSection}>
+              <Text style={styles.paymentGroupTitle}>UPI</Text>
+              <Text style={styles.paymentGroupSubtitle}>
+                Choose your preferred UPI option
+              </Text>
 
-            <Payment
-              title="Paytm Payment Gateway"
-              subtitle="UPI, cards and other enabled payment methods"
-              selected={payment === 'PAYTM'}
-              onPress={() => setPayment('PAYTM')}
-              icon="P"
-            />
+              <View style={styles.upiGrid}>
+                <UpiAppCard
+                  title="Google Pay"
+                  shortLabel="G"
+                  selected={payment === 'UPI_GPAY'}
+                  onPress={() => setPayment('UPI_GPAY')}
+                  color="#4285F4"
+                />
+                <UpiAppCard
+                  title="PhonePe"
+                  shortLabel="पे"
+                  selected={payment === 'UPI_PHONEPE'}
+                  onPress={() => setPayment('UPI_PHONEPE')}
+                  color="#5F259F"
+                />
+                <UpiAppCard
+                  title="Paytm"
+                  shortLabel="P"
+                  selected={payment === 'UPI_PAYTM'}
+                  onPress={() => setPayment('UPI_PAYTM')}
+                  color="#00A5E5"
+                />
+              </View>
+
+              <MethodRow
+                title="Pay with Other UPI"
+                subtitle="Continue to secure UPI checkout"
+                icon="↗"
+                selected={payment === 'UPI_OTHER'}
+                onPress={() => setPayment('UPI_OTHER')}
+              />
+            </View>
+
+            <View style={styles.paymentSection}>
+              <Text style={styles.paymentGroupTitle}>
+                Other payment methods
+              </Text>
+              <MethodRow
+                title="Credit / Debit Cards"
+                subtitle="Visa, Mastercard and supported cards"
+                icon="▤"
+                selected={payment === 'CARD'}
+                onPress={() => setPayment('CARD')}
+              />
+              <MethodRow
+                title="Wallet"
+                subtitle="Wallets supported by the payment gateway"
+                icon="▣"
+                selected={payment === 'WALLET'}
+                onPress={() => setPayment('WALLET')}
+              />
+              <MethodRow
+                title="Cash on Delivery"
+                subtitle="Pay when your order arrives"
+                icon="₹"
+                selected={payment === 'COD'}
+                onPress={() => setPayment('COD')}
+              />
+            </View>
+
+            {isOnlinePayment && (
+              <Text style={styles.paymentNotice}>
+                Online payments open Paytm’s secure checkout. The SDK may show
+                its own supported payment choices; selecting an app here does
+                not force that specific app to launch yet.
+              </Text>
+            )}
 
             <Summary subtotal={subtotal} shipping={shipping} total={total} />
 
@@ -518,10 +584,10 @@ export default function CheckoutScreen({ navigation, route }: Props) {
             <Button
               title={
                 placingOrder
-                  ? payment === 'PAYTM'
+                  ? isOnlinePayment
                     ? 'Processing Payment...'
                     : 'Placing Order...'
-                  : payment === 'PAYTM'
+                  : isOnlinePayment
                   ? `Pay ₹${total.toFixed(2)}`
                   : 'Place Order'
               }
@@ -696,6 +762,75 @@ function Payment({
         <Text style={styles.paymentSub}>{subtitle}</Text>
       </View>
 
+      <View style={styles.radio}>
+        {selected && <View style={styles.radioInner} />}
+      </View>
+    </Pressable>
+  );
+}
+
+function UpiAppCard({
+  title,
+  shortLabel,
+  selected,
+  onPress,
+  color,
+}: {
+  title: string;
+  shortLabel: string;
+  selected: boolean;
+  onPress: () => void;
+  color: string;
+}) {
+  const styles = useStyles();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={[styles.upiAppCard, selected && styles.paymentSelected]}
+    >
+      <View style={[styles.upiAppIcon, { backgroundColor: color }]}>
+        <Text style={styles.upiAppIconText}>{shortLabel}</Text>
+      </View>
+      <Text numberOfLines={1} style={styles.upiAppTitle}>
+        {title}
+      </Text>
+      <View style={[styles.smallRadio, selected && styles.smallRadioSelected]}>
+        {selected && <View style={styles.smallRadioInner} />}
+      </View>
+    </Pressable>
+  );
+}
+
+function MethodRow({
+  title,
+  subtitle,
+  icon,
+  selected,
+  onPress,
+}: {
+  title: string;
+  subtitle: string;
+  icon: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const styles = useStyles();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={[styles.methodRow, selected && styles.paymentSelected]}
+    >
+      <View style={styles.methodIcon}>
+        <Text style={styles.methodIconText}>{icon}</Text>
+      </View>
+      <View style={styles.paymentText}>
+        <Text style={styles.paymentTitle}>{title}</Text>
+        <Text style={styles.paymentSub}>{subtitle}</Text>
+      </View>
       <View style={styles.radio}>
         {selected && <View style={styles.radioInner} />}
       </View>
@@ -1037,6 +1172,119 @@ const createStyles = (colors: ThemeColors) =>
     paymentSelected: {
       borderColor: colors.cyan,
       backgroundColor: colors.cyan50,
+    },
+
+    paymentSection: {
+      marginBottom: 18,
+    },
+
+    paymentGroupTitle: {
+      fontSize: 15,
+      color: colors.black,
+      fontWeight: '700',
+      marginBottom: 4,
+    },
+
+    paymentGroupSubtitle: {
+      fontSize: 12,
+      color: colors.grey150,
+      marginBottom: 12,
+    },
+
+    upiGrid: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+
+    upiAppCard: {
+      width: '31.5%',
+      minHeight: 112,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 6,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 14,
+      backgroundColor: colors.background,
+    },
+
+    upiAppIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+    },
+
+    upiAppIconText: {
+      color: '#FFFFFF',
+      fontSize: 21,
+      fontWeight: '800',
+    },
+
+    upiAppTitle: {
+      color: colors.black,
+      fontSize: 11,
+      fontWeight: '600',
+      marginBottom: 8,
+    },
+
+    smallRadio: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.grey100,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    smallRadioSelected: {
+      borderColor: colors.cyan,
+    },
+
+    smallRadioInner: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.cyan,
+    },
+
+    methodRow: {
+      minHeight: 72,
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 14,
+      padding: 12,
+      marginBottom: 10,
+    },
+
+    methodIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: 12,
+      backgroundColor: colors.cyan50,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    methodIconText: {
+      color: '#217C6D',
+      fontSize: 21,
+      fontWeight: '700',
+    },
+
+    paymentNotice: {
+      fontSize: 12,
+      lineHeight: 18,
+      color: colors.grey150,
+      marginBottom: 8,
+      paddingHorizontal: 2,
     },
 
     paymentIcon: {

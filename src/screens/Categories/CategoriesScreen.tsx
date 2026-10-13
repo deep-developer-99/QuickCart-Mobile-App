@@ -215,7 +215,16 @@ const CategoriesScreen = () => {
     return (
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <View style={styles.container}>
-          <Header title="Categories" onBack={() => {}} />
+          <Header
+            title="Categories"
+            onBack={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('Home');
+              }
+            }}
+          />
           {categoriesLoading ? (
             <View style={styles.center}>
               <ActivityIndicator />
@@ -392,7 +401,7 @@ const Header = ({
   return (
     <View style={styles.header}>
       <Pressable onPress={onBack} hitSlop={10}>
-        <Text style={styles.backIcon}>‹</Text>
+        <Text style={styles.backIcon}>←</Text>
       </Pressable>
       <Text style={styles.headerTitle} numberOfLines={1}>
         {title}
@@ -478,7 +487,7 @@ const createStyles = (colors: ThemeColors) =>
       borderBottomWidth: 1,
       borderBottomColor: colors.grey50,
     },
-    backIcon: { fontSize: 38, lineHeight: 38, color: colors.text, width: 35 },
+    backIcon: { fontSize: 28, lineHeight: 34, color: colors.text, width: 40 },
     headerTitle: { ...typography.body1Regular, color: colors.text, flex: 1 },
     headerSpacer: { width: 60 },
     headerActions: {
