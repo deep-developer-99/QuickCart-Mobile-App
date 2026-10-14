@@ -113,7 +113,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
     return sum + price * item.quantity;
   }, 0);
 
-  const shipping = subtotal === 0 || subtotal >= 500 ? 0 : 40;
+  const shipping = subtotal > 0 && subtotal <= 99 ? 40 : 0;
   const total = subtotal + shipping;
 
   const selectedAddress = addresses.find(address => address._id === addressId);

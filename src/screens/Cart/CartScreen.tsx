@@ -72,8 +72,8 @@ const CartScreen = () => {
     [selectedItems],
   );
 
-  // Keep shipping dynamic-ready. Current Figma shows ₹0.00.
-  const shippingCost = 0;
+  // ₹40 shipping for subtotal up to ₹99; free shipping above ₹99.
+  const shippingCost = subtotal > 0 && subtotal <= 99 ? 40 : 0;
   const total = subtotal + shippingCost;
 
   const toggleSelection = (productId: string) => {
