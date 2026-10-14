@@ -197,7 +197,14 @@ const CartScreen = () => {
 
               return (
                 <View key={productId} style={styles.cartItem}>
-                  <View style={styles.imageBox}>
+                  <Pressable
+                    style={styles.imageBox}
+                    onPress={() =>
+                      navigation.navigate('ProductDetails', { product })
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`View details for ${product.name}`}
+                  >
                     {product.image ? (
                       <Image
                         source={{ uri: product.image }}
@@ -205,13 +212,22 @@ const CartScreen = () => {
                         resizeMode="cover"
                       />
                     ) : null}
-                  </View>
+                  </Pressable>
 
                   <View style={styles.productDetails}>
                     <View style={styles.nameRow}>
-                      <Text style={styles.productName} numberOfLines={2}>
-                        {product.name}
-                      </Text>
+                      <Pressable
+                        style={styles.productNamePressable}
+                        onPress={() =>
+                          navigation.navigate('ProductDetails', { product })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`View details for ${product.name}`}
+                      >
+                        <Text style={styles.productName} numberOfLines={2}>
+                          {product.name}
+                        </Text>
+                      </Pressable>
 
                       <Pressable
                         style={[
@@ -426,6 +442,10 @@ const createStyles = (colors: ThemeColors) =>
     nameRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
+    },
+    productNamePressable: {
+      flex: 1,
+      minWidth: 0,
     },
     productName: {
       ...typography.body2Regular,

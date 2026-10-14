@@ -62,7 +62,14 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
 
     return (
       <View style={styles.productRow}>
-        <View style={styles.imageWrapper}>
+        <Pressable
+          style={styles.imageWrapper}
+          onPress={() =>
+            navigation.navigate('ProductDetails', { product: item })
+          }
+          accessibilityRole="button"
+          accessibilityLabel={`View details for ${item.name}`}
+        >
           {item.image ? (
             <Image
               source={{ uri: item.image }}
@@ -74,12 +81,20 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
               <Text style={styles.fallbackEmoji}>🛍️</Text>
             </View>
           )}
-        </View>
+        </Pressable>
 
         <View style={styles.productContent}>
-          <Text style={styles.productName} numberOfLines={2}>
-            {item.name}
-          </Text>
+          <Pressable
+            onPress={() =>
+              navigation.navigate('ProductDetails', { product: item })
+            }
+            accessibilityRole="button"
+            accessibilityLabel={`View details for ${item.name}`}
+          >
+            <Text style={styles.productName} numberOfLines={2}>
+              {item.name}
+            </Text>
+          </Pressable>
 
           <Text style={styles.productPrice}>₹{currentPrice.toFixed(2)}</Text>
 
