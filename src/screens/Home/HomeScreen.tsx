@@ -423,7 +423,9 @@ const HomeScreen = () => {
   );
 };
 
-const createStyles = (colors: ThemeColors) => ({
+type ThemeMode = 'light' | 'dark';
+
+const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
   container: { flex: 1, backgroundColor: colors.background },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   headerTop: {
@@ -615,11 +617,15 @@ const createStyles = (colors: ThemeColors) => ({
     width: 27,
     height: 27,
     borderRadius: radius.pill,
-    backgroundColor: colors.grey50,
+    backgroundColor: mode === 'dark' ? colors.white : colors.black,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
-  heartText: { color: colors.white, fontSize: 17 },
+  heartText: {
+    color: mode === 'dark' ? colors.black : colors.white,
+    fontSize: 17,
+    lineHeight: 18,
+  },
   productName: {
     ...typography.body2Regular,
     color: colors.text,
@@ -639,8 +645,11 @@ const createStyles = (colors: ThemeColors) => ({
 });
 
 const useStyles = () => {
-  const { theme } = useTheme();
-  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
+  const { theme, mode } = useTheme();
+  return React.useMemo(
+    () => createStyles(theme.colors, mode),
+    [theme.colors, mode],
+  );
 };
 
 export default HomeScreen;
