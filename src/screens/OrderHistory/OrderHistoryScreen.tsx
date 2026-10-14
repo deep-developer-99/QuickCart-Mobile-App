@@ -449,14 +449,28 @@ const createStyles = (colors: ThemeColors) =>
     },
 
     orderBlock: {
-      marginBottom: 18,
+      marginBottom: 16,
+      padding: 14,
+      borderRadius: 16,
+      backgroundColor: colors.white,
+      borderWidth: 1,
+      borderColor: colors.grey50,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 6,
+      elevation: 2,
     },
 
     metaRow: {
-      minHeight: 32,
+      minHeight: 34,
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       justifyContent: 'space-between',
+      marginBottom: 12,
+      paddingBottom: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.grey50,
     },
 
     statusBadge: {
@@ -490,16 +504,20 @@ const createStyles = (colors: ThemeColors) =>
 
     orderItem: {
       flexDirection: 'row',
+      paddingVertical: 4,
     },
 
     additionalItem: {
-      marginTop: 16,
+      marginTop: 14,
+      paddingTop: 14,
+      borderTopWidth: 1,
+      borderTopColor: colors.grey50,
     },
 
     productImageBox: {
-      width: 120,
-      height: 120,
-      borderRadius: 11,
+      width: 104,
+      height: 104,
+      borderRadius: 12,
       overflow: 'hidden',
       backgroundColor: colors.cyan50,
     },
@@ -523,7 +541,8 @@ const createStyles = (colors: ThemeColors) =>
 
     productInfo: {
       flex: 1,
-      paddingLeft: 8,
+      paddingLeft: 12,
+      justifyContent: 'center',
     },
 
     productName: {

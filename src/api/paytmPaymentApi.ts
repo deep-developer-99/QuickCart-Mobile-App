@@ -3,6 +3,13 @@ import { quickCartApi } from './quickCartApi';
 export interface CreatePaytmSessionRequest {
   addressId: string;
   checkoutMode: 'cart' | 'buyNow';
+  paymentMethod:
+    | 'UPI_GPAY'
+    | 'UPI_PHONEPE'
+    | 'UPI_PAYTM'
+    | 'UPI_OTHER'
+    | 'CARD'
+    | 'WALLET';
   productId?: string;
   quantity?: number;
 }

@@ -215,6 +215,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
         const session = await createPaytmSession({
           addressId,
           checkoutMode: isBuyNow ? 'buyNow' : 'cart',
+          paymentMethod: payment,
           ...(isBuyNow
             ? {
                 productId: buyNowProduct!._id,
@@ -468,7 +469,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
             <View style={styles.paymentSection}>
               <Text style={styles.paymentGroupTitle}>UPI</Text>
               <Text style={styles.paymentGroupSubtitle}>
-                Choose your preferred UPI option
+                Choose a UPI payment option
               </Text>
 
               <View style={styles.upiGrid}>
@@ -533,9 +534,9 @@ export default function CheckoutScreen({ navigation, route }: Props) {
 
             {isOnlinePayment && (
               <Text style={styles.paymentNotice}>
-                Online payments open Paytm’s secure checkout. The SDK may show
-                its own supported payment choices; selecting an app here does
-                not force that specific app to launch yet.
+                Paytm securely processes this payment. Your selection filters
+                the available payment methods; UPI app availability depends on
+                the apps installed on your phone and Paytm's supported flow.
               </Text>
             )}
 
@@ -729,41 +730,6 @@ function AddressCard({
         <Text style={styles.addressText}>
           {address.state} - {address.pincode}
         </Text>
-      </View>
-    </Pressable>
-  );
-}
-
-function Payment({
-  title,
-  subtitle,
-  selected,
-  onPress,
-  icon,
-}: {
-  title: string;
-  subtitle: string;
-  selected: boolean;
-  onPress: () => void;
-  icon: string;
-}) {
-  const styles = useStyles();
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.payment, selected && styles.paymentSelected]}
-    >
-      <View style={styles.paymentIcon}>
-        <Text style={styles.paymentIconText}>{icon}</Text>
-      </View>
-
-      <View style={styles.paymentText}>
-        <Text style={styles.paymentTitle}>{title}</Text>
-        <Text style={styles.paymentSub}>{subtitle}</Text>
-      </View>
-
-      <View style={styles.radio}>
-        {selected && <View style={styles.radioInner} />}
       </View>
     </Pressable>
   );
@@ -1158,17 +1124,6 @@ const createStyles = (colors: ThemeColors) =>
       fontWeight: '600',
     },
 
-    payment: {
-      minHeight: 82,
-      flexDirection: 'row',
-      alignItems: 'center',
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 14,
-      padding: 14,
-      marginBottom: 12,
-    },
-
     paymentSelected: {
       borderColor: colors.cyan,
       backgroundColor: colors.cyan50,
@@ -1285,21 +1240,6 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.grey150,
       marginBottom: 8,
       paddingHorizontal: 2,
-    },
-
-    paymentIcon: {
-      width: 48,
-      height: 48,
-      borderRadius: 12,
-      backgroundColor: colors.cyan50,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-
-    paymentIconText: {
-      fontSize: 22,
-      fontWeight: '700',
-      color: '#217C6D',
     },
 
     paymentText: {
