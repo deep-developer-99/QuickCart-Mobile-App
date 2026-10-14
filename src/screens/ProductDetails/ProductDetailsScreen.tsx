@@ -1,6 +1,6 @@
 import { useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -20,7 +20,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { useAddToCartMutation } from '../../api/quickCartApi';
+import {
+  getWishlistProducts,
+  useAddToCartMutation,
+  useAddToWishlistMutation,
+  useGetWishlistQuery,
+  useRemoveFromWishlistMutation,
+} from '../../api/quickCartApi';
 
 type ProductDetailsRouteProp = RouteProp<RootStackParamList, 'ProductDetails'>;
 
@@ -67,12 +73,18 @@ const BackIcon = () => (
   </Svg>
 );
 
-const HeartIcon = () => (
+const HeartIcon = ({
+  color = '#FFFFFF',
+  filled = false,
+}: {
+  color?: string;
+  filled?: boolean;
+}) => (
   <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
     <Path
       d="M20.8 8.8c0 5.2-8.8 10-8.8 10s-8.8-4.8-8.8-10A4.8 4.8 0 0 1 12 6.1a4.8 4.8 0 0 1 8.8 2.7Z"
-      fill="none"
-      stroke="#FFFFFF"
+      fill={filled ? color : 'none'}
+      stroke={color}
       strokeWidth="1.7"
     />
   </Svg>
@@ -85,12 +97,24 @@ const ProductDetailsScreen = () => {
   const route = useRoute<ProductDetailsRouteProp>();
   const insets = useSafeAreaInsets();
   const [addToCart, { isLoading: addingToCart }] = useAddToCartMutation();
+  const [addToWishlist, { isLoading: addingToWishlist }] =
+    useAddToWishlistMutation();
+  const [removeFromWishlist, { isLoading: removingFromWishlist }] =
+    useRemoveFromWishlistMutation();
+  const { data: wishlistResponse } = useGetWishlistQuery();
 
   const product = route.params.product as DetailProduct;
   const [quantity, setQuantity] = useState(1);
   const [expanded, setExpanded] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [showAddedMessage, setShowAddedMessage] = useState(false);
+
+  const wishlistIds = useMemo(
+    () => getWishlistProducts(wishlistResponse).map(item => item._id),
+    [wishlistResponse],
+  );
+  const isWishlisted = wishlistIds.includes(product._id);
+  const updatingWishlist = addingToWishlist || removingFromWishlist;
 
   const images = useMemo(() => {
     const list = Array.isArray(product.images)
@@ -137,6 +161,18 @@ const ProductDetailsScreen = () => {
     }
   };
 
+  const handleWishlistToggle = useCallback(async () => {
+    try {
+      if (isWishlisted) {
+        await removeFromWishlist(product._id).unwrap();
+      } else {
+        await addToWishlist({ productId: product._id }).unwrap();
+      }
+    } catch (error) {
+      console.error('Failed to update wishlist:', error);
+    }
+  }, [addToWishlist, isWishlisted, product._id, removeFromWishlist]);
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -180,8 +216,21 @@ const ProductDetailsScreen = () => {
             >
               <BackIcon />
             </Pressable>
-            <Pressable style={styles.heartCircle}>
-              <HeartIcon />
+            <Pressable
+              style={[
+                styles.heartCircle,
+                updatingWishlist && styles.heartCircleDisabled,
+              ]}
+              onPress={handleWishlistToggle}
+              disabled={updatingWishlist}
+              accessibilityRole="button"
+              accessibilityLabel={
+                isWishlisted
+                  ? `Remove ${product.name} from wishlist`
+                  : `Add ${product.name} to wishlist`
+              }
+            >
+              <HeartIcon color={styles.heartIcon.color} filled={isWishlisted} />
             </Pressable>
           </View>
 
@@ -332,7 +381,9 @@ const ProductDetailsScreen = () => {
   );
 };
 
-const createStyles = (colors: ThemeColors) =>
+type ThemeMode = 'light' | 'dark';
+
+const createStyles = (colors: ThemeColors, mode: ThemeMode) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     imageSection: {
@@ -367,9 +418,15 @@ const createStyles = (colors: ThemeColors) =>
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: colors.black,
+      backgroundColor: mode === 'dark' ? colors.white : colors.black,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    heartCircleDisabled: {
+      opacity: 0.65,
+    },
+    heartIcon: {
+      color: mode === 'dark' ? colors.black : colors.white,
     },
     imageDots: {
       position: 'absolute',
@@ -585,8 +642,11 @@ const createStyles = (colors: ThemeColors) =>
   });
 
 const useStyles = () => {
-  const { theme } = useTheme();
-  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
+  const { theme, mode } = useTheme();
+  return React.useMemo(
+    () => createStyles(theme.colors, mode),
+    [theme.colors, mode],
+  );
 };
 
 export default ProductDetailsScreen;
