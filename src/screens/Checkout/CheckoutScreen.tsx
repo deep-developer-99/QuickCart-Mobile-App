@@ -24,10 +24,10 @@ import {
   useCreateOrderMutation,
 } from '../../api/orderApi';
 import {
-  useCreatePaytmSessionMutation,
-  useVerifyPaytmPaymentMutation,
-} from '../../api/paytmPaymentApi';
-import { startPaytmTransaction } from '../../services/paytmPaymentService';
+  useCreateCashfreeSessionMutation,
+  useVerifyCashfreePaymentMutation,
+} from '../../api/cashfreePaymentApi';
+import { startCashfreeTransaction } from '../../services/cashfreePaymentService';
 import {
   type CartItem,
   useClearCartMutation,
@@ -70,10 +70,10 @@ export default function CheckoutScreen({ navigation, route }: Props) {
   const [createBuyNowOrder, { isLoading: placingBuyNowOrder }] =
     useCreateBuyNowOrderMutation();
   const [clearCart] = useClearCartMutation();
-  const [createPaytmSession, { isLoading: creatingPaytmSession }] =
-    useCreatePaytmSessionMutation();
-  const [verifyPaytmPayment, { isLoading: verifyingPaytmPayment }] =
-    useVerifyPaytmPaymentMutation();
+  const [createCashfreeSession, { isLoading: creatingCashfreeSession }] =
+    useCreateCashfreeSessionMutation();
+  const [verifyCashfreePayment, { isLoading: verifyingCashfreePayment }] =
+    useVerifyCashfreePaymentMutation();
 
   const items: CartItem[] = isBuyNow
     ? buyNowProduct
@@ -90,8 +90,8 @@ export default function CheckoutScreen({ navigation, route }: Props) {
   const placingOrder =
     placingCartOrder ||
     placingBuyNowOrder ||
-    creatingPaytmSession ||
-    verifyingPaytmPayment;
+    creatingCashfreeSession ||
+    verifyingCashfreePayment;
 
   const [step, setStep] = useState<Step>('shipping');
   const [addressId, setAddressId] = useState('');
@@ -212,10 +212,10 @@ export default function CheckoutScreen({ navigation, route }: Props) {
           return;
         }
 
-        const session = await createPaytmSession({
+        const session = await createCashfreeSession({
           addressId,
           checkoutMode: isBuyNow ? 'buyNow' : 'cart',
-          paymentMethod: payment,
+          paymentMethod: payment as Exclude<PaymentMethod, 'COD'>,
           ...(isBuyNow
             ? {
                 productId: buyNowProduct!._id,
@@ -224,45 +224,48 @@ export default function CheckoutScreen({ navigation, route }: Props) {
             : {}),
         }).unwrap();
 
-        // Paytm's callback is not trusted as proof of payment. We always ask
-        // QuickCart's backend to verify the final status with Paytm.
+        // Cashfree's SDK callback is not proof of payment. Always verify with our backend.
         try {
-          await startPaytmTransaction(session.data);
+          await startCashfreeTransaction(session.data);
         } catch (sdkError) {
           // The app can return an error even when the provider transaction is
           // still processing. Check the server status before deciding.
           console.warn(
-            'Paytm SDK returned without a confirmed result:',
+            'Cashfree SDK returned without a confirmed result:',
             sdkError,
           );
         }
 
-        const verification = await verifyPaytmPayment({
+        const verification = await verifyCashfreePayment({
           paymentId: session.data.paymentId,
         }).unwrap();
 
         if (verification.data.status === 'paid') {
-          // The backend finalizes the order and clears the cart transactionally.
-          try {
-            await clearCart().unwrap();
-          } catch (clearError) {
-            console.warn('Cart refresh after Paytm order failed:', clearError);
-          }
+          // The backend finalizes the order and clears the unchanged cart transactionally.
+          // Do not clear the cart again on the client: the customer may have changed it.
           setStep('success');
+          return;
+        }
+
+        if (verification.data.status === 'paid_needs_review') {
+          Alert.alert(
+            'Payment received',
+            'Cashfree confirmed your payment, but the order needs a review. Please do not pay again; contact support if the order does not appear in My Orders.',
+          );
           return;
         }
 
         if (verification.data.status === 'pending') {
           Alert.alert(
             'Payment processing',
-            'Paytm is still processing your payment. Check My Orders before trying again.',
+            'Cashfree is still processing your payment. Check My Orders before trying again.',
           );
           return;
         }
 
         Alert.alert(
           'Payment not completed',
-          'Paytm could not confirm a successful payment. You can try again or choose Cash on Delivery.',
+          'Cashfree could not confirm a successful payment. You can try again or choose Cash on Delivery.',
         );
         return;
       }
@@ -469,7 +472,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
             <View style={styles.paymentSection}>
               <Text style={styles.paymentGroupTitle}>UPI</Text>
               <Text style={styles.paymentGroupSubtitle}>
-                Choose a UPI payment option
+                Choose your preferred UPI option
               </Text>
 
               <View style={styles.upiGrid}>
@@ -534,9 +537,10 @@ export default function CheckoutScreen({ navigation, route }: Props) {
 
             {isOnlinePayment && (
               <Text style={styles.paymentNotice}>
-                Paytm securely processes this payment. Your selection filters
-                the available payment methods; UPI app availability depends on
-                the apps installed on your phone and Paytm's supported flow.
+                Online payments open Cashfree’s secure checkout. The available
+                methods depend on your Cashfree account configuration. Selecting
+                a UPI app here chooses UPI checkout; Cashfree may show its own
+                supported UPI app choices.
               </Text>
             )}
 
@@ -1124,6 +1128,17 @@ const createStyles = (colors: ThemeColors) =>
       fontWeight: '600',
     },
 
+    payment: {
+      minHeight: 82,
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 12,
+    },
+
     paymentSelected: {
       borderColor: colors.cyan,
       backgroundColor: colors.cyan50,
@@ -1240,6 +1255,21 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.grey150,
       marginBottom: 8,
       paddingHorizontal: 2,
+    },
+
+    paymentIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 12,
+      backgroundColor: colors.cyan50,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    paymentIconText: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: '#217C6D',
     },
 
     paymentText: {
