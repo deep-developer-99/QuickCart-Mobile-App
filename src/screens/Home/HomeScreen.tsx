@@ -117,11 +117,9 @@ const HomeScreen = () => {
             setCurrentLocation(label || 'Current location');
           } catch (error) {
             console.warn('Reverse geocoding failed:', error);
-            setCurrentLocation(
-              `${position.coords.latitude.toFixed(
-                4,
-              )}, ${position.coords.longitude.toFixed(4)}`,
-            );
+            // Do not show raw coordinates as the delivery location. The service
+            // already tries both the QuickCart backend and address-provider fallback.
+            setCurrentLocation('Address unavailable — tap to retry');
           } finally {
             setIsLocating(false);
           }
