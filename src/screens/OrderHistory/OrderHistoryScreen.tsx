@@ -157,8 +157,16 @@ const OrderHistoryScreen = () => {
 
   const [activeTab, setActiveTab] = useState<Tab>('Ongoing');
 
-  const { data, isLoading, isFetching, isError, refetch } =
-    useGetMyOrdersQuery();
+  const { data, isLoading, isFetching, isError, refetch } = useGetMyOrdersQuery(
+    undefined,
+    {
+      // Refresh order statuses periodically so vendor/admin updates appear
+      // without requiring the user to leave and reopen this screen.
+      pollingInterval: 15000,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+    },
+  );
 
   const orders = useMemo(
     () => (Array.isArray(data?.data) ? data.data : []),
@@ -192,11 +200,7 @@ const OrderHistoryScreen = () => {
                 : styles.ongoingBadge,
             ]}
           >
-            <Text style={styles.statusText}>
-              {order.status === 'Delivered'
-                ? 'Finished'
-                : 'Estimated time: 7 working days'}
-            </Text>
+            <Text style={styles.statusText}>{order.status}</Text>
           </View>
 
           {order.status === 'Delivered' ? (
