@@ -1,4 +1,10 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -74,6 +80,7 @@ const HomeScreen = () => {
   const user = useSelector((state: RootState) => state.auth.user);
   const [currentLocation, setCurrentLocation] = useState('Current location');
   const [isLocating, setIsLocating] = useState(false);
+  const hasRequestedInitialLocation = useRef(false);
 
   const requestLocationPermission = useCallback(async () => {
     if (Platform.OS !== 'android') return true;
@@ -150,6 +157,14 @@ const HomeScreen = () => {
       );
     }
   }, [isLocating, requestLocationPermission]);
+
+  useEffect(() => {
+    if (hasRequestedInitialLocation.current) return;
+
+    hasRequestedInitialLocation.current = true;
+    detectCurrentLocation();
+  }, [detectCurrentLocation]);
+
   const { data: wishlistResponse } = useGetWishlistQuery();
   const wishlistIds = useMemo(() => {
     const data = wishlistResponse?.data;
