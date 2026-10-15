@@ -327,7 +327,7 @@ const ProfileScreen = () => {
       </View>
 
       <ScrollView
-        style={[styles.scrollView, { backgroundColor: theme.colors.surface }]}
+        style={[styles.scrollView, { backgroundColor: theme.colors.cyan }]}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.content,
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    height: 64,
+    height: 68,
     backgroundColor: '#21D4B4',
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -606,6 +606,9 @@ const styles = StyleSheet.create({
 
   scrollView: {
     flex: 1,
+    backgroundColor: '#21D4B4',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
   },
 
   content: {
@@ -615,23 +618,26 @@ const styles = StyleSheet.create({
 
   menuPanel: {
     flexGrow: 1,
-    paddingTop: 0,
+    minHeight: '100%',
+    paddingTop: 12,
+    paddingBottom: 8,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     overflow: 'hidden',
   },
 
   sectionTitle: {
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 13,
+    fontFamily: 'PlusJakartaSans-Medium',
+    fontSize: 12,
     color: '#17171A',
     marginTop: 12,
-    marginBottom: 4,
+    marginBottom: 8,
     paddingHorizontal: 16,
   },
 
   menuRow: {
     minHeight: 48,
+    paddingVertical: 0,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
