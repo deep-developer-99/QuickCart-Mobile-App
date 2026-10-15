@@ -13,7 +13,10 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useDispatch, useSelector } from 'react-redux';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import type { AppDispatch, RootState } from '../../store/store';
@@ -21,7 +24,11 @@ import { logout } from '../../store/slices/authSlice';
 import { useTheme } from '../../theme/ThemeContext';
 import { removeToken } from '../../services/secureStorage';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import i18n, { changeLanguage, supportedLanguages, type Language } from '../../i18n';
+import i18n, {
+  changeLanguage,
+  supportedLanguages,
+  type Language,
+} from '../../i18n';
 
 type IconProps = {
   color?: string;
@@ -161,6 +168,27 @@ const DeviceIcon = ({ color = '#777C8D', size = 24 }: IconProps) => (
   </Svg>
 );
 
+const LockIcon = ({ color = '#777C8D', size = 24 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Rect
+      x="4"
+      y="10"
+      width="16"
+      height="11"
+      rx="2.5"
+      stroke={color}
+      strokeWidth="1.6"
+    />
+    <Path
+      d="M8 10V7a4 4 0 0 1 8 0v3"
+      stroke={color}
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
+    <Circle cx="12" cy="15.5" r="1.2" fill={color} />
+  </Svg>
+);
+
 const LogoutIcon = ({ color = '#FFFFFF', size = 25 }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path
@@ -266,8 +294,8 @@ const ProfileScreen = () => {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-      edges={['top', 'bottom']}
+      style={[styles.container, { backgroundColor: theme.colors.cyan }]}
+      edges={['top']}
     >
       <View style={[styles.header, { backgroundColor: theme.colors.cyan }]}>
         <View style={styles.headerUser}>
@@ -299,93 +327,120 @@ const ProfileScreen = () => {
       </View>
 
       <ScrollView
+        style={[styles.scrollView, { backgroundColor: theme.colors.surface }]}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 30 }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: Math.max(insets.bottom, 8) },
+        ]}
         bounces={false}
       >
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}> 
-          {t('profile.personal')}
-        </Text>
+        <View
+          style={[styles.menuPanel, { backgroundColor: theme.colors.surface }]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            {t('profile.personal')}
+          </Text>
 
-        <View>
-          <MenuRow
-            icon={<AddressIcon color={theme.colors.grey150} />}
-            label={t('profile.shipping')}
-            onPress={() => navigation.navigate('ShippingAddress')}
-          />
-          <MenuRow
-            icon={<PaymentIcon color={theme.colors.grey150} />}
-            label={t('profile.payment')}
-            onPress={() => navigation.navigate('PaymentMethod')}
-          />
-          <MenuRow
-            icon={<OrdersIcon color={theme.colors.grey150} />}
-            label={t('profile.history')}
-            onPress={() => navigation.navigate('OrderHistory')}
-            showDivider={false}
-          />
-        </View>
+          <View>
+            <MenuRow
+              icon={<AddressIcon color={theme.colors.grey150} />}
+              label={t('profile.shipping')}
+              onPress={() => navigation.navigate('ShippingAddress')}
+            />
+            <MenuRow
+              icon={<PaymentIcon color={theme.colors.grey150} />}
+              label={t('profile.payment')}
+              onPress={() => navigation.navigate('PaymentMethod')}
+            />
+            <MenuRow
+              icon={<OrdersIcon color={theme.colors.grey150} />}
+              label={t('profile.history')}
+              onPress={() => navigation.navigate('OrderHistory')}
+              showDivider={false}
+            />
+          </View>
 
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}> 
-          {t('profile.support')}
-        </Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            {t('profile.support')}
+          </Text>
 
-        <View>
-          <MenuRow
-            icon={<PrivacyIcon color={theme.colors.grey150} />}
-            label={t('profile.privacy')}
-            onPress={() => handleComingSoon('Privacy Policy')}
-          />
-          <MenuRow
-            icon={<TermsIcon color={theme.colors.grey150} />}
-            label={t('profile.terms')}
-            onPress={() => handleComingSoon('Terms & Conditions')}
-          />
-          <MenuRow
-            icon={<FaqIcon color={theme.colors.grey150} />}
-            label={t('profile.faqs')}
-            onPress={() => handleComingSoon('FAQs')}
-            showDivider={false}
-          />
-        </View>
+          <View>
+            <MenuRow
+              icon={<PrivacyIcon color={theme.colors.grey150} />}
+              label={t('profile.privacy')}
+              onPress={() => handleComingSoon('Privacy Policy')}
+            />
+            <MenuRow
+              icon={<TermsIcon color={theme.colors.grey150} />}
+              label={t('profile.terms')}
+              onPress={() => handleComingSoon('Terms & Conditions')}
+            />
+            <MenuRow
+              icon={<FaqIcon color={theme.colors.grey150} />}
+              label={t('profile.faqs')}
+              onPress={() => handleComingSoon('FAQs')}
+              showDivider={false}
+            />
+          </View>
 
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}> 
-          {t('profile.account')}
-        </Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            {t('profile.account')}
+          </Text>
 
-        <View>
-          <MenuRow
-            icon={<DeviceIcon color={theme.colors.grey150} />}
-            label={t('profile.darkTheme')}
-            onPress={toggleTheme}
-            showDivider={false}
-            right={
-              <View
-                style={[
-                  styles.switchTrack,
-                  {
-                    backgroundColor:
-                      mode === 'dark' ? theme.colors.cyan : theme.colors.border,
-                  },
-                ]}
-              >
+          <View>
+            <MenuRow
+              icon={<LockIcon color={theme.colors.grey150} />}
+              label={t('profile.changePassword', {
+                defaultValue: 'Change Password',
+              })}
+              onPress={() => handleComingSoon('Change Password')}
+            />
+            <MenuRow
+              icon={<DeviceIcon color={theme.colors.grey150} />}
+              label={t('profile.darkTheme')}
+              onPress={toggleTheme}
+              right={
                 <View
                   style={[
-                    styles.switchThumb,
-                    mode === 'dark' && styles.switchThumbActive,
-                    { backgroundColor: theme.colors.white },
+                    styles.switchTrack,
+                    {
+                      backgroundColor:
+                        mode === 'dark'
+                          ? theme.colors.cyan
+                          : theme.colors.border,
+                    },
                   ]}
-                />
-              </View>
-            }
-          />
-          <MenuRow
-            icon={<DeviceIcon color={theme.colors.grey150} />}
-            label={t('profile.language')}
-            onPress={handleLanguageChange}
-            showDivider={false}
-            right={<Text style={[styles.languageValue, { color: theme.colors.secondaryText }]}>{t(`languages.${i18n.language}`, { defaultValue: t('languages.en') })}</Text>}
-          />
+                >
+                  <View
+                    style={[
+                      styles.switchThumb,
+                      mode === 'dark' && styles.switchThumbActive,
+                      { backgroundColor: theme.colors.white },
+                    ]}
+                  />
+                </View>
+              }
+            />
+            <MenuRow
+              icon={<DeviceIcon color={theme.colors.grey150} />}
+              label={t('profile.language')}
+              onPress={handleLanguageChange}
+              showDivider={false}
+              right={
+                <Text
+                  style={[
+                    styles.languageValue,
+                    { color: theme.colors.secondaryText },
+                  ]}
+                >
+                  {t(`languages.${i18n.language}`, {
+                    defaultValue: t('languages.en'),
+                  })}
+                </Text>
+              }
+            />
+          </View>
         </View>
       </ScrollView>
 
@@ -400,12 +455,22 @@ const ProfileScreen = () => {
             style={StyleSheet.absoluteFill}
             onPress={() => setLanguageModalVisible(false)}
           />
-          <View style={[styles.languageModal, { backgroundColor: theme.colors.surface }]}>
+          <View
+            style={[
+              styles.languageModal,
+              { backgroundColor: theme.colors.surface },
+            ]}
+          >
             <View style={styles.modalHandle} />
             <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
               {t('profile.language')}
             </Text>
-            <Text style={[styles.modalSubtitle, { color: theme.colors.secondaryText }]}>
+            <Text
+              style={[
+                styles.modalSubtitle,
+                { color: theme.colors.secondaryText },
+              ]}
+            >
               {t('profile.chooseLanguage')}
             </Text>
             {supportedLanguages.map(language => {
@@ -416,18 +481,48 @@ const ProfileScreen = () => {
                   style={[
                     styles.languageOption,
                     { borderColor: theme.colors.grey50 },
-                    selected && { backgroundColor: theme.colors.cyan50, borderColor: theme.colors.cyan },
+                    selected && {
+                      backgroundColor: theme.colors.cyan50,
+                      borderColor: theme.colors.cyan,
+                    },
                   ]}
                   onPress={() => selectLanguage(language)}
                 >
                   <Text style={styles.languageFlag}>
-                    {language === 'en' ? '🇬🇧' : language === 'hi' ? '🇮🇳' : language === 'fr' ? '🇫🇷' : '🇯🇵'}
+                    {language === 'en'
+                      ? '🇬🇧'
+                      : language === 'hi'
+                      ? '🇮🇳'
+                      : language === 'fr'
+                      ? '🇫🇷'
+                      : '🇯🇵'}
                   </Text>
-                  <Text style={[styles.languageOptionText, { color: theme.colors.text }]}>
+                  <Text
+                    style={[
+                      styles.languageOptionText,
+                      { color: theme.colors.text },
+                    ]}
+                  >
                     {t(`languages.${language}`)}
                   </Text>
-                  <View style={[styles.radio, { borderColor: selected ? theme.colors.cyan : theme.colors.grey100 }]}>
-                    {selected ? <View style={[styles.radioSelected, { backgroundColor: theme.colors.cyan }]} /> : null}
+                  <View
+                    style={[
+                      styles.radio,
+                      {
+                        borderColor: selected
+                          ? theme.colors.cyan
+                          : theme.colors.grey100,
+                      },
+                    ]}
+                  >
+                    {selected ? (
+                      <View
+                        style={[
+                          styles.radioSelected,
+                          { backgroundColor: theme.colors.cyan },
+                        ]}
+                      />
+                    ) : null}
                   </View>
                 </Pressable>
               );
@@ -446,7 +541,7 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    height: 88,
+    height: 64,
     backgroundColor: '#21D4B4',
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -491,43 +586,57 @@ const styles = StyleSheet.create({
 
   name: {
     fontFamily: 'PlusJakartaSans-Medium',
-    fontSize: 14,
+    fontSize: 17,
     color: '#FFFFFF',
   },
 
   email: {
     fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 11,
+    fontSize: 14,
     color: '#FFFFFF',
     marginTop: 2,
   },
 
   logoutButton: {
-    width: 42,
+    width: 38,
     height: 42,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
+  scrollView: {
+    flex: 1,
+  },
+
   content: {
-    paddingBottom: 30,
+    flexGrow: 1,
+    paddingBottom: 8,
+  },
+
+  menuPanel: {
+    flexGrow: 1,
+    paddingTop: 0,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
   },
 
   sectionTitle: {
     fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 12,
+    fontSize: 13,
     color: '#17171A',
-    marginTop: 20,
-    marginBottom: 8,
+    marginTop: 12,
+    marginBottom: 4,
     paddingHorizontal: 16,
   },
 
   menuRow: {
-    minHeight: 61,
+    minHeight: 48,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
   },
 
   menuRowDivider: {
@@ -544,7 +653,8 @@ const styles = StyleSheet.create({
   menuText: {
     flex: 1,
     fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 15,
+    fontSize: 16,
+    lineHeight: 22,
     color: '#777C8D',
   },
 

@@ -355,7 +355,9 @@ export default function CheckoutScreen({ navigation, route }: Props) {
 
           <Button
             title="Continue Shopping"
-            onPress={() => navigation.replace('MainTabs', { screen: 'Home' })}
+            onPress={() =>
+              navigation.replace('MainTabs', { screen: 'Categories' })
+            }
           />
         </View>
       </SafeAreaView>
