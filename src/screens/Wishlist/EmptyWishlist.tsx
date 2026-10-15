@@ -145,7 +145,7 @@ const EmptyWishlist = () => {
   );
 };
 
-const createStyles = (colors: ThemeColors) =>
+const createStyles = (colors: ThemeColors, isDark: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -177,7 +177,7 @@ const createStyles = (colors: ThemeColors) =>
       height: 60,
       marginTop: 24,
       borderRadius: radius.md,
-      backgroundColor: colors.black,
+      backgroundColor: isDark ? colors.cyan : colors.black,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -188,8 +188,11 @@ const createStyles = (colors: ThemeColors) =>
   });
 
 const useStyles = () => {
-  const { theme } = useTheme();
-  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
+  const { theme, mode } = useTheme();
+  return React.useMemo(
+    () => createStyles(theme.colors, mode === 'dark'),
+    [theme.colors, mode],
+  );
 };
 
 export default EmptyWishlist;
