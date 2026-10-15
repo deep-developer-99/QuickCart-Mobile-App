@@ -29,6 +29,15 @@ const BLACK = '#17171A';
 const GREY = '#8B8E99';
 const GREEN = '#21D4B4';
 
+const COUNTRY_CODES = [
+  { code: '+91', country: 'India' },
+  { code: '+1', country: 'United States' },
+  { code: '+44', country: 'United Kingdom' },
+  { code: '+61', country: 'Australia' },
+  { code: '+81', country: 'Japan' },
+  { code: '+971', country: 'United Arab Emirates' },
+] as const;
+
 const emptyForm: CreateAddressData = {
   fullName: '',
   phone: '',
@@ -125,6 +134,8 @@ export default function ShippingAddressScreen({ navigation }: Props) {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     null,
   );
+  const [countryCode, setCountryCode] = useState('+91');
+  const [countryPickerOpen, setCountryPickerOpen] = useState(false);
 
   useEffect(() => {
     const defaultAddress =
@@ -159,8 +170,9 @@ export default function ShippingAddressScreen({ navigation }: Props) {
       return;
     }
 
-    const cleanPhone = form.phone.trim().replace(/\s+/g, '');
-    if (!/^\+?[0-9]{10,15}$/.test(cleanPhone)) {
+    const localPhone = form.phone.trim().replace(/\s+/g, '').replace(/^\+/, '');
+    const cleanPhone = `${countryCode}${localPhone}`;
+    if (!/^\+[0-9]{8,15}$/.test(cleanPhone)) {
       Alert.alert('Invalid phone', 'Please enter a valid phone number.');
       return;
     }
@@ -187,6 +199,8 @@ export default function ShippingAddressScreen({ navigation }: Props) {
       }).unwrap();
 
       setForm(emptyForm);
+      setCountryCode('+91');
+      setCountryPickerOpen(false);
       await refetch();
 
       if (response?.data?._id) {
@@ -275,13 +289,49 @@ export default function ShippingAddressScreen({ navigation }: Props) {
               onChangeText={value => updateField('fullName', value)}
             />
 
-            <Field
-              label="Phone Number"
-              value={form.phone}
-              placeholder="Enter phone number"
-              keyboardType="phone-pad"
-              onChangeText={value => updateField('phone', value)}
-            />
+            <View style={styles.fieldBlock}>
+              <Text style={styles.label}>
+                Phone Number <Text style={styles.required}>*</Text>
+              </Text>
+              <View style={styles.phoneRow}>
+                <View style={styles.countryPickerWrapper}>
+                  <Pressable
+                    style={styles.countryButton}
+                    onPress={() => setCountryPickerOpen(value => !value)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Select country code"
+                  >
+                    <Text style={styles.countryCode}>{countryCode}</Text>
+                    <Text style={styles.countryChevron}>⌄</Text>
+                  </Pressable>
+                  {countryPickerOpen ? (
+                    <View style={styles.countryDropdown}>
+                      {COUNTRY_CODES.map(option => (
+                        <Pressable
+                          key={option.code}
+                          style={styles.countryOption}
+                          onPress={() => {
+                            setCountryCode(option.code);
+                            setCountryPickerOpen(false);
+                          }}
+                        >
+                          <Text style={styles.countryOptionCode}>{option.code}</Text>
+                          <Text style={styles.countryOptionName}>{option.country}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+                <TextInput
+                  value={form.phone}
+                  placeholder="Enter phone number"
+                  placeholderTextColor="#C5C7CD"
+                  onChangeText={value => updateField('phone', value)}
+                  keyboardType="phone-pad"
+                  style={styles.phoneInput}
+                />
+              </View>
+            </View>
 
             <Field
               label="Street Address"
@@ -517,6 +567,96 @@ const styles = StyleSheet.create({
   },
 
   input: {
+    height: 58,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 11,
+    paddingHorizontal: 15,
+    fontFamily: 'PlusJakartaSans-Regular',
+    fontSize: 12,
+    color: BLACK,
+    backgroundColor: '#FFFFFF',
+  },
+
+  phoneRow: {
+    height: 58,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 8,
+  },
+
+  countryPickerWrapper: {
+    width: 88,
+    zIndex: 2,
+  },
+
+  countryButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 11,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+  },
+
+  countryCode: {
+    fontFamily: 'PlusJakartaSans-Regular',
+    fontSize: 13,
+    color: BLACK,
+  },
+
+  countryChevron: {
+    fontSize: 17,
+    lineHeight: 17,
+    color: GREY,
+    marginTop: -4,
+  },
+
+  countryDropdown: {
+    position: 'absolute',
+    top: 62,
+    left: 0,
+    width: 220,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 11,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
+    overflow: 'hidden',
+  },
+
+  countryOption: {
+    minHeight: 43,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F3F6',
+  },
+
+  countryOptionCode: {
+    width: 48,
+    fontFamily: 'PlusJakartaSans-Medium',
+    fontSize: 12,
+    color: BLACK,
+  },
+
+  countryOptionName: {
+    flex: 1,
+    fontFamily: 'PlusJakartaSans-Regular',
+    fontSize: 12,
+    color: GREY,
+  },
+
+  phoneInput: {
+    flex: 1,
     height: 58,
     borderWidth: 1,
     borderColor: BORDER,

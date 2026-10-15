@@ -1,91 +1,183 @@
-import { StyleSheet, Dimensions } from 'react-native';
-import { spacing, typography, radius } from '../../theme';
+import { StyleSheet } from 'react-native';
+import { radius, spacing, typography } from '../../theme';
 import type { ThemeColors } from '../../theme';
 
-const { width } = Dimensions.get('window');
-
-export const OnboardingScreenStyles = (colors: ThemeColors) =>
+export const OnboardingScreenStyles = (
+  colors: ThemeColors,
+  screenWidth: number,
+  screenHeight: number,
+) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.white,
+      backgroundColor: colors.background,
     },
-
     slide: {
-      width,
       flex: 1,
-      paddingHorizontal: spacing.xxl,
-      justifyContent: 'center',
+      paddingHorizontal: 16,
+      paddingTop: spacing.sm,
       alignItems: 'center',
     },
-
-    imagePlaceholder: {
+    illustrationCard: {
       width: '100%',
-      height: 280,
-      backgroundColor: colors.cyan50,
-      borderRadius: radius.xxl,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginBottom: spacing.xxxl,
+      height: Math.min(Math.max(screenHeight * 0.51, 285), 410),
+      backgroundColor: colors.generalCyan50,
+      borderRadius: 32,
+      overflow: 'hidden',
     },
-
-    imagePlaceholderText: {
-      ...typography.heading2SemiBold,
+    topBar: {
+      position: 'absolute',
+      top: 16,
+      left: 16,
+      right: 16,
+      zIndex: 2,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      minHeight: 34,
+    },
+    brand: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    brandMark: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: colors.cyan,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 2,
+    },
+    brandMarkText: {
+      color: colors.background,
+      fontFamily: 'PlusJakartaSans-Bold',
+      fontSize: 22,
+      lineHeight: 27,
+    },
+    brandText: {
+      color: colors.text,
+      fontFamily: 'PlusJakartaSans-Bold',
+      fontSize: 17,
+      letterSpacing: -0.6,
+    },
+    backButton: {
+      width: 36,
+      height: 34,
+      justifyContent: 'center',
+    },
+    backArrow: {
+      color: colors.text,
+      fontSize: 38,
+      lineHeight: 38,
+      marginTop: -4,
+    },
+    skipButton: {
+      paddingVertical: spacing.xs,
+      paddingLeft: spacing.sm,
+    },
+    skipText: {
+      ...typography.body2Medium,
       color: colors.cyan,
     },
-
+    illustrationWrap: {
+      position: 'absolute',
+      left: '12%',
+      right: '12%',
+      top: '20%',
+      bottom: '10%',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    copy: {
+      width: '100%',
+      alignItems: 'center',
+      paddingHorizontal: spacing.sm,
+      paddingTop: spacing.xl,
+    },
     title: {
       ...typography.heading2Bold,
-      color: colors.black,
+      color: colors.text,
       textAlign: 'center',
+      fontSize: 23,
+      lineHeight: 29,
+      maxWidth: screenWidth - 48,
     },
-
     description: {
       ...typography.body2Regular,
-      color: colors.grey150,
+      color: colors.secondaryText,
       textAlign: 'center',
       marginTop: spacing.md,
+      lineHeight: 22,
+      maxWidth: screenWidth - 42,
     },
-
     bottomSection: {
-      paddingHorizontal: spacing.xxl,
-      paddingBottom: spacing.xxxl,
-      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.md,
     },
-
+    button: {
+      minHeight: 60,
+      flex: 1,
+      flexDirection: 'row',
+      backgroundColor: colors.text,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.lg,
+    },
+    buttonText: {
+      ...typography.button2,
+      color: colors.background,
+      fontSize: 14,
+    },
+    buttonArrow: {
+      position: 'absolute',
+      right: 20,
+      color: colors.background,
+      fontSize: 24,
+      lineHeight: 28,
+    },
+    finalActions: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      minHeight: 60,
+    },
+    loginButton: {
+      flex: 1,
+      minHeight: 60,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    loginButtonText: {
+      ...typography.button2,
+      color: colors.text,
+      fontSize: 14,
+    },
     dots: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: spacing.xl,
+      justifyContent: 'center',
+      marginTop: spacing.lg,
+      minHeight: 10,
     },
-
     activeDot: {
-      width: 24,
-      height: 8,
+      width: 7,
+      height: 7,
       borderRadius: radius.pill,
       backgroundColor: colors.cyan,
-      marginHorizontal: spacing.xs,
+      marginHorizontal: 2,
     },
-
     dot: {
-      width: 8,
-      height: 8,
+      width: 7,
+      height: 7,
       borderRadius: radius.pill,
       backgroundColor: colors.grey100,
-      marginHorizontal: spacing.xs,
-    },
-
-    button: {
-      width: '100%',
-      height: 52,
-      backgroundColor: colors.cyan,
-      borderRadius: radius.md,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-
-    buttonText: {
-      ...typography.button1,
-      color: colors.white,
+      opacity: 0.7,
+      marginHorizontal: 2,
     },
   });
