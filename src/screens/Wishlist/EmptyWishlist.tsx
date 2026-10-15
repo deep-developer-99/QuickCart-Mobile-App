@@ -119,8 +119,27 @@ const EmptyWishlist = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { width } = useWindowDimensions();
 
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation.navigate('Home');
+  };
+
   return (
     <View style={styles.container}>
+      <Pressable
+        style={styles.backButton}
+        onPress={handleBack}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+        hitSlop={8}
+      >
+        <Text style={styles.backIcon}>←</Text>
+      </Pressable>
+
       <View style={styles.illustration}>
         <EmptyWishlistIllustration />
       </View>
@@ -151,7 +170,22 @@ const createStyles = (colors: ThemeColors, isDark: boolean) =>
       flex: 1,
       alignItems: 'center',
       paddingHorizontal: spacing.lg,
-      paddingTop: 92,
+      paddingTop: 58,
+    },
+    backButton: {
+      position: 'absolute',
+      top: 16,
+      left: spacing.lg,
+      width: 32,
+      height: 40,
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+    },
+    backIcon: {
+      fontSize: 31,
+      lineHeight: 34,
+      color: colors.text,
+      fontWeight: '300',
     },
     illustration: {
       width: 230,

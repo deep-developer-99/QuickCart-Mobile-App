@@ -16,7 +16,10 @@ import {
   useRoute,
   type RouteProp,
 } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -91,11 +94,11 @@ const HeartIcon = ({
 );
 
 const ProductDetailsScreen = () => {
-  const styles = useStyles();
+  const insets = useSafeAreaInsets();
+  const styles = useStyles(insets.bottom);
   const navigation = useNavigation<any>();
   const { width } = useWindowDimensions();
   const route = useRoute<ProductDetailsRouteProp>();
-  const insets = useSafeAreaInsets();
   const [addToCart, { isLoading: addingToCart }] = useAddToCartMutation();
   const [addToWishlist, { isLoading: addingToWishlist }] =
     useAddToWishlistMutation();
@@ -174,10 +177,10 @@ const ProductDetailsScreen = () => {
   }, [addToWishlist, isWishlisted, product._id, removeFromWishlist]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 112 + insets.bottom }}
+        contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.imageSection}>
           {images.length > 0 ? (
@@ -209,7 +212,7 @@ const ProductDetailsScreen = () => {
             </View>
           )}
 
-          <View style={[styles.topControls, { top: insets.top + 6 }]}>
+          <View style={styles.topControls}>
             <Pressable
               style={styles.iconCircle}
               onPress={() => navigation.goBack()}
@@ -330,7 +333,7 @@ const ProductDetailsScreen = () => {
       </ScrollView>
 
       {showAddedMessage ? (
-        <View style={[styles.addedMessage, { top: insets.top + 44 }]}>
+        <View style={styles.addedMessage}>
           <View style={styles.successIcon}>
             <Text style={styles.successCheck}>✓</Text>
           </View>
@@ -345,12 +348,7 @@ const ProductDetailsScreen = () => {
         </View>
       ) : null}
 
-      <View
-        style={[
-          styles.bottomBar,
-          { paddingBottom: Math.max(insets.bottom, 12) },
-        ]}
-      >
+      <View style={styles.bottomBar}>
         <Pressable
           style={[styles.buyButton, addingToCart && styles.buyButtonDisabled]}
           onPress={handleBuyNow}
@@ -377,15 +375,20 @@ const ProductDetailsScreen = () => {
           )}
         </Pressable>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 type ThemeMode = 'light' | 'dark';
 
-const createStyles = (colors: ThemeColors, mode: ThemeMode) =>
+const createStyles = (
+  colors: ThemeColors,
+  mode: ThemeMode,
+  bottomInset: number,
+) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
+    scrollContent: { paddingBottom: 112 + bottomInset },
     imageSection: {
       height: 290,
       backgroundColor: colors.cyan50,
@@ -403,6 +406,7 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) =>
       position: 'absolute',
       left: 16,
       right: 16,
+      top: 6,
       flexDirection: 'row',
       justifyContent: 'space-between',
     },
@@ -552,6 +556,7 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) =>
       position: 'absolute',
       left: 16,
       right: 16,
+      top: 44,
       minHeight: 54,
       borderRadius: 12,
       backgroundColor: colors.surface,
@@ -600,6 +605,7 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) =>
       backgroundColor: colors.surface,
       paddingHorizontal: 16,
       paddingTop: 10,
+      paddingBottom: 12 + bottomInset,
       flexDirection: 'row',
       gap: 8,
       borderTopWidth: 1,
@@ -641,11 +647,11 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) =>
     },
   });
 
-const useStyles = () => {
+const useStyles = (bottomInset: number) => {
   const { theme, mode } = useTheme();
   return React.useMemo(
-    () => createStyles(theme.colors, mode),
-    [theme.colors, mode],
+    () => createStyles(theme.colors, mode, bottomInset),
+    [theme.colors, mode, bottomInset],
   );
 };
 
