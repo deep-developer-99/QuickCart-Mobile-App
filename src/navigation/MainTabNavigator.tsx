@@ -1,6 +1,7 @@
 import { useTheme } from '../theme';
 import type { ThemeColors } from '../theme';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -95,6 +96,7 @@ const MainTabNavigator = () => {
   const styles = useStyles();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <Tab.Navigator
@@ -115,27 +117,27 @@ const MainTabNavigator = () => {
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{ tabBarIcon: renderHomeIcon }}
+        options={{ tabBarLabel: t('tabs.home'), tabBarIcon: renderHomeIcon }}
       />
       <Tab.Screen
         name="Categories"
         component={CategoriesScreen}
-        options={{ tabBarIcon: renderCategoriesIcon }}
+        options={{ tabBarLabel: t('tabs.categories'), tabBarIcon: renderCategoriesIcon }}
       />
       <Tab.Screen
         name="Cart"
         component={CartScreen}
-        options={{ title: 'My Cart', tabBarIcon: renderCartIcon }}
+        options={{ title: t('tabs.cart'), tabBarLabel: t('tabs.cart'), tabBarIcon: renderCartIcon }}
       />
       <Tab.Screen
         name="Wishlist"
         component={WishlistScreen}
-        options={{ tabBarIcon: renderWishlistIcon }}
+        options={{ tabBarLabel: t('tabs.wishlist'), tabBarIcon: renderWishlistIcon }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ tabBarIcon: renderProfileIcon }}
+        options={{ tabBarLabel: t('tabs.profile'), tabBarIcon: renderProfileIcon }}
       />
     </Tab.Navigator>
   );

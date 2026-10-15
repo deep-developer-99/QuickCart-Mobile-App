@@ -18,6 +18,7 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 import Geolocation from 'react-native-geolocation-service';
 import {
@@ -74,6 +75,7 @@ const productEmoji = (name: string) => {
 const HomeScreen = () => {
   const styles = useStyles();
   const navigation = useNavigation<any>();
+  const { t } = useTranslation();
   const [addToWishlist] = useAddToWishlistMutation();
   const [removeFromWishlist] = useRemoveFromWishlistMutation();
   const insets = useSafeAreaInsets();
@@ -268,7 +270,7 @@ const HomeScreen = () => {
           >
             <Text style={styles.locationPin}>📍</Text>
             <View style={styles.locationCopy}>
-              <Text style={styles.locationText}>Deliver to</Text>
+              <Text style={styles.locationText}>{t('home.deliverTo')}</Text>
               <Text style={styles.locationStrong} numberOfLines={1}>
                 {isLocating ? 'Detecting location…' : currentLocation}
               </Text>
@@ -290,8 +292,8 @@ const HomeScreen = () => {
             <View style={styles.discountBadge}>
               <Text style={styles.discountText}>30% OFF</Text>
             </View>
-            <Text style={styles.bannerEyebrow}>On selected products</Text>
-            <Text style={styles.bannerTitle}>Exclusive Sales</Text>
+            <Text style={styles.bannerEyebrow}>{t('home.onSelected')}</Text>
+            <Text style={styles.bannerTitle}>{t('home.exclusiveSales')}</Text>
           </View>
           <Text style={styles.bannerEmoji}>🎧</Text>
           <View style={styles.bannerDots}>
@@ -305,9 +307,9 @@ const HomeScreen = () => {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Categories</Text>
+            <Text style={styles.sectionTitle}>{t('tabs.categories')}</Text>
             <Pressable onPress={() => navigation.navigate('Categories')}>
-              <Text style={styles.seeAll}>SEE ALL</Text>
+              <Text style={styles.seeAll}>{t('home.seeAll')}</Text>
             </Pressable>
           </View>
 
@@ -351,9 +353,9 @@ const HomeScreen = () => {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Latest Products</Text>
+            <Text style={styles.sectionTitle}>{t('home.latestProducts')}</Text>
             <Pressable onPress={() => navigation.navigate('Categories')}>
-              <Text style={styles.seeAll}>SEE ALL</Text>
+              <Text style={styles.seeAll}>{t('home.seeAll')}</Text>
             </Pressable>
           </View>
 

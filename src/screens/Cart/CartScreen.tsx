@@ -16,6 +16,7 @@ import {
   ParamListBase,
 } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import EmptyCart from './EmptyCart';
 import {
@@ -33,6 +34,7 @@ const CartScreen = () => {
   const { theme } = useTheme();
   const styles = useStyles();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
+  const { t } = useTranslation();
 
   const {
     data: cartResponse,
@@ -131,12 +133,12 @@ const CartScreen = () => {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Unable to load your cart</Text>
+          <Text style={styles.errorTitle}>{t('cart.loadError')}</Text>
           <Text style={styles.errorText}>
-            Please check your internet connection and try again.
+            {t('cart.connectionError')}
           </Text>
           <Pressable style={styles.retryButton} onPress={() => refetch()}>
-            <Text style={styles.retryText}>Try Again</Text>
+            <Text style={styles.retryText}>{t('common.tryAgain')}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -159,14 +161,14 @@ const CartScreen = () => {
           <Text style={styles.backIcon}>←</Text>
         </Pressable>
 
-        <Text style={styles.headerTitle}>My Cart</Text>
+        <Text style={styles.headerTitle}>{t('tabs.cart')}</Text>
 
         {items.length > 0 ? (
           <Pressable
             onPress={() => setVoucherVisible(true)}
             style={styles.voucherButton}
           >
-            <Text style={styles.voucherText}>Voucher Code</Text>
+            <Text style={styles.voucherText}>{t('cart.voucher')}</Text>
           </Pressable>
         ) : (
           <View style={styles.headerSpacer} />
@@ -289,20 +291,20 @@ const CartScreen = () => {
             })}
 
             <View style={styles.orderInfo}>
-              <Text style={styles.orderInfoTitle}>Order Info</Text>
+              <Text style={styles.orderInfoTitle}>{t('cart.orderInfo')}</Text>
 
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Subtotal</Text>
+                <Text style={styles.infoLabel}>{t('cart.subtotal')}</Text>
                 <Text style={styles.infoValue}>₹{subtotal.toFixed(2)}</Text>
               </View>
 
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Shipping Cost</Text>
+                <Text style={styles.infoLabel}>{t('cart.shipping')}</Text>
                 <Text style={styles.infoValue}>₹{shippingCost.toFixed(2)}</Text>
               </View>
 
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total</Text>
+                <Text style={styles.totalLabel}>{t('cart.total')}</Text>
                 <Text style={styles.totalValue}>₹{total.toFixed(2)}</Text>
               </View>
             </View>
@@ -342,7 +344,7 @@ const CartScreen = () => {
           <View style={styles.voucherSheet}>
             <View style={styles.sheetHandle} />
 
-            <Text style={styles.sheetTitle}>Voucher Code</Text>
+            <Text style={styles.sheetTitle}>{t('cart.voucher')}</Text>
 
             <TextInput
               value={voucherCode}
@@ -360,7 +362,7 @@ const CartScreen = () => {
                 setVoucherVisible(false);
               }}
             >
-              <Text style={styles.applyText}>Apply</Text>
+              <Text style={styles.applyText}>{t('cart.apply')}</Text>
             </Pressable>
           </View>
         </View>

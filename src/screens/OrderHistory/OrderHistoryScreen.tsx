@@ -14,6 +14,8 @@ import {
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import {
@@ -154,6 +156,8 @@ const OrderHistoryScreen = () => {
   const styles = useStyles();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   const [activeTab, setActiveTab] = useState<Tab>('Ongoing');
 
@@ -190,7 +194,22 @@ const OrderHistoryScreen = () => {
     if (!order.items?.length) return null;
 
     return (
-      <View key={order._id} style={styles.orderBlock}>
+      <Pressable
+        key={order._id}
+        style={styles.orderBlock}
+        onPress={() => navigation.navigate('OrderDetails', { order })}
+        accessibilityRole="button"
+        accessibilityLabel={`View order ${order._id}`}
+      >
+        <View style={styles.orderHeader}>
+          <View>
+            <Text style={styles.orderNumber}>
+              ORDER #{order._id.slice(-8).toUpperCase()}
+            </Text>
+            <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
+          </View>
+          <Text style={styles.orderTotal}>₹{order.totalAmount.toFixed(2)}</Text>
+        </View>
         <View style={styles.metaRow}>
           <View
             style={[
@@ -200,7 +219,9 @@ const OrderHistoryScreen = () => {
                 : styles.ongoingBadge,
             ]}
           >
-            <Text style={styles.statusText}>{order.status}</Text>
+            <Text style={styles.statusText}>
+              {order.status === 'Delivered' ? t('orders.delivered') : order.status}
+            </Text>
           </View>
 
           {order.status === 'Delivered' ? (
@@ -226,7 +247,7 @@ const OrderHistoryScreen = () => {
                   />
                 ) : (
                   <View style={styles.imageFallback}>
-                    <Text style={styles.fallbackText}>Product</Text>
+                    <Text style={styles.fallbackText}>{t('common.product')}</Text>
                   </View>
                 )}
               </View>
@@ -245,14 +266,14 @@ const OrderHistoryScreen = () => {
 
                 <View style={styles.quantityBox}>
                   <Text style={styles.quantityAction}>−</Text>
-                  <Text style={styles.quantity}>{item.quantity}</Text>
+                  <Text style={styles.quantity}>{t('orders.quantity', { count: item.quantity })}</Text>
                   <Text style={styles.quantityAction}>＋</Text>
                 </View>
               </View>
             </View>
           );
         })}
-      </View>
+      </Pressable>
     );
   };
 
@@ -264,13 +285,13 @@ const OrderHistoryScreen = () => {
         <EmptyOrdersIllustration />
 
         <Text style={styles.emptyTitle}>
-          {completed ? 'No completed order' : 'No ongoing order'}
+          {completed ? t('orders.noCompleted') : t('orders.noOngoing')}
         </Text>
 
         <Text style={styles.emptyDescription}>
           {completed
-            ? "You don't have any completed orders yet. Place an order and it will appear here."
-            : "We currently don't have any active orders in progress. Feel free to explore our products and place a new order."}
+            ? t('orders.completedDescription')
+            : t('orders.ongoingDescription')}
         </Text>
 
         <Pressable
@@ -281,14 +302,14 @@ const OrderHistoryScreen = () => {
             })
           }
         >
-          <Text style={styles.exploreButtonText}>Explore Categories</Text>
+          <Text style={styles.exploreButtonText}>{t('orders.explore')}</Text>
         </Pressable>
       </View>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Pressable
           style={styles.backButton}
@@ -298,7 +319,12 @@ const OrderHistoryScreen = () => {
           <Text style={styles.backArrow}>‹</Text>
         </Pressable>
 
-        <Text style={styles.headerTitle}>Order History</Text>
+        <View>
+          <Text style={styles.headerTitle}>{t('orders.title')}</Text>
+          <Text style={styles.headerSubtitle}>
+            {orders.length} {orders.length === 1 ? t('orders.order') : t('orders.orders')}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.tabs}>
@@ -312,7 +338,7 @@ const OrderHistoryScreen = () => {
               activeTab === 'Ongoing' && styles.activeTabText,
             ]}
           >
-            Ongoing
+            {t('orders.ongoing')}
           </Text>
         </Pressable>
 
@@ -326,7 +352,7 @@ const OrderHistoryScreen = () => {
               activeTab === 'Completed' && styles.activeTabText,
             ]}
           >
-            Completed
+            {t('orders.completed')}
           </Text>
         </Pressable>
       </View>
@@ -337,10 +363,10 @@ const OrderHistoryScreen = () => {
         </View>
       ) : isError ? (
         <View style={styles.centerState}>
-          <Text style={styles.errorText}>Unable to load your orders.</Text>
+          <Text style={styles.errorText}>{t('orders.loadError')}</Text>
 
           <Pressable style={styles.retryButton} onPress={() => refetch()}>
-            <Text style={styles.retryText}>Try Again</Text>
+            <Text style={styles.retryText}>{t('common.tryAgain')}</Text>
           </Pressable>
         </View>
       ) : (
@@ -348,6 +374,7 @@ const OrderHistoryScreen = () => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[
             styles.scrollContent,
+            { paddingBottom: Math.max(insets.bottom + 16, 30) },
             visibleOrders.length === 0 && styles.emptyScrollContent,
           ]}
           refreshControl={
@@ -356,7 +383,7 @@ const OrderHistoryScreen = () => {
               onRefresh={() => {
                 refetch();
               }}
-              tintColor="#21D4B4"
+              tintColor={styles.refreshColor.color}
             />
           }
         >
@@ -407,6 +434,14 @@ const createStyles = (colors: ThemeColors) =>
       marginLeft: 8,
     },
 
+    headerSubtitle: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 11,
+      color: colors.secondaryText,
+      marginLeft: 8,
+      marginTop: 2,
+    },
+
     tabs: {
       height: 48,
       marginHorizontal: 16,
@@ -425,7 +460,7 @@ const createStyles = (colors: ThemeColors) =>
     },
 
     activeTab: {
-      backgroundColor: colors.black,
+      backgroundColor: colors.control,
     },
 
     tabText: {
@@ -452,7 +487,7 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: 16,
       padding: 14,
       borderRadius: 16,
-      backgroundColor: colors.white,
+      backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.grey50,
       shadowColor: '#000000',
@@ -471,6 +506,33 @@ const createStyles = (colors: ThemeColors) =>
       paddingBottom: 10,
       borderBottomWidth: 1,
       borderBottomColor: colors.grey50,
+    },
+
+    orderHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 14,
+    },
+
+    orderNumber: {
+      fontFamily: 'PlusJakartaSans-SemiBold',
+      fontSize: 11,
+      letterSpacing: 0.4,
+      color: colors.text,
+    },
+
+    orderDate: {
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 10,
+      color: colors.secondaryText,
+      marginTop: 4,
+    },
+
+    orderTotal: {
+      fontFamily: 'PlusJakartaSans-SemiBold',
+      fontSize: 13,
+      color: colors.text,
     },
 
     statusBadge: {
@@ -663,6 +725,8 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 13,
       color: colors.white,
     },
+
+    refreshColor: { color: colors.cyan },
   });
 
 const useStyles = () => {

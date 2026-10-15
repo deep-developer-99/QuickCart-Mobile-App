@@ -1,0 +1,22 @@
+{
+  "common": { "cancel": "キャンセル", "tryAgain": "再試行", "free": "無料", "product": "商品" },
+  "orders": {
+    "title": "注文履歴", "ongoing": "進行中", "completed": "完了", "order": "注文", "orders": "注文",
+    "placedOn": "{{date}}に注文", "items": "商品（{{count}}）", "quantity": "数量 {{count}}", "viewOrder": "注文{{id}}を見る",
+    "noCompleted": "完了した注文はありません", "noOngoing": "進行中の注文はありません",
+    "completedDescription": "完了した注文がここに表示されます。", "ongoingDescription": "進行中の注文がここに表示されます。",
+    "explore": "カテゴリーを見る", "loadError": "注文を読み込めません。", "status": "注文状況",
+    "delivered": "配達済み", "details": "詳細を見る"
+  },
+  "profile": {
+    "personal": "個人情報", "support": "サポートと情報", "account": "アカウント管理",
+    "shipping": "配送先住所", "payment": "支払い方法", "history": "注文履歴", "privacy": "プライバシーポリシー",
+    "terms": "利用規約", "faqs": "よくある質問", "darkTheme": "ダークテーマ", "language": "言語",
+    "languageChanged": "言語を変更しました", "languageUpdated": "言語設定を保存しました。", "chooseLanguage": "使用する言語を選択してください", "logout": "ログアウト",
+    "logoutConfirm": "ログアウトしますか？"
+  },
+  "languages": { "en": "英語", "hi": "ヒンディー語", "fr": "フランス語", "ja": "日本語" },
+  "tabs": { "home": "ホーム", "categories": "カテゴリー", "cart": "カート", "wishlist": "お気に入り", "profile": "プロフィール" }
+  ,"home": { "deliverTo": "配送先", "onSelected": "対象商品", "exclusiveSales": "限定セール", "seeAll": "すべて見る", "latestProducts": "最新の商品" }
+  ,"cart": { "loadError": "カートを読み込めません", "connectionError": "インターネット接続を確認して再試行してください。", "voucher": "クーポンコード", "orderInfo": "注文情報", "subtotal": "小計", "shipping": "送料", "total": "合計", "apply": "適用" }
+}

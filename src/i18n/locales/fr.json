@@ -1,0 +1,22 @@
+{
+  "common": { "cancel": "Annuler", "tryAgain": "Réessayer", "free": "GRATUIT", "product": "Produit" },
+  "orders": {
+    "title": "Mes commandes", "ongoing": "En cours", "completed": "Terminées", "order": "commande", "orders": "commandes",
+    "placedOn": "Passée le {{date}}", "items": "Articles ({{count}})", "quantity": "Qté {{count}}", "viewOrder": "Voir la commande {{id}}",
+    "noCompleted": "Aucune commande terminée", "noOngoing": "Aucune commande en cours",
+    "completedDescription": "Vos commandes terminées apparaîtront ici.", "ongoingDescription": "Vos commandes actives apparaîtront ici.",
+    "explore": "Explorer les catégories", "loadError": "Impossible de charger vos commandes.", "status": "Statut de la commande",
+    "delivered": "Livrée", "details": "Voir les détails"
+  },
+  "profile": {
+    "personal": "Informations personnelles", "support": "Aide et informations", "account": "Gestion du compte",
+    "shipping": "Adresse de livraison", "payment": "Mode de paiement", "history": "Historique des commandes", "privacy": "Politique de confidentialité",
+    "terms": "Conditions générales", "faqs": "FAQ", "darkTheme": "Thème sombre", "language": "Langue",
+    "languageChanged": "Langue modifiée", "languageUpdated": "Votre préférence de langue a été enregistrée.", "chooseLanguage": "Choisissez votre langue préférée", "logout": "Déconnexion",
+    "logoutConfirm": "Voulez-vous vraiment vous déconnecter ?"
+  },
+  "languages": { "en": "Anglais", "hi": "Hindi", "fr": "Français", "ja": "Japonais" },
+  "tabs": { "home": "Accueil", "categories": "Catégories", "cart": "Panier", "wishlist": "Favoris", "profile": "Profil" }
+  ,"home": { "deliverTo": "Livrer à", "onSelected": "Sur une sélection de produits", "exclusiveSales": "Ventes exclusives", "seeAll": "VOIR TOUT", "latestProducts": "Derniers produits" }
+  ,"cart": { "loadError": "Impossible de charger votre panier", "connectionError": "Vérifiez votre connexion internet et réessayez.", "voucher": "Code promo", "orderInfo": "Informations de commande", "subtotal": "Sous-total", "shipping": "Frais de livraison", "total": "Total", "apply": "Appliquer" }
+}

@@ -14,6 +14,7 @@ import MainTabNavigator, { type MainTabParamList } from './MainTabNavigator';
 
 import SearchScreen from '../screens/search/SearchScreen';
 import OrderHistoryScreen from '../screens/OrderHistory/OrderHistoryScreen';
+import OrderDetailsScreen from '../screens/OrderDetails/OrderDetailsScreen';
 import ProductDetailsScreen from '../screens/ProductDetails/ProductDetailsScreen';
 import CheckoutScreen from '../screens/Checkout/CheckoutScreen';
 import ShippingAddressScreen from '../screens/ShippingAddress/ShippingAddressScreen';
@@ -29,6 +30,7 @@ export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   Search: undefined;
   OrderHistory: undefined;
+  OrderDetails: { order: import('../api/orderApi').MyOrder };
 
   // ProductDetails receives the product selected from Home/Categories/Wishlist.
   ProductDetails: {
@@ -124,6 +126,7 @@ const RootNavigator = () => {
           <Stack.Screen name="Search" component={SearchScreen} />
 
           <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
+          <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
 
           <Stack.Screen
             name="ProductDetails"

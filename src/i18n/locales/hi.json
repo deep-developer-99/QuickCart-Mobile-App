@@ -1,0 +1,22 @@
+{
+  "common": { "cancel": "रद्द करें", "tryAgain": "पुनः प्रयास करें", "free": "मुफ़्त", "product": "उत्पाद" },
+  "orders": {
+    "title": "मेरे ऑर्डर", "ongoing": "जारी", "completed": "पूर्ण", "order": "ऑर्डर", "orders": "ऑर्डर",
+    "placedOn": "{{date}} को रखा गया", "items": "आइटम ({{count}})", "quantity": "मात्रा {{count}}", "viewOrder": "ऑर्डर {{id}} देखें",
+    "noCompleted": "कोई पूर्ण ऑर्डर नहीं", "noOngoing": "कोई जारी ऑर्डर नहीं",
+    "completedDescription": "आपके पूर्ण ऑर्डर यहां दिखाई देंगे।", "ongoingDescription": "आपके सक्रिय ऑर्डर यहां दिखाई देंगे।",
+    "explore": "श्रेणियां देखें", "loadError": "ऑर्डर लोड नहीं हो सके।", "status": "ऑर्डर की स्थिति",
+    "delivered": "डिलीवर हो गया", "details": "विवरण देखें"
+  },
+  "profile": {
+    "personal": "व्यक्तिगत जानकारी", "support": "सहायता और जानकारी", "account": "खाता प्रबंधन",
+    "shipping": "शिपिंग पता", "payment": "भुगतान विधि", "history": "ऑर्डर इतिहास", "privacy": "गोपनीयता नीति",
+    "terms": "नियम और शर्तें", "faqs": "सामान्य प्रश्न", "darkTheme": "डार्क थीम", "language": "भाषा",
+    "languageChanged": "भाषा बदल गई", "languageUpdated": "आपकी भाषा पसंद सहेज ली गई है।", "chooseLanguage": "अपनी पसंदीदा भाषा चुनें", "logout": "लॉग आउट",
+    "logoutConfirm": "क्या आप लॉग आउट करना चाहते हैं?"
+  },
+  "languages": { "en": "अंग्रेज़ी", "hi": "हिंदी", "fr": "फ़्रेंच", "ja": "जापानी" },
+  "tabs": { "home": "होम", "categories": "श्रेणियां", "cart": "मेरी कार्ट", "wishlist": "पसंदीदा", "profile": "प्रोफ़ाइल" }
+  ,"home": { "deliverTo": "यहां डिलीवर करें", "onSelected": "चुनिंदा उत्पादों पर", "exclusiveSales": "विशेष सेल", "seeAll": "सभी देखें", "latestProducts": "नवीनतम उत्पाद" }
+  ,"cart": { "loadError": "आपकी कार्ट लोड नहीं हो सकी", "connectionError": "कृपया अपना इंटरनेट कनेक्शन जांचें और पुनः प्रयास करें।", "voucher": "वाउचर कोड", "orderInfo": "ऑर्डर जानकारी", "subtotal": "उप-योग", "shipping": "शिपिंग शुल्क", "total": "कुल", "apply": "लागू करें" }
+}

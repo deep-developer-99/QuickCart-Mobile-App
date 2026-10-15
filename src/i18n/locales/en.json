@@ -1,0 +1,22 @@
+{
+  "common": { "cancel": "Cancel", "tryAgain": "Try Again", "free": "FREE", "product": "Product" },
+  "orders": {
+    "title": "My orders", "ongoing": "Ongoing", "completed": "Completed", "order": "order", "orders": "orders",
+    "placedOn": "Placed on {{date}}", "items": "Items ({{count}})", "quantity": "Qty {{count}}", "viewOrder": "View order {{id}}",
+    "noCompleted": "No completed orders", "noOngoing": "No ongoing orders",
+    "completedDescription": "Your completed orders will appear here.", "ongoingDescription": "Your active orders will appear here.",
+    "explore": "Explore categories", "loadError": "Unable to load your orders.", "status": "Order status",
+    "delivered": "Delivered", "details": "View details"
+  },
+  "profile": {
+    "personal": "Personal Information", "support": "Support & Information", "account": "Account Management",
+    "shipping": "Shipping Address", "payment": "Payment Method", "history": "Order History", "privacy": "Privacy Policy",
+    "terms": "Terms & Conditions", "faqs": "FAQs", "darkTheme": "Dark Theme", "language": "Language",
+    "languageChanged": "Language changed", "languageUpdated": "Your language preference has been saved.", "chooseLanguage": "Choose your preferred language", "logout": "Logout",
+    "logoutConfirm": "Are you sure you want to logout?"
+  },
+  "languages": { "en": "English", "hi": "Hindi", "fr": "French", "ja": "Japanese" },
+  "tabs": { "home": "Home", "categories": "Categories", "cart": "My Cart", "wishlist": "Wishlist", "profile": "Profile" }
+  ,"home": { "deliverTo": "Deliver to", "onSelected": "On selected products", "exclusiveSales": "Exclusive Sales", "seeAll": "SEE ALL", "latestProducts": "Latest Products" }
+  ,"cart": { "loadError": "Unable to load your cart", "connectionError": "Please check your internet connection and try again.", "voucher": "Voucher Code", "orderInfo": "Order Info", "subtotal": "Subtotal", "shipping": "Shipping Cost", "total": "Total", "apply": "Apply" }
+}

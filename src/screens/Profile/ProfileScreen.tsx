@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Alert,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,13 +13,15 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useDispatch, useSelector } from 'react-redux';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import type { AppDispatch, RootState } from '../../store/store';
 import { logout } from '../../store/slices/authSlice';
 import { useTheme } from '../../theme/ThemeContext';
 import { removeToken } from '../../services/secureStorage';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import i18n, { changeLanguage, supportedLanguages, type Language } from '../../i18n';
 
 type IconProps = {
   color?: string;
@@ -227,14 +230,17 @@ const ProfileScreen = () => {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const user = useSelector((state: RootState) => state.auth.user);
   const { theme, mode, toggleTheme } = useTheme();
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const [languageModalVisible, setLanguageModalVisible] = React.useState(false);
 
   const initial = user?.name?.charAt(0)?.toUpperCase() || 'U';
 
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.logout'), t('profile.logoutConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Logout',
+        text: t('profile.logout'),
         style: 'destructive',
         onPress: async () => {
           await removeToken();
@@ -244,6 +250,16 @@ const ProfileScreen = () => {
     ]);
   };
 
+  const handleLanguageChange = () => {
+    setLanguageModalVisible(true);
+  };
+
+  const selectLanguage = (language: Language) => {
+    changeLanguage(language)
+      .catch(error => console.warn('Failed to change language:', error))
+      .finally(() => setLanguageModalVisible(false));
+  };
+
   const handleComingSoon = (title: string) => {
     Alert.alert(title, `${title} will be available soon.`);
   };
@@ -251,7 +267,7 @@ const ProfileScreen = () => {
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <View style={[styles.header, { backgroundColor: theme.colors.cyan }]}>
         <View style={styles.headerUser}>
@@ -284,63 +300,63 @@ const ProfileScreen = () => {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 30 }]}
         bounces={false}
       >
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Personal Information
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}> 
+          {t('profile.personal')}
         </Text>
 
         <View>
           <MenuRow
             icon={<AddressIcon color={theme.colors.grey150} />}
-            label="Shipping Address"
+            label={t('profile.shipping')}
             onPress={() => navigation.navigate('ShippingAddress')}
           />
           <MenuRow
             icon={<PaymentIcon color={theme.colors.grey150} />}
-            label="Payment Method"
+            label={t('profile.payment')}
             onPress={() => navigation.navigate('PaymentMethod')}
           />
           <MenuRow
             icon={<OrdersIcon color={theme.colors.grey150} />}
-            label="Order History"
+            label={t('profile.history')}
             onPress={() => navigation.navigate('OrderHistory')}
             showDivider={false}
           />
         </View>
 
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Support & Information
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}> 
+          {t('profile.support')}
         </Text>
 
         <View>
           <MenuRow
             icon={<PrivacyIcon color={theme.colors.grey150} />}
-            label="Privacy Policy"
+            label={t('profile.privacy')}
             onPress={() => handleComingSoon('Privacy Policy')}
           />
           <MenuRow
             icon={<TermsIcon color={theme.colors.grey150} />}
-            label="Terms & Conditions"
+            label={t('profile.terms')}
             onPress={() => handleComingSoon('Terms & Conditions')}
           />
           <MenuRow
             icon={<FaqIcon color={theme.colors.grey150} />}
-            label="FAQs"
+            label={t('profile.faqs')}
             onPress={() => handleComingSoon('FAQs')}
             showDivider={false}
           />
         </View>
 
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Account Management
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}> 
+          {t('profile.account')}
         </Text>
 
         <View>
           <MenuRow
             icon={<DeviceIcon color={theme.colors.grey150} />}
-            label="Dark Theme"
+            label={t('profile.darkTheme')}
             onPress={toggleTheme}
             showDivider={false}
             right={
@@ -363,8 +379,62 @@ const ProfileScreen = () => {
               </View>
             }
           />
+          <MenuRow
+            icon={<DeviceIcon color={theme.colors.grey150} />}
+            label={t('profile.language')}
+            onPress={handleLanguageChange}
+            showDivider={false}
+            right={<Text style={[styles.languageValue, { color: theme.colors.secondaryText }]}>{t(`languages.${i18n.language}`, { defaultValue: t('languages.en') })}</Text>}
+          />
         </View>
       </ScrollView>
+
+      <Modal
+        visible={languageModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLanguageModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setLanguageModalVisible(false)}
+          />
+          <View style={[styles.languageModal, { backgroundColor: theme.colors.surface }]}>
+            <View style={styles.modalHandle} />
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+              {t('profile.language')}
+            </Text>
+            <Text style={[styles.modalSubtitle, { color: theme.colors.secondaryText }]}>
+              {t('profile.chooseLanguage')}
+            </Text>
+            {supportedLanguages.map(language => {
+              const selected = i18n.language === language;
+              return (
+                <Pressable
+                  key={language}
+                  style={[
+                    styles.languageOption,
+                    { borderColor: theme.colors.grey50 },
+                    selected && { backgroundColor: theme.colors.cyan50, borderColor: theme.colors.cyan },
+                  ]}
+                  onPress={() => selectLanguage(language)}
+                >
+                  <Text style={styles.languageFlag}>
+                    {language === 'en' ? '🇬🇧' : language === 'hi' ? '🇮🇳' : language === 'fr' ? '🇫🇷' : '🇯🇵'}
+                  </Text>
+                  <Text style={[styles.languageOptionText, { color: theme.colors.text }]}>
+                    {t(`languages.${language}`)}
+                  </Text>
+                  <View style={[styles.radio, { borderColor: selected ? theme.colors.cyan : theme.colors.grey100 }]}>
+                    {selected ? <View style={[styles.radioSelected, { backgroundColor: theme.colors.cyan }]} /> : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -477,6 +547,77 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#777C8D',
   },
+
+  languageValue: {
+    fontFamily: 'PlusJakartaSans-Regular',
+    fontSize: 12,
+    maxWidth: 90,
+    textAlign: 'right',
+  },
+
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.48)',
+  },
+
+  languageModal: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 28,
+  },
+
+  modalHandle: {
+    alignSelf: 'center',
+    width: 42,
+    height: 4,
+    borderRadius: 4,
+    backgroundColor: '#BFC2CA',
+    marginBottom: 18,
+  },
+
+  modalTitle: {
+    fontFamily: 'PlusJakartaSans-Bold',
+    fontSize: 20,
+  },
+
+  modalSubtitle: {
+    fontFamily: 'PlusJakartaSans-Regular',
+    fontSize: 12,
+    marginTop: 5,
+    marginBottom: 18,
+  },
+
+  languageOption: {
+    minHeight: 58,
+    borderWidth: 1,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    marginBottom: 10,
+  },
+
+  languageFlag: { fontSize: 23, marginRight: 12 },
+
+  languageOptionText: {
+    flex: 1,
+    fontFamily: 'PlusJakartaSans-Medium',
+    fontSize: 14,
+  },
+
+  radio: {
+    width: 20,
+    height: 20,
+    borderWidth: 1.5,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  radioSelected: { width: 10, height: 10, borderRadius: 5 },
 
   switchTrack: {
     width: 30,
