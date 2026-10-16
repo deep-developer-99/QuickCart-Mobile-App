@@ -358,7 +358,7 @@ const HomeScreen = () => {
               <View style={styles.logoMark}>
                 <Text style={styles.logoMarkText}>Q</Text>
               </View>
-              <Text style={styles.logoText}>uickMart</Text>
+              <Text style={styles.logoText}>uickCart</Text>
             </View>
 
             <View style={styles.headerActions}>
@@ -475,7 +475,9 @@ const HomeScreen = () => {
                 {banners.map((banner, index) => (
                   <View
                     key={banner._id}
-                    style={index === bannerIndex ? styles.activeDot : styles.dot}
+                    style={
+                      index === bannerIndex ? styles.activeDot : styles.dot
+                    }
                   />
                 ))}
               </View>
