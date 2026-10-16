@@ -13,10 +13,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import type { AppDispatch, RootState } from '../../store/store';
@@ -37,12 +34,8 @@ type IconProps = {
 
 const AddressIcon = ({ color = '#777C8D', size = 24 }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M12 21s7-6.1 7-12A7 7 0 1 0 5 9c0 5.9 7 12 7 12Z"
-      stroke={color}
-      strokeWidth="1.6"
-    />
-    <Circle cx="12" cy="9" r="2.25" stroke={color} strokeWidth="1.6" />
+    <Path d="m12 3 7 4v10l-7 4-7-4V7l7-4Z" stroke={color} strokeWidth="1.6" />
+    <Path d="m5 7 7 4 7-4M12 11v10" stroke={color} strokeWidth="1.6" />
   </Svg>
 );
 
@@ -148,44 +141,27 @@ const FaqIcon = ({ color = '#777C8D', size = 24 }: IconProps) => (
   </Svg>
 );
 
-const DeviceIcon = ({ color = '#777C8D', size = 24 }: IconProps) => (
+const LanguageIcon = ({ color = '#777C8D', size = 24 }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Rect
-      x="6"
-      y="3"
-      width="12"
-      height="18"
-      rx="2.5"
-      stroke={color}
-      strokeWidth="1.6"
-    />
+    <Circle cx="12" cy="12" r="8.5" stroke={color} strokeWidth="1.6" />
     <Path
-      d="M10 17.5h4"
+      d="M3.8 12h16.4M12 3.5c2.1 2.3 3.1 5.1 3.1 8.5S14.1 18.2 12 20.5c-2.1-2.3-3.1-5.1-3.1-8.5S9.9 5.8 12 3.5Z"
       stroke={color}
-      strokeWidth="1.6"
+      strokeWidth="1.4"
       strokeLinecap="round"
     />
   </Svg>
 );
 
-const LockIcon = ({ color = '#777C8D', size = 24 }: IconProps) => (
+const ThemeIcon = ({ color = '#777C8D', size = 24 }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Rect
-      x="4"
-      y="10"
-      width="16"
-      height="11"
-      rx="2.5"
-      stroke={color}
-      strokeWidth="1.6"
-    />
     <Path
-      d="M8 10V7a4 4 0 0 1 8 0v3"
+      d="M19.5 15.5A7.5 7.5 0 0 1 8.5 4.5 7.5 7.5 0 1 0 19.5 15.5Z"
       stroke={color}
       strokeWidth="1.6"
       strokeLinecap="round"
+      strokeLinejoin="round"
     />
-    <Circle cx="12" cy="15.5" r="1.2" fill={color} />
   </Svg>
 );
 
@@ -259,10 +235,15 @@ const ProfileScreen = () => {
   const user = useSelector((state: RootState) => state.auth.user);
   const { theme, mode, toggleTheme } = useTheme();
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const [languageModalVisible, setLanguageModalVisible] = React.useState(false);
 
   const initial = user?.name?.charAt(0)?.toUpperCase() || 'U';
+
+  const selectLanguage = (language: Language) => {
+    changeLanguage(language)
+      .catch(error => console.warn('Failed to change language:', error))
+      .finally(() => setLanguageModalVisible(false));
+  };
 
   const handleLogout = () => {
     Alert.alert(t('profile.logout'), t('profile.logoutConfirm'), [
@@ -276,16 +257,6 @@ const ProfileScreen = () => {
         },
       },
     ]);
-  };
-
-  const handleLanguageChange = () => {
-    setLanguageModalVisible(true);
-  };
-
-  const selectLanguage = (language: Language) => {
-    changeLanguage(language)
-      .catch(error => console.warn('Failed to change language:', error))
-      .finally(() => setLanguageModalVisible(false));
   };
 
   const handleComingSoon = (title: string) => {
@@ -329,10 +300,7 @@ const ProfileScreen = () => {
       <ScrollView
         style={[styles.scrollView, { backgroundColor: theme.colors.cyan }]}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: Math.max(insets.bottom, 8) },
-        ]}
+        contentContainerStyle={[styles.content]}
         bounces={false}
       >
         <View
@@ -390,14 +358,27 @@ const ProfileScreen = () => {
 
           <View>
             <MenuRow
-              icon={<LockIcon color={theme.colors.grey150} />}
-              label={t('profile.changePassword', {
-                defaultValue: 'Change Password',
-              })}
-              onPress={() => handleComingSoon('Change Password')}
+              icon={<LanguageIcon color={theme.colors.grey150} />}
+              label={t('profile.language')}
+              onPress={() => setLanguageModalVisible(true)}
+              right={
+                <View style={styles.languageRight}>
+                  <Text
+                    style={[
+                      styles.languageValue,
+                      { color: theme.colors.secondaryText },
+                    ]}
+                  >
+                    {t(`languages.${i18n.language}`, {
+                      defaultValue: t('languages.en'),
+                    })}
+                  </Text>
+                  <ChevronRight color={theme.colors.grey150} />
+                </View>
+              }
             />
             <MenuRow
-              icon={<DeviceIcon color={theme.colors.grey150} />}
+              icon={<ThemeIcon color={theme.colors.grey150} />}
               label={t('profile.darkTheme')}
               onPress={toggleTheme}
               right={
@@ -420,24 +401,6 @@ const ProfileScreen = () => {
                     ]}
                   />
                 </View>
-              }
-            />
-            <MenuRow
-              icon={<DeviceIcon color={theme.colors.grey150} />}
-              label={t('profile.language')}
-              onPress={handleLanguageChange}
-              showDivider={false}
-              right={
-                <Text
-                  style={[
-                    styles.languageValue,
-                    { color: theme.colors.secondaryText },
-                  ]}
-                >
-                  {t(`languages.${i18n.language}`, {
-                    defaultValue: t('languages.en'),
-                  })}
-                </Text>
               }
             />
           </View>
@@ -537,7 +500,6 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
 
   header: {
@@ -606,21 +568,17 @@ const styles = StyleSheet.create({
 
   scrollView: {
     flex: 1,
-    backgroundColor: '#21D4B4',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
   },
 
   content: {
     flexGrow: 1,
-    paddingBottom: 8,
   },
 
   menuPanel: {
-    flexGrow: 1,
-    minHeight: '100%',
+    flex: 1,
     paddingTop: 12,
-    paddingBottom: 8,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     overflow: 'hidden',
@@ -669,6 +627,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     maxWidth: 90,
     textAlign: 'right',
+  },
+
+  languageRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 
   modalBackdrop: {
