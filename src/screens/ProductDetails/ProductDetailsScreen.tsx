@@ -2,7 +2,6 @@ import { useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Image,
   Pressable,
   ScrollView,
@@ -25,11 +24,13 @@ import Svg, { Path } from 'react-native-svg';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   getWishlistProducts,
-  useAddToCartMutation,
+  useGetCartQuery,
   useAddToWishlistMutation,
   useGetWishlistQuery,
   useRemoveFromWishlistMutation,
 } from '../../api/quickCartApi';
+import CartAddedToast from '../../components/CartAddedToast';
+import CartQuantityControl from '../../components/CartQuantityControl';
 
 type ProductDetailsRouteProp = RouteProp<RootStackParamList, 'ProductDetails'>;
 
@@ -45,24 +46,6 @@ type DetailProduct = {
   rating?: number;
   reviews?: number;
 };
-
-const CartIcon = ({ color = '#FFFFFF' }: { color?: string }) => (
-  <Svg width={25} height={25} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M3.5 4h2l1.8 10.2a2 2 0 0 0 2 1.7h6.9a2 2 0 0 0 1.9-1.4L20 7H6.2"
-      stroke={color}
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M9 19.2h.01M17 19.2h.01"
-      stroke={color}
-      strokeWidth="2.4"
-      strokeLinecap="round"
-    />
-  </Svg>
-);
 
 const BackIcon = () => (
   <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
@@ -99,12 +82,12 @@ const ProductDetailsScreen = () => {
   const navigation = useNavigation<any>();
   const { width } = useWindowDimensions();
   const route = useRoute<ProductDetailsRouteProp>();
-  const [addToCart, { isLoading: addingToCart }] = useAddToCartMutation();
   const [addToWishlist, { isLoading: addingToWishlist }] =
     useAddToWishlistMutation();
   const [removeFromWishlist, { isLoading: removingFromWishlist }] =
     useRemoveFromWishlistMutation();
   const { data: wishlistResponse } = useGetWishlistQuery();
+  const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery();
 
   const product = route.params.product as DetailProduct;
   const [quantity, setQuantity] = useState(1);
@@ -150,19 +133,14 @@ const ProductDetailsScreen = () => {
     });
   };
 
-  const handleAddToCart = async () => {
-    try {
-      await addToCart({
-        productId: product._id,
-        quantity,
-      }).unwrap();
+  const cartItem = cartResponse?.data?.items?.find(
+    item => item.product?._id === product._id,
+  );
 
-      setShowAddedMessage(true);
-      setTimeout(() => setShowAddedMessage(false), 2800);
-    } catch (error) {
-      console.error('Failed to add product to cart:', error);
-    }
-  };
+  const showCartToast = useCallback(() => {
+    setShowAddedMessage(true);
+    setTimeout(() => setShowAddedMessage(false), 2800);
+  }, []);
 
   const handleWishlistToggle = useCallback(async () => {
     try {
@@ -332,7 +310,7 @@ const ProductDetailsScreen = () => {
         </View>
       </ScrollView>
 
-      {showAddedMessage ? (
+      {false && showAddedMessage ? (
         <View style={styles.addedMessage}>
           <View style={styles.successIcon}>
             <Text style={styles.successCheck}>✓</Text>
@@ -348,32 +326,22 @@ const ProductDetailsScreen = () => {
         </View>
       ) : null}
 
+      <CartAddedToast
+        visible={showAddedMessage}
+        onViewCart={() => navigation.navigate('MainTabs', { screen: 'Cart' })}
+      />
+
       <View style={styles.bottomBar}>
-        <Pressable
-          style={[styles.buyButton, addingToCart && styles.buyButtonDisabled]}
-          onPress={handleBuyNow}
-          disabled={addingToCart}
-        >
-          {addingToCart ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.buyText}>Buy Now</Text>
-          )}
+        <Pressable style={styles.buyButton} onPress={handleBuyNow}>
+          <Text style={styles.buyText}>Buy Now</Text>
         </Pressable>
-        <Pressable
-          style={[styles.addButton, addingToCart && styles.addButtonDisabled]}
-          onPress={handleAddToCart}
-          disabled={addingToCart}
-        >
-          {addingToCart ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <>
-              <Text style={styles.addText}>Add To Cart</Text>
-              <CartIcon />
-            </>
-          )}
-        </Pressable>
+        <CartQuantityControl
+          productId={product._id}
+          stock={product.stock}
+          cartItem={cartItem}
+          disabled={cartLoading}
+          onAdded={showCartToast}
+        />
       </View>
     </SafeAreaView>
   );

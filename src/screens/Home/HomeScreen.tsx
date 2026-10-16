@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Pressable,
   Platform,
   PermissionsAndroid,
@@ -16,6 +17,7 @@ import {
   ScrollView,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -27,12 +29,17 @@ import {
 } from 'react-native-safe-area-context';
 
 import {
+  useGetBannersQuery,
   useGetCategoriesQuery,
   useGetProductsQuery,
   useGetWishlistQuery,
   useAddToWishlistMutation,
   useRemoveFromWishlistMutation,
 } from '../../api/quickCartApi';
+import type { Banner } from '../../api/quickCartApi';
+import { useGetCartQuery } from '../../api/quickCartApi';
+import CartAddedToast from '../../components/CartAddedToast';
+import CartQuantityControl from '../../components/CartQuantityControl';
 import type { CartProduct } from '../../store/slices/cartSlice';
 import type { RootState } from '../../store/store';
 import { radius, spacing, typography, useTheme } from '../../theme';
@@ -72,6 +79,9 @@ const productEmoji = (name: string) => {
   return '🛍️';
 };
 
+const getBannerImage = (banner: Banner) =>
+  banner.image?.trim() || banner.imageUrl?.trim() || null;
+
 const HomeScreen = () => {
   const styles = useStyles();
   const navigation = useNavigation<any>();
@@ -82,7 +92,9 @@ const HomeScreen = () => {
   const user = useSelector((state: RootState) => state.auth.user);
   const [currentLocation, setCurrentLocation] = useState('Current location');
   const [isLocating, setIsLocating] = useState(false);
+  const [showCartToast, setShowCartToast] = useState(false);
   const hasRequestedInitialLocation = useRef(false);
+  const cartToastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const requestLocationPermission = useCallback(async () => {
     if (Platform.OS !== 'android') return true;
@@ -168,6 +180,16 @@ const HomeScreen = () => {
   }, [detectCurrentLocation]);
 
   const { data: wishlistResponse } = useGetWishlistQuery();
+  const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery();
+  const cartItemByProductId = useMemo(() => {
+    const items = cartResponse?.data?.items ?? [];
+    return new Map(items.map(item => [item.product?._id, item]));
+  }, [cartResponse]);
+  const showAddedToast = useCallback(() => {
+    setShowCartToast(true);
+    if (cartToastTimeout.current) clearTimeout(cartToastTimeout.current);
+    cartToastTimeout.current = setTimeout(() => setShowCartToast(false), 2800);
+  }, []);
   const wishlistIds = useMemo(() => {
     const data = wishlistResponse?.data;
     const products = Array.isArray(data) ? data : data?.products ?? [];
@@ -190,6 +212,32 @@ const HomeScreen = () => {
   } = useGetProductsQuery(undefined, {
     refetchOnMountOrArgChange: 30,
   });
+  const {
+    data: bannerResponse,
+    isLoading: bannersLoading,
+    isFetching: bannersFetching,
+    refetch: refetchBanners,
+  } = useGetBannersQuery(undefined, {
+    refetchOnMountOrArgChange: 30,
+  });
+
+  const banners = useMemo<Banner[]>(() => {
+    const data = bannerResponse?.data;
+    const responseBanners = Array.isArray(data)
+      ? data
+      : data?.banners ?? bannerResponse?.banners ?? [];
+    return responseBanners.filter(banner => Boolean(getBannerImage(banner)));
+  }, [bannerResponse]);
+  const [bannerIndex, setBannerIndex] = useState(0);
+  const [invalidBannerIds, setInvalidBannerIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const bannerScrollRef = useRef<any>(null);
+  const { width: screenWidth } = useWindowDimensions();
+  const bannerWidth = Math.max(screenWidth - spacing.lg * 2, 1);
+  const bannerHeight = Math.round(
+    Math.min(176, Math.max(128, bannerWidth * 0.45)),
+  );
 
   const categories = useMemo<Category[]>(
     () => (Array.isArray(categoryResponse?.data) ? categoryResponse.data : []),
@@ -203,11 +251,85 @@ const HomeScreen = () => {
     [productResponse],
   );
 
-  const isRefreshing = categoriesFetching || productsFetching;
+  const isRefreshing =
+    categoriesFetching || productsFetching || bannersFetching;
 
   const refreshHome = useCallback(async () => {
-    await Promise.all([refetchCategories(), refetchProducts()]);
-  }, [refetchCategories, refetchProducts]);
+    await Promise.all([
+      refetchCategories(),
+      refetchProducts(),
+      refetchBanners(),
+    ]);
+  }, [refetchBanners, refetchCategories, refetchProducts]);
+
+  const bannerKey = banners.map(banner => banner._id).join('|');
+
+  useEffect(() => {
+    setBannerIndex(0);
+    setInvalidBannerIds(new Set());
+    bannerScrollRef.current?.scrollTo({ x: 0, animated: false });
+  }, [bannerKey]);
+
+  useEffect(
+    () => () => {
+      if (cartToastTimeout.current) clearTimeout(cartToastTimeout.current);
+    },
+    [],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (banners.length <= 1) return undefined;
+
+      const interval = setInterval(() => {
+        setBannerIndex(current => {
+          const next = (current + 1) % banners.length;
+          bannerScrollRef.current?.scrollTo({
+            x: next * bannerWidth,
+            animated: true,
+          });
+          return next;
+        });
+      }, 4000);
+
+      return () => clearInterval(interval);
+    }, [bannerWidth, banners.length]),
+  );
+
+  const handleBannerPress = useCallback(
+    async (banner: Banner) => {
+      const type = banner.redirectType?.trim().toLowerCase();
+      const value = banner.redirectValue?.trim();
+      if (!type || !value) return;
+
+      if (type === 'category' || type === 'categories') {
+        navigation.navigate('Categories', { categoryId: value });
+        return;
+      }
+
+      if (type === 'product') {
+        const allProducts = Array.isArray(productResponse?.data)
+          ? productResponse.data
+          : [];
+        const product = allProducts.find(item => item._id === value);
+        if (product) {
+          navigation.navigate('ProductDetails', { product });
+        }
+        return;
+      }
+
+      if (type === 'external' || type === 'url' || type === 'link') {
+        try {
+          if (await Linking.canOpenURL(value)) {
+            await Linking.openURL(value);
+          }
+        } catch (error) {
+          console.warn('Unable to open banner link:', error);
+        }
+      }
+    },
+    [navigation, productResponse],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -284,26 +406,82 @@ const HomeScreen = () => {
           </Pressable>
         </View>
 
-        <Pressable
-          style={styles.banner}
-          onPress={() => navigation.navigate('Categories')}
-        >
-          <View style={styles.bannerContent}>
-            <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>30% OFF</Text>
-            </View>
-            <Text style={styles.bannerEyebrow}>{t('home.onSelected')}</Text>
-            <Text style={styles.bannerTitle}>{t('home.exclusiveSales')}</Text>
+        {bannersLoading ? (
+          <View
+            style={[
+              styles.bannerPlaceholder,
+              { width: bannerWidth, height: bannerHeight },
+            ]}
+          >
+            <ActivityIndicator size="small" />
           </View>
-          <Text style={styles.bannerEmoji}>🎧</Text>
-          <View style={styles.bannerDots}>
-            <View style={styles.activeDot} />
-            <View style={styles.dot} />
-            <View style={styles.dot} />
-            <View style={styles.dot} />
-            <View style={styles.dot} />
+        ) : banners.length > 0 ? (
+          <View
+            style={[
+              styles.bannerCarousel,
+              { width: bannerWidth, height: bannerHeight },
+            ]}
+          >
+            <ScrollView
+              ref={bannerScrollRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              scrollEventThrottle={16}
+              decelerationRate="fast"
+              onMomentumScrollEnd={event => {
+                const nextIndex = Math.round(
+                  event.nativeEvent.contentOffset.x / bannerWidth,
+                );
+                setBannerIndex(
+                  Math.max(0, Math.min(nextIndex, banners.length - 1)),
+                );
+              }}
+            >
+              {banners.map(banner => {
+                const image = getBannerImage(banner);
+                const imageFailed = invalidBannerIds.has(banner._id);
+
+                return (
+                  <Pressable
+                    key={banner._id}
+                    style={{ width: bannerWidth, height: bannerHeight }}
+                    onPress={() => handleBannerPress(banner)}
+                    disabled={!banner.redirectType || !banner.redirectValue}
+                  >
+                    {image && !imageFailed ? (
+                      <Image
+                        source={{ uri: image }}
+                        style={styles.bannerImage}
+                        resizeMode="cover"
+                        onError={() =>
+                          setInvalidBannerIds(current => {
+                            const next = new Set(current);
+                            next.add(banner._id);
+                            return next;
+                          })
+                        }
+                      />
+                    ) : (
+                      <View style={styles.bannerFallback} />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            {banners.length > 1 ? (
+              <View style={styles.bannerDots}>
+                {banners.map((banner, index) => (
+                  <View
+                    key={banner._id}
+                    style={index === bannerIndex ? styles.activeDot : styles.dot}
+                  />
+                ))}
+              </View>
+            ) : null}
           </View>
-        </Pressable>
+        ) : null}
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -327,7 +505,11 @@ const HomeScreen = () => {
                 <Pressable
                   key={category._id}
                   style={styles.categoryCard}
-                  onPress={() => navigation.navigate('Categories')}
+                  onPress={() =>
+                    navigation.navigate('Categories', {
+                      categoryId: category._id,
+                    })
+                  }
                 >
                   <View style={styles.categoryIcon}>
                     {category.image ? (
@@ -429,6 +611,16 @@ const HomeScreen = () => {
                         ₹{product.price.toFixed(2)}
                       </Text>
                     ) : null}
+                    <View style={styles.cartControl}>
+                      <CartQuantityControl
+                        productId={product._id}
+                        stock={product.stock}
+                        cartItem={cartItemByProductId.get(product._id)}
+                        disabled={cartLoading}
+                        compact
+                        onAdded={showAddedToast}
+                      />
+                    </View>
                   </View>
                 );
               })}
@@ -436,6 +628,10 @@ const HomeScreen = () => {
           )}
         </View>
       </ScrollView>
+      <CartAddedToast
+        visible={showCartToast}
+        onViewCart={() => navigation.navigate('MainTabs', { screen: 'Cart' })}
+      />
     </SafeAreaView>
   );
 };
@@ -508,54 +704,35 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
   locationText: { ...typography.captionRegular, color: colors.secondaryText },
   locationStrong: { ...typography.captionSemiBold, color: colors.text },
   locationSpinner: { color: colors.cyan },
-  banner: {
+  bannerCarousel: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.lg,
-    height: 148,
     borderRadius: radius.xl,
-    backgroundColor: '#55B8E7',
     overflow: 'hidden' as const,
     position: 'relative' as const,
   },
-  bannerContent: {
+  bannerImage: { width: '100%', height: '100%' },
+  bannerFallback: {
     flex: 1,
-    padding: spacing.lg,
+    backgroundColor: colors.grey50,
+  },
+  bannerPlaceholder: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    borderRadius: radius.xl,
+    backgroundColor: colors.grey50,
+    alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    zIndex: 2,
-  },
-  discountBadge: {
-    alignSelf: 'flex-start' as const,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 5,
-    borderRadius: 6,
-    backgroundColor: colors.black,
-  },
-  discountText: { ...typography.captionSemiBold, color: colors.white },
-  bannerEyebrow: {
-    ...typography.captionRegular,
-    color: colors.white,
-    marginTop: spacing.xs,
-  },
-  bannerTitle: {
-    ...typography.heading2Bold,
-    color: colors.white,
-    fontSize: 24,
-  },
-  bannerEmoji: {
-    position: 'absolute' as const,
-    right: 18,
-    top: 20,
-    fontSize: 80,
   },
   bannerDots: {
     position: 'absolute' as const,
-    right: spacing.lg,
+    alignSelf: 'center' as const,
     bottom: spacing.md,
     flexDirection: 'row' as const,
     paddingHorizontal: 6,
     paddingVertical: 4,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: colors.surface,
   },
   activeDot: {
     width: 7,
@@ -612,7 +789,11 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
     flexWrap: 'wrap' as const,
     justifyContent: 'space-between' as const,
   },
-  productCard: { width: '48.3%' as const, marginBottom: spacing.lg },
+  productCard: {
+    width: '48.2%' as const,
+    height: 252,
+    marginBottom: spacing.lg,
+  },
   productImageContainer: {
     height: 138,
     borderRadius: radius.xl,
@@ -647,12 +828,18 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
     ...typography.body2Regular,
     color: colors.text,
     marginTop: spacing.sm,
+    height: 22,
+    lineHeight: 22,
   },
   productPrice: { ...typography.body2Medium, color: colors.text },
   originalPrice: {
     ...typography.captionRegular,
     color: colors.grey100,
     textDecorationLine: 'line-through' as const,
+  },
+  cartControl: {
+    height: 36,
+    marginTop: 'auto' as const,
   },
   loadingBox: {
     height: 100,

@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import {
   ActivityIndicator,
   Image,
@@ -14,11 +14,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   useGetCategoriesQuery,
+  useGetCartQuery,
   useGetProductsQuery,
   useGetWishlistQuery,
   useAddToWishlistMutation,
   useRemoveFromWishlistMutation,
 } from '../../api/quickCartApi';
+import CartAddedToast from '../../components/CartAddedToast';
+import CartQuantityControl from '../../components/CartQuantityControl';
 import type { CartProduct } from '../../store/slices/cartSlice';
 import { radius, spacing, typography, useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
@@ -71,6 +74,7 @@ const CategoriesScreen = () => {
   const { theme } = useTheme();
   const styles = useStyles();
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const [addToWishlist] = useAddToWishlistMutation();
   const [removeFromWishlist] = useRemoveFromWishlistMutation();
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
@@ -81,13 +85,31 @@ const CategoriesScreen = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [sort, setSort] = useState<SortOption>(null);
   const [draftSort, setDraftSort] = useState<SortOption>(null);
+  const [showCartToast, setShowCartToast] = useState(false);
+  const cartToastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: categoryResponse, isLoading: categoriesLoading } =
     useGetCategoriesQuery();
-  const { data: productResponse, isLoading: productsLoading } =
-    useGetProductsQuery(undefined);
+  const {
+    currentData: productResponse,
+    isLoading: productsLoading,
+    isFetching: productsFetching,
+    isError: productsError,
+  } = useGetProductsQuery(
+    selectedCategory ? { category: selectedCategory._id } : undefined,
+  );
 
   const { data: wishlistResponse } = useGetWishlistQuery();
+  const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery();
+  const cartItemByProductId = useMemo(() => {
+    const items = cartResponse?.data?.items ?? [];
+    return new Map(items.map(item => [item.product?._id, item]));
+  }, [cartResponse]);
+  const showAddedToast = () => {
+    setShowCartToast(true);
+    if (cartToastTimeout.current) clearTimeout(cartToastTimeout.current);
+    cartToastTimeout.current = setTimeout(() => setShowCartToast(false), 2800);
+  };
   const wishlistIds = useMemo(() => {
     const data = wishlistResponse?.data;
     const products = Array.isArray(data) ? data : data?.products ?? [];
@@ -99,10 +121,31 @@ const CategoriesScreen = () => {
     [categoryResponse],
   );
 
-  const products = useMemo<Product[]>(
-    () => (Array.isArray(productResponse?.data) ? productResponse.data : []),
-    [productResponse],
+  const routeCategoryId = route.params?.categoryId as string | undefined;
+
+  useEffect(() => {
+    if (!routeCategoryId) return;
+
+    const category = categories.find(item => item._id === routeCategoryId);
+    if (!category) return;
+
+    setSelectedCategory(category);
+    setSearchText('');
+    setSort(null);
+    navigation.setParams({ categoryId: undefined });
+  }, [categories, navigation, routeCategoryId]);
+
+  useEffect(
+    () => () => {
+      if (cartToastTimeout.current) clearTimeout(cartToastTimeout.current);
+    },
+    [],
   );
+
+  const products = useMemo<Product[]>(() => {
+    if (!productResponse?.data) return [];
+    return Array.isArray(productResponse.data) ? productResponse.data : [];
+  }, [productResponse]);
 
   const visibleProducts = useMemo(() => {
     let result = [...products];
@@ -288,9 +331,14 @@ const CategoriesScreen = () => {
           }
         />
 
-        {productsLoading ? (
+        {productsLoading || productsFetching ? (
           <View style={styles.center}>
             <ActivityIndicator />
+          </View>
+        ) : productsError ? (
+          <View style={styles.center}>
+            <Text style={styles.emptyTitle}>Unable to load products</Text>
+            <Text style={styles.emptyText}>Please try again in a moment.</Text>
           </View>
         ) : visibleProducts.length === 0 ? (
           <View style={styles.center}>
@@ -366,6 +414,16 @@ const CategoriesScreen = () => {
                       ₹{product.price.toFixed(2)}
                     </Text>
                   ) : null}
+                  <View style={styles.cartControl}>
+                    <CartQuantityControl
+                      productId={product._id}
+                      stock={product.stock}
+                      cartItem={cartItemByProductId.get(product._id)}
+                      disabled={cartLoading}
+                      compact
+                      onAdded={showAddedToast}
+                    />
+                  </View>
                 </Pressable>
               );
             })}
@@ -381,6 +439,10 @@ const CategoriesScreen = () => {
             setSort(draftSort);
             setFilterOpen(false);
           }}
+        />
+        <CartAddedToast
+          visible={showCartToast}
+          onViewCart={() => navigation.navigate('MainTabs', { screen: 'Cart' })}
         />
       </View>
     </SafeAreaView>
@@ -540,7 +602,11 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: 'space-between' as const,
       paddingBottom: 90,
     },
-    productCard: { width: '48.2%' as const, marginBottom: spacing.lg },
+    productCard: {
+      width: '48.2%' as const,
+      height: 252,
+      marginBottom: spacing.lg,
+    },
     productImageWrap: {
       height: 138,
       borderRadius: radius.xl,
@@ -572,12 +638,18 @@ const createStyles = (colors: ThemeColors) =>
       ...typography.body2Regular,
       color: colors.text,
       marginTop: spacing.sm,
+      height: 22,
+      lineHeight: 22,
     },
     productPrice: { ...typography.body2Medium, color: colors.text },
     originalPrice: {
       ...typography.captionRegular,
       color: colors.grey100,
       textDecorationLine: 'line-through' as const,
+    },
+    cartControl: {
+      height: 36,
+      marginTop: 'auto' as const,
     },
     searchHeader: {
       height: 60,

@@ -42,6 +42,35 @@ export interface ProductResponse {
   }>;
 }
 
+export interface Banner {
+  _id: string;
+  image?: string;
+  imageUrl?: string;
+  title?: string;
+  description?: string;
+  redirectType?: string;
+  redirectValue?: string;
+  order?: number;
+  isActive?: boolean;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface BannerResponse {
+  success: boolean;
+  data?: Banner[] | { banners?: Banner[] };
+  banners?: Banner[];
+  message?: string;
+}
+
+export type ProductsQuery =
+  | string
+  | {
+      search?: string;
+      category?: string;
+    }
+  | undefined;
+
 export interface WishlistResponse {
   success: boolean;
   data:
@@ -145,7 +174,7 @@ interface MeResponse {
 
 export const quickCartApi = createApi({
   reducerPath: 'quickCartApi',
-  tagTypes: ['Categories', 'Products', 'Me', 'Cart', 'Wishlist'],
+  tagTypes: ['Categories', 'Products', 'Banners', 'Me', 'Cart', 'Wishlist'],
 
   baseQuery: fetchBaseQuery({
     baseUrl: 'https://quickcart-bxod.onrender.com/api',
@@ -171,13 +200,33 @@ export const quickCartApi = createApi({
       providesTags: ['Categories'],
     }),
 
-    // Get products / search products
-    getProducts: builder.query<ProductResponse, string | undefined>({
-      query: search => ({
-        url: '/products',
+    getBanners: builder.query<BannerResponse, void>({
+      query: () => ({
+        url: '/banners',
         method: 'GET',
-        params: search ? { search } : undefined,
       }),
+      providesTags: ['Banners'],
+    }),
+
+    // Get products / search products
+    getProducts: builder.query<ProductResponse, ProductsQuery>({
+      query: request => {
+        const params =
+          typeof request === 'string'
+            ? { search: request }
+            : request
+              ? {
+                  ...(request.search ? { search: request.search } : {}),
+                  ...(request.category ? { category: request.category } : {}),
+                }
+              : undefined;
+
+        return {
+          url: '/products',
+          method: 'GET',
+          params,
+        };
+      },
       providesTags: ['Products'],
     }),
 
@@ -340,6 +389,7 @@ export const {
   useGetMeQuery,
   useLazyGetMeQuery,
   useGetCategoriesQuery,
+  useGetBannersQuery,
   useGetProductsQuery,
   useGetCartQuery,
   useGetWishlistQuery,
