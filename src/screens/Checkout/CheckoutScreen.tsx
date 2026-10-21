@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,10 +14,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import {
   type Address,
-  type CreateAddressData,
-  useCreateAddressMutation,
   useGetAddressesQuery,
 } from '../../api/addressApi';
+import AddAddressModal from '../../components/AddAddressModal';
 import {
   useCreateBuyNowOrderMutation,
   useCreateOrderMutation,
@@ -60,11 +58,8 @@ export default function CheckoutScreen({ navigation, route }: Props) {
     undefined,
     { skip: isBuyNow },
   );
-  const { data: addressResponse, isLoading: addressLoading } =
+  const { data: addressResponse, isLoading: addressLoading, refetch: refetchAddresses } =
     useGetAddressesQuery();
-
-  const [createAddress, { isLoading: savingAddress }] =
-    useCreateAddressMutation();
   const [createOrder, { isLoading: placingCartOrder }] =
     useCreateOrderMutation();
   const [createBuyNowOrder, { isLoading: placingBuyNowOrder }] =
@@ -98,15 +93,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
   const [payment, setPayment] = useState<PaymentMethod>('COD');
   const isOnlinePayment = payment !== 'COD';
 
-  const [form, setForm] = useState<CreateAddressData>({
-    fullName: '',
-    phone: '',
-    addressLine: '',
-    city: '',
-    state: '',
-    pincode: '',
-    isDefault: false,
-  });
+  const [addressModalOpen, setAddressModalOpen] = useState(false);
 
   const subtotal = items.reduce((sum, item) => {
     const price = item.product.discountPrice ?? item.product.price;
@@ -118,69 +105,9 @@ export default function CheckoutScreen({ navigation, route }: Props) {
 
   const selectedAddress = addresses.find(address => address._id === addressId);
 
-  const updateField = (name: keyof CreateAddressData, value: string) => {
-    setForm(previous => ({
-      ...previous,
-      [name]: value,
-    }));
-  };
-
   const selectAddress = (address: Address) => {
     setAddressId(address._id);
     setStep('payment');
-  };
-
-  const saveAddress = async () => {
-    const requiredFields: Array<keyof CreateAddressData> = [
-      'fullName',
-      'phone',
-      'addressLine',
-      'city',
-      'state',
-      'pincode',
-    ];
-
-    const missing = requiredFields.some(
-      field => !String(form[field] ?? '').trim(),
-    );
-
-    if (missing) {
-      Alert.alert(
-        'Missing information',
-        'Please fill all required address fields.',
-      );
-      return;
-    }
-
-    if (!/^\+?[0-9]{10,15}$/.test(form.phone.trim())) {
-      Alert.alert('Invalid phone', 'Please enter a valid phone number.');
-      return;
-    }
-
-    if (!/^\d{6}$/.test(form.pincode.trim())) {
-      Alert.alert('Invalid pincode', 'Please enter a valid 6-digit pincode.');
-      return;
-    }
-
-    try {
-      const response = await createAddress({
-        ...form,
-        fullName: form.fullName.trim(),
-        phone: form.phone.trim(),
-        addressLine: form.addressLine.trim(),
-        city: form.city.trim(),
-        state: form.state.trim(),
-        pincode: form.pincode.trim(),
-      }).unwrap();
-
-      setAddressId(response.data._id);
-      setStep('payment');
-    } catch (error: any) {
-      Alert.alert(
-        'Address error',
-        error?.data?.message ?? 'Unable to save address.',
-      );
-    }
   };
 
   const placeOrder = async () => {
@@ -408,61 +335,9 @@ export default function CheckoutScreen({ navigation, route }: Props) {
                 onPress={() => selectAddress(address)}
               />
             ))}
-
-            <Text style={styles.addAddressTitle}>
-              {addresses.length > 0
-                ? 'Add New Address'
-                : 'Enter Shipping Address'}
-            </Text>
-
-            <Field
-              label="Full Name"
-              value={form.fullName}
-              placeholder="Enter full name"
-              onChange={value => updateField('fullName', value)}
-            />
-
-            <Field
-              label="Phone Number"
-              value={form.phone}
-              placeholder="Enter phone number"
-              keyboard="phone-pad"
-              onChange={value => updateField('phone', value)}
-            />
-
-            <Field
-              label="Street Address"
-              value={form.addressLine}
-              placeholder="Enter street address"
-              onChange={value => updateField('addressLine', value)}
-            />
-
-            <Field
-              label="Province / State"
-              value={form.state}
-              placeholder="Enter state"
-              onChange={value => updateField('state', value)}
-            />
-
-            <Field
-              label="City"
-              value={form.city}
-              placeholder="Enter city"
-              onChange={value => updateField('city', value)}
-            />
-
-            <Field
-              label="Postal Code"
-              value={form.pincode}
-              placeholder="Enter postal code"
-              keyboard="number-pad"
-              onChange={value => updateField('pincode', value)}
-            />
-
             <Button
-              title={savingAddress ? 'Saving...' : 'Save Address'}
-              disabled={savingAddress}
-              onPress={saveAddress}
+              title="Add New Address"
+              onPress={() => setAddressModalOpen(true)}
             />
           </>
         )}
@@ -604,6 +479,17 @@ export default function CheckoutScreen({ navigation, route }: Props) {
           </>
         )}
       </ScrollView>
+
+      <AddAddressModal
+        visible={addressModalOpen}
+        hasExistingAddresses={addresses.length > 0}
+        onClose={() => setAddressModalOpen(false)}
+        onSaved={async address => {
+          setAddressId(address._id);
+          await refetchAddresses();
+          setStep('payment');
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -676,36 +562,6 @@ function Steps({
 function SectionTitle({ title }: { title: string }) {
   const styles = useStyles();
   return <Text style={styles.sectionTitle}>{title}</Text>;
-}
-
-function Field({
-  label,
-  value,
-  placeholder,
-  onChange,
-  keyboard = 'default',
-}: {
-  label: string;
-  value: string;
-  placeholder: string;
-  onChange: (value: string) => void;
-  keyboard?: 'default' | 'phone-pad' | 'number-pad';
-}) {
-  const styles = useStyles();
-  const { theme } = useTheme();
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        value={value}
-        placeholder={placeholder}
-        placeholderTextColor={theme.colors.grey150}
-        onChangeText={onChange}
-        keyboardType={keyboard}
-        style={styles.input}
-      />
-    </View>
-  );
 }
 
 function AddressCard({

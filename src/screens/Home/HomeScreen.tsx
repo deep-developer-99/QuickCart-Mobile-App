@@ -312,7 +312,12 @@ const HomeScreen = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) }}
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={refreshHome} />
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshHome}
+            tintColor={styles.refreshControl.color}
+            colors={[styles.refreshControl.color]}
+          />
         }
       >
         <View style={styles.header}>
@@ -376,7 +381,7 @@ const HomeScreen = () => {
               { width: bannerWidth, height: bannerHeight },
             ]}
           >
-            <ActivityIndicator size="small" />
+            <ActivityIndicator size="small" color={styles.loadingIndicator.color} />
           </View>
         ) : banners.length > 0 ? (
           <View
@@ -458,7 +463,7 @@ const HomeScreen = () => {
 
           {categoriesLoading ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="small" />
+              <ActivityIndicator size="small" color={styles.loadingIndicator.color} />
             </View>
           ) : (
             <ScrollView
@@ -508,7 +513,7 @@ const HomeScreen = () => {
 
           {productsLoading ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="small" />
+              <ActivityIndicator size="small" color={styles.loadingIndicator.color} />
             </View>
           ) : (
             <View style={styles.productGrid}>
@@ -644,7 +649,7 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
     position: 'absolute' as const,
     width: 9,
     height: 2,
-    backgroundColor: colors.black,
+    backgroundColor: colors.text,
     right: -6,
     bottom: 0,
     transform: [{ rotate: '48deg' }],
@@ -669,6 +674,8 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
   locationText: { ...typography.captionRegular, color: colors.secondaryText },
   locationStrong: { ...typography.captionSemiBold, color: colors.text },
   locationSpinner: { color: colors.cyan },
+  refreshControl: { color: colors.cyan },
+  loadingIndicator: { color: colors.cyan },
   bannerCarousel: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.lg,
@@ -729,7 +736,8 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
     height: 78,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.grey50,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     marginRight: spacing.sm,
@@ -799,7 +807,7 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
   productPrice: { ...typography.body2Medium, color: colors.text },
   originalPrice: {
     ...typography.captionRegular,
-    color: colors.grey100,
+    color: colors.secondaryText,
     textDecorationLine: 'line-through' as const,
   },
   cartControl: {
