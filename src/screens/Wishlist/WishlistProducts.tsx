@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import type { CartProduct } from '../../api/quickCartApi';
 import { useRemoveFromWishlistMutation } from '../../api/quickCartApi';
+import TrashIcon from '../../assets/icons/trash.svg';
 import { radius, spacing, typography, useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
 
@@ -128,13 +129,7 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
               accessibilityRole="button"
               accessibilityLabel={`Remove ${item.name} from wishlist`}
             >
-              <View style={styles.trashIcon}>
-                <View style={styles.trashLid} />
-                <View style={styles.trashBody}>
-                  <View style={styles.trashLine} />
-                  <View style={styles.trashLine} />
-                </View>
-              </View>
+              <TrashIcon width={24} height={24} />
             </Pressable>
           </View>
         </View>
@@ -144,6 +139,7 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
 
   return (
     <View style={styles.container}>
+      {/*
       <View style={styles.header}>
         <Pressable
           style={styles.backButton}
@@ -154,7 +150,7 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
           <Text style={styles.backIcon}>←</Text>
         </Pressable>
         <Text style={styles.headerTitle}>Wishlist</Text>
-      </View>
+      */}
 
       <FlatList
         data={products}
@@ -272,27 +268,6 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: 'center',
       marginRight: 1,
     },
-    trashIcon: { width: 19, height: 22, alignItems: 'center' },
-    trashLid: {
-      width: 16,
-      height: 2,
-      backgroundColor: colors.red,
-      borderRadius: 1,
-      marginBottom: 2,
-    },
-    trashBody: {
-      width: 14,
-      height: 17,
-      borderWidth: 1.5,
-      borderColor: colors.red,
-      borderTopWidth: 0,
-      borderBottomLeftRadius: 2,
-      borderBottomRightRadius: 2,
-      alignItems: 'center',
-      flexDirection: 'row',
-      justifyContent: 'space-evenly',
-    },
-    trashLine: { width: 1, height: 10, backgroundColor: colors.red },
   });
 
 const useStyles = () => {

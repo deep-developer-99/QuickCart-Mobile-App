@@ -28,7 +28,7 @@ import type { AppDispatch, RootState } from '../store/store';
 
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
-  Search: undefined;
+  Search: { categoryId?: string } | undefined;
   OrderHistory: undefined;
   OrderDetails: { order: import('../api/orderApi').MyOrder };
 

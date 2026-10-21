@@ -597,6 +597,16 @@ const HomeScreen = () => {
             </View>
           )}
         </View>
+
+        <View style={styles.deliveryPromise}>
+          <View style={styles.deliveryPromiseIcon}>
+            <Text style={styles.deliveryPromiseIconText}>⚡</Text>
+          </View>
+          <Text style={styles.deliveryPromiseText}>
+            {t('home.deliveryTagline')}
+          </Text>
+          <View style={styles.deliveryPromiseAccent} />
+        </View>
       </ScrollView>
       <CartAddedToast
         visible={showCartToast}
@@ -818,6 +828,46 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
     height: 100,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
+  },
+  deliveryPromise: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xxl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xl,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: 'center' as const,
+    overflow: 'hidden' as const,
+  },
+  deliveryPromiseIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.pill,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    backgroundColor: colors.cyan50,
+    marginBottom: spacing.md,
+  },
+  deliveryPromiseIconText: {
+    fontSize: 22,
+    color: colors.cyan,
+  },
+  deliveryPromiseText: {
+    ...typography.heading2Bold,
+    color: colors.cyan,
+    textAlign: 'center' as const,
+    lineHeight: 32,
+  },
+  deliveryPromiseAccent: {
+    position: 'absolute' as const,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 3,
+    backgroundColor: colors.cyan,
   },
 });
 

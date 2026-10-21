@@ -1,18 +1,20 @@
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   getWishlistProducts,
   useGetWishlistQuery,
 } from '../../api/quickCartApi';
-import { typography, useTheme } from '../../theme';
+import { spacing, typography, useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
 import EmptyWishlist from './EmptyWishlist';
 import WishlistProducts from './WishlistProducts';
 
 const WishlistScreen = () => {
   const styles = useStyles();
+  const navigation = useNavigation<any>();
   const {
     data: wishlistResponse,
     isLoading,
@@ -28,6 +30,7 @@ const WishlistScreen = () => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <WishlistHeader navigation={navigation} styles={styles} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" />
           <Text style={styles.loadingText}>Loading wishlist...</Text>
@@ -39,6 +42,7 @@ const WishlistScreen = () => {
   if (isError) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <WishlistHeader navigation={navigation} styles={styles} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorTitle}>Unable to load wishlist</Text>
           <Text style={styles.errorText}>
@@ -54,6 +58,7 @@ const WishlistScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <WishlistHeader navigation={navigation} styles={styles} />
       {wishlistProducts.length === 0 ? (
         <EmptyWishlist />
       ) : (
@@ -69,11 +74,56 @@ const WishlistScreen = () => {
   );
 };
 
+const WishlistHeader = ({
+  navigation,
+  styles,
+}: {
+  navigation: any;
+  styles: ReturnType<typeof createStyles>;
+}) => (
+  <View style={styles.header}>
+    <Pressable
+      style={styles.backButton}
+      onPress={() => navigation.canGoBack() && navigation.goBack()}
+      hitSlop={10}
+      accessibilityLabel="Go back"
+    >
+      <Text style={styles.backIcon}>←</Text>
+    </Pressable>
+    <Text style={styles.headerTitle}>Wishlist</Text>
+  </View>
+);
+
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    header: {
+      height: 61,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.grey50,
+    },
+    backButton: {
+      width: 32,
+      height: 40,
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+    },
+    backIcon: {
+      fontSize: 31,
+      lineHeight: 34,
+      color: colors.text,
+      fontWeight: '300',
+    },
+    headerTitle: {
+      ...typography.body1Regular,
+      color: colors.text,
+      marginLeft: 8,
     },
     loadingContainer: {
       flex: 1,

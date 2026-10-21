@@ -1,4 +1,5 @@
 {
+  "search": { "filterTitle": "商品を絞り込む", "clear": "クリア", "category": "カテゴリー", "all": "すべて", "priceRange": "価格帯", "minimum": "最低", "maximum": "最高", "minimumRating": "最低評価", "stars": "{{count}}以上の星", "any": "指定なし", "inStock": "在庫ありの商品のみ表示", "sortBy": "並べ替え", "apply": "フィルターを適用" },
   "common": { "cancel": "キャンセル", "tryAgain": "再試行", "free": "無料", "product": "商品" },
   "orders": {
     "title": "注文履歴", "ongoing": "進行中", "completed": "完了", "order": "注文", "orders": "注文",
@@ -17,7 +18,7 @@
   },
   "languages": { "en": "英語", "hi": "ヒンディー語", "fr": "フランス語", "ja": "日本語" },
   "tabs": { "home": "ホーム", "categories": "カテゴリー", "cart": "カート", "wishlist": "お気に入り", "profile": "プロフィール" }
-  ,"home": { "deliverTo": "配送先", "onSelected": "対象商品", "exclusiveSales": "限定セール", "seeAll": "すべて見る", "latestProducts": "最新の商品" }
+  ,"home": { "deliverTo": "配送先", "onSelected": "対象商品", "exclusiveSales": "限定セール", "seeAll": "すべて見る", "latestProducts": "最新の商品", "deliveryTagline": "まばたきする前に、あなたの注文をお届けします。" }
   ,"cart": { "loadError": "カートを読み込めません", "connectionError": "インターネット接続を確認して再試行してください。", "voucher": "クーポンコード", "orderInfo": "注文情報", "subtotal": "小計", "shipping": "送料", "total": "合計", "apply": "適用" }
   ,"shipping": { "title": "配送先住所", "savedAddresses": "保存した住所", "noSavedAddress": "保存した住所はありません", "addFirstAddress": "最初の配送先を追加しましょう。", "addNewAddress": "新しい住所を追加", "formSubtitle": "場所を選択するか、住所を手入力します。", "openAddressForm": "場所を選択して住所を追加", "close": "閉じる", "detectingLocation": "現在地を取得中...", "mapUnavailable": "位置情報が取得されるまで地図は利用できません。住所は手入力できます。", "locationReady": "位置を選択しました。地図またはマーカーを動かして調整できます。", "locationPermissionDenied": "位置情報の許可が拒否されました。住所を入力するか再試行してください。", "locationUnavailable": "現在地を取得できません。位置情報を有効にして再試行してください。", "locationRetry": "現在地を取得できません。住所を入力するか再試行してください。", "locationAddressUnavailable": "住所が見つかりません。手入力できます。", "fullName": "氏名", "fullNamePlaceholder": "氏名を入力", "phone": "電話番号", "phonePlaceholder": "電話番号を入力", "streetAddress": "住所", "streetAddressPlaceholder": "住所を入力", "state": "都道府県", "statePlaceholder": "都道府県を入力", "city": "市区町村", "cityPlaceholder": "市区町村を入力", "postalCode": "郵便番号", "postalCodePlaceholder": "郵便番号を入力", "saveAddress": "住所を保存", "missingInformation": "必須情報が不足", "fillRequired": "必須項目を入力してください。", "invalidPhone": "無効な電話番号", "invalidPhoneMessage": "有効な電話番号を入力してください。", "invalidPostalCode": "無効な郵便番号", "invalidPostalCodeMessage": "6桁の郵便番号を入力してください。", "success": "完了", "savedSuccessfully": "新しい住所を保存しました。", "saveFailed": "保存できません", "saveFailedMessage": "住所を保存できませんでした。" }
 }

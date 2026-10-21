@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import EmptyCart from './EmptyCart';
+import TrashIcon from '../../assets/icons/trash.svg';
 import {
   CartItem,
   useGetCartQuery,
@@ -281,8 +282,10 @@ const CartScreen = () => {
                       <Pressable
                         style={styles.deleteButton}
                         onPress={() => removeItem(productId)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove ${product.name} from cart`}
                       >
-                        <Text style={styles.deleteIcon}>♧</Text>
+                        <TrashIcon width={24} height={24} />
                       </Pressable>
                     </View>
                   </View>
@@ -521,11 +524,6 @@ const createStyles = (colors: ThemeColors) =>
       height: 34,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    deleteIcon: {
-      fontSize: 22,
-      color: colors.red,
-      transform: [{ rotate: '180deg' }],
     },
     orderInfo: {
       marginTop: 38,

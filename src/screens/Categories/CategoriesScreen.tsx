@@ -130,7 +130,6 @@ const CategoriesScreen = () => {
     if (!category) return;
 
     setSelectedCategory(category);
-    setSearchText('');
     setSort(null);
     navigation.setParams({ categoryId: undefined });
   }, [categories, navigation, routeCategoryId]);
@@ -161,13 +160,6 @@ const CategoriesScreen = () => {
       });
     }
 
-    const query = searchText.trim().toLowerCase();
-    if (query) {
-      result = result.filter(product =>
-        product.name.toLowerCase().includes(query),
-      );
-    }
-
     if (sort === 'priceLow') {
       result.sort(
         (a, b) => (a.discountPrice ?? a.price) - (b.discountPrice ?? b.price),
@@ -183,7 +175,7 @@ const CategoriesScreen = () => {
     }
 
     return result;
-  }, [products, selectedCategory, searchText, sort]);
+  }, [products, selectedCategory, sort]);
 
   const openFilter = () => {
     setDraftSort(sort);
@@ -321,7 +313,7 @@ const CategoriesScreen = () => {
           }}
           right={
             <View style={styles.headerActions}>
-              <Pressable onPress={() => setSearchOpen(true)} hitSlop={8}>
+              <Pressable onPress={() => navigation.navigate('Search', { categoryId: selectedCategory._id })} hitSlop={8}>
                 <Text style={styles.headerIcon}>⌕</Text>
               </Pressable>
               <Pressable onPress={openFilter} hitSlop={8}>

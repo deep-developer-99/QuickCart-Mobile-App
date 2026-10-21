@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Image,
   Keyboard,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,8 +13,10 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import {
+  useGetCategoriesQuery,
   useGetProductsQuery,
   useGetWishlistQuery,
   useAddToWishlistMutation,
@@ -24,6 +27,24 @@ import { radius, spacing, typography, useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
 
 type Product = ProductResponse['data'][number];
+type SortOption = 'priceLow' | 'priceHigh' | 'rating' | null;
+type ProductFilters = {
+  categoryId: string | null;
+  minPrice: string;
+  maxPrice: string;
+  minRating: number | null;
+  inStock: boolean;
+  sort: SortOption;
+};
+
+const emptyFilters: ProductFilters = {
+  categoryId: null,
+  minPrice: '',
+  maxPrice: '',
+  minRating: null,
+  inStock: false,
+  sort: null,
+};
 
 const RECENT_SEARCHES_KEY = '@quickcart_recent_searches';
 const MAX_RECENT_SEARCHES = 7;
@@ -53,12 +74,27 @@ const SearchScreen = () => {
   const styles = useStyles();
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const initialCategoryId = route.params?.categoryId as string | undefined;
+  const scopedFilters = useMemo<ProductFilters>(
+    () => ({ ...emptyFilters, categoryId: initialCategoryId ?? null }),
+    [initialCategoryId],
+  );
   const [addToWishlist] = useAddToWishlistMutation();
   const [removeFromWishlist] = useRemoveFromWishlistMutation();
   const [searchText, setSearchText] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [recentSearchesLoaded, setRecentSearchesLoaded] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filters, setFilters] = useState<ProductFilters>(scopedFilters);
+  const [draftFilters, setDraftFilters] = useState<ProductFilters>(scopedFilters);
+
+  const { data: categoryResponse } = useGetCategoriesQuery();
+  const categories = useMemo(
+    () => (Array.isArray(categoryResponse?.data) ? categoryResponse.data : []),
+    [categoryResponse],
+  );
 
   const { data: wishlistResponse } = useGetWishlistQuery();
   const wishlistIds = useMemo(() => {
@@ -105,19 +141,60 @@ const SearchScreen = () => {
     () => buildBackendSearch(debouncedSearch),
     [debouncedSearch],
   );
+  const hasActiveFilters =
+    Boolean(filters.categoryId) ||
+    filters.minPrice.trim() !== '' ||
+    filters.maxPrice.trim() !== '' ||
+    filters.minRating !== null ||
+    filters.inStock ||
+    filters.sort !== null;
 
   const {
     data: productResponse,
     isFetching,
     isError,
-  } = useGetProductsQuery(backendSearch || undefined, {
-    skip: !backendSearch,
-  });
-
-  const products = useMemo<Product[]>(
-    () => (Array.isArray(productResponse?.data) ? productResponse.data : []),
-    [productResponse],
+  } = useGetProductsQuery(
+    {
+      search: backendSearch || undefined,
+      category: filters.categoryId || undefined,
+    },
+    { skip: !backendSearch && !hasActiveFilters },
   );
+
+  const products = useMemo<Product[]>(() => {
+    if (!Array.isArray(productResponse?.data)) return [];
+
+    const minPrice = Number(filters.minPrice);
+    const maxPrice = Number(filters.maxPrice);
+    const hasMinPrice = filters.minPrice.trim() !== '' && Number.isFinite(minPrice);
+    const hasMaxPrice = filters.maxPrice.trim() !== '' && Number.isFinite(maxPrice);
+
+    const result = productResponse.data.filter(product => {
+      const price = product.discountPrice ?? product.price;
+      const rating = product.rating ?? 0;
+      const category = typeof product.category === 'string'
+        ? product.category
+        : product.category?._id;
+
+      return (
+        (!filters.categoryId || category === filters.categoryId) &&
+        (!hasMinPrice || price >= minPrice) &&
+        (!hasMaxPrice || price <= maxPrice) &&
+        (!filters.minRating || rating >= filters.minRating) &&
+        (!filters.inStock || product.stock > 0)
+      );
+    });
+
+    if (filters.sort === 'priceLow') {
+      result.sort((a, b) => (a.discountPrice ?? a.price) - (b.discountPrice ?? b.price));
+    } else if (filters.sort === 'priceHigh') {
+      result.sort((a, b) => (b.discountPrice ?? b.price) - (a.discountPrice ?? a.price));
+    } else if (filters.sort === 'rating') {
+      result.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    }
+
+    return result;
+  }, [filters, productResponse]);
 
   const saveRecentSearch = async (value: string) => {
     const cleaned = value.trim();
@@ -167,6 +244,16 @@ const SearchScreen = () => {
     setDebouncedSearch('');
   };
 
+  const openFilter = () => {
+    setDraftFilters({ ...filters });
+    setFilterOpen(true);
+  };
+
+  const clearFilters = () => {
+    setFilters(scopedFilters);
+    setDraftFilters(scopedFilters);
+  };
+
   const hasSearch = searchText.trim().length > 0;
 
   return (
@@ -205,11 +292,22 @@ const SearchScreen = () => {
           selectionColor={theme.colors.cyan}
         />
 
+        {searchText.length > 0 ? (
+          <Pressable
+            onPress={clearSearch}
+            hitSlop={8}
+            style={styles.clearButton}
+            accessibilityLabel="Clear search"
+          >
+            <Text style={styles.clearText}>×</Text>
+          </Pressable>
+        ) : null}
+
         <Pressable
-          onPress={clearSearch}
+          onPress={openFilter}
           hitSlop={8}
           style={styles.filterButton}
-          accessibilityLabel="Clear search"
+          accessibilityLabel="Open product filters"
         >
           <View style={styles.filterLineTop} />
           <View style={styles.filterLineMiddle} />
@@ -220,7 +318,7 @@ const SearchScreen = () => {
         </Pressable>
       </View>
 
-      {!hasSearch ? (
+      {!hasSearch && !hasActiveFilters ? (
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -252,7 +350,9 @@ const SearchScreen = () => {
           contentContainerStyle={styles.resultsContent}
         >
           <View style={styles.resultsHeader}>
-            <Text style={styles.resultsTitle}>SEARCH RESULTS</Text>
+            <Text style={styles.resultsTitle}>
+              SEARCH RESULTS ({products.length})
+            </Text>
             {isFetching ? <ActivityIndicator size="small" /> : null}
           </View>
 
@@ -345,9 +445,125 @@ const SearchScreen = () => {
           )}
         </ScrollView>
       )}
+
+      <FilterModal
+        visible={filterOpen}
+        filters={draftFilters}
+        categories={categories}
+        onChange={setDraftFilters}
+        onClose={() => setFilterOpen(false)}
+        onClear={clearFilters}
+        onApply={() => {
+          setFilters({ ...draftFilters });
+          setFilterOpen(false);
+        }}
+      />
     </SafeAreaView>
   );
 };
+
+const FilterModal = ({
+  visible,
+  filters,
+  categories,
+  onChange,
+  onClose,
+  onClear,
+  onApply,
+}: {
+  visible: boolean;
+  filters: ProductFilters;
+  categories: Array<{ _id: string; name: string }>;
+  onChange: (filters: ProductFilters) => void;
+  onClose: () => void;
+  onClear: () => void;
+  onApply: () => void;
+}) => {
+  const styles = useStyles();
+  const { t } = useTranslation();
+  const tr = (key: string, fallback: string, options?: Record<string, unknown>) =>
+    t(key, { ...options, defaultValue: fallback });
+  const update = (changes: Partial<ProductFilters>) =>
+    onChange({ ...filters, ...changes });
+  const sortOptions: Array<{ key: SortOption; label: string }> = [
+    { key: 'priceLow', label: 'Price: Low to High' },
+    { key: 'priceHigh', label: 'Price: High to Low' },
+    { key: 'rating', label: 'Highest Rated' },
+  ];
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.modalBackdrop}>
+        <Pressable style={styles.modalDismiss} onPress={onClose} />
+        <View style={styles.filterSheet}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.filterHeader}>
+            <Text style={styles.filterTitle}>{tr('search.filterTitle', 'Filter Products')}</Text>
+            <Pressable onPress={onClear} hitSlop={8}>
+              <Text style={styles.clearFiltersText}>{tr('search.clear', 'Clear')}</Text>
+            </Pressable>
+          </View>
+
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <Text style={styles.filterSectionTitle}>{tr('search.category', 'Category')}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChoices}>
+              <FilterChoice label={tr('search.all', 'All')} selected={!filters.categoryId} onPress={() => update({ categoryId: null })} styles={styles} />
+              {categories.map(category => (
+                <FilterChoice key={category._id} label={category.name} selected={filters.categoryId === category._id} onPress={() => update({ categoryId: category._id })} styles={styles} />
+              ))}
+            </ScrollView>
+
+            <Text style={styles.filterSectionTitle}>{tr('search.priceRange', 'Price range')}</Text>
+            <View style={styles.priceInputs}>
+              <TextInput value={filters.minPrice} onChangeText={minPrice => update({ minPrice })} placeholder={tr('search.minimum', 'Minimum')} placeholderTextColor={styles.filterInputPlaceholder.color} keyboardType="decimal-pad" style={styles.filterInput} />
+              <TextInput value={filters.maxPrice} onChangeText={maxPrice => update({ maxPrice })} placeholder={tr('search.maximum', 'Maximum')} placeholderTextColor={styles.filterInputPlaceholder.color} keyboardType="decimal-pad" style={styles.filterInput} />
+            </View>
+
+            <Text style={styles.filterSectionTitle}>{tr('search.minimumRating', 'Minimum rating')}</Text>
+            <View style={styles.filterChoices}>
+              {[null, 3, 4].map(rating => (
+                <FilterChoice key={rating ?? 'any'} label={rating ? tr('search.stars', `${rating}+ stars`, { count: rating }) : tr('search.any', 'Any')} selected={filters.minRating === rating} onPress={() => update({ minRating: rating })} styles={styles} />
+              ))}
+            </View>
+
+            <Pressable style={styles.filterToggleRow} onPress={() => update({ inStock: !filters.inStock })}>
+              <View style={[styles.checkbox, filters.inStock && styles.checkboxChecked]}>{filters.inStock ? <Text style={styles.checkmark}>✓</Text> : null}</View>
+              <Text style={styles.filterLabel}>{tr('search.inStock', 'Only show in-stock products')}</Text>
+            </Pressable>
+
+            <Text style={styles.filterSectionTitle}>{tr('search.sortBy', 'Sort by')}</Text>
+            {sortOptions.map(option => (
+              <Pressable key={option.key} style={styles.filterToggleRow} onPress={() => update({ sort: filters.sort === option.key ? null : option.key })}>
+                <View style={[styles.checkbox, filters.sort === option.key && styles.checkboxChecked]}>{filters.sort === option.key ? <Text style={styles.checkmark}>✓</Text> : null}</View>
+                <Text style={styles.filterLabel}>{option.label}</Text>
+              </Pressable>
+            ))}
+
+            <Pressable style={styles.applyButton} onPress={onApply}>
+              <Text style={styles.applyText}>{tr('search.apply', 'Apply Filters')}</Text>
+            </Pressable>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const FilterChoice = ({
+  label,
+  selected,
+  onPress,
+  styles,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  styles: ReturnType<typeof useStyles>;
+}) => (
+  <Pressable style={[styles.filterChoice, selected && styles.filterChoiceSelected]} onPress={onPress}>
+    <Text style={[styles.filterChoiceText, selected && styles.filterChoiceTextSelected]}>{label}</Text>
+  </Pressable>
+);
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
@@ -582,6 +798,109 @@ const createStyles = (colors: ThemeColors) =>
       textAlign: 'center',
       marginTop: spacing.xs,
     },
+    modalBackdrop: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0,0,0,0.45)',
+    },
+    modalDismiss: { flex: 1 },
+    filterSheet: {
+      maxHeight: '82%',
+      borderTopLeftRadius: radius.xxl,
+      borderTopRightRadius: radius.xxl,
+      padding: spacing.lg,
+      backgroundColor: colors.surface,
+    },
+    sheetHandle: {
+      alignSelf: 'center',
+      width: 42,
+      height: 4,
+      marginBottom: spacing.lg,
+      borderRadius: radius.pill,
+      backgroundColor: colors.grey100,
+    },
+    filterHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.md,
+    },
+    filterTitle: { ...typography.heading3Bold, color: colors.text },
+    clearFiltersText: { ...typography.captionSemiBold, color: colors.cyan },
+    filterSectionTitle: {
+      ...typography.body2Medium,
+      color: colors.text,
+      marginTop: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    filterChoices: { gap: spacing.sm, paddingBottom: spacing.xs },
+    filterChoice: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.pill,
+      backgroundColor: colors.background,
+    },
+    filterChoiceSelected: {
+      borderColor: colors.cyan,
+      backgroundColor: colors.cyan50,
+    },
+    filterChoiceText: { ...typography.captionRegular, color: colors.text },
+    filterChoiceTextSelected: {
+      ...typography.captionSemiBold,
+      color: colors.cyan,
+    },
+    priceInputs: { flexDirection: 'row', gap: spacing.sm },
+    filterInput: {
+      flex: 1,
+      height: 44,
+      paddingHorizontal: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      backgroundColor: colors.background,
+      color: colors.text,
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 13,
+    },
+    filterInputPlaceholder: { color: colors.secondaryText },
+    filterToggleRow: {
+      minHeight: 44,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    checkbox: {
+      width: 22,
+      height: 22,
+      borderWidth: 1.5,
+      borderColor: colors.grey150,
+      borderRadius: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    clearButton: {
+      width: 24,
+      height: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.xs,
+    },
+    clearText: { fontSize: 22, lineHeight: 24, color: colors.secondaryText },
+    checkboxChecked: { borderColor: colors.cyan, backgroundColor: colors.cyan },
+    checkmark: { color: colors.control, fontSize: 15, fontWeight: '700' },
+    filterLabel: { ...typography.body2Regular, color: colors.text },
+    applyButton: {
+      height: 48,
+      marginTop: spacing.lg,
+      marginBottom: spacing.md,
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.cyan,
+    },
+    applyText: { ...typography.body2Medium, color: colors.control },
   });
 
 const useStyles = () => {
