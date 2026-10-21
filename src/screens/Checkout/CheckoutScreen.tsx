@@ -943,14 +943,14 @@ const createStyles = (colors: ThemeColors) =>
 
     backText: {
       fontSize: 36,
-      color: colors.black,
+      color: colors.text,
       fontWeight: '300',
     },
 
     headerTitle: {
       flex: 1,
       fontSize: 16,
-      color: colors.black,
+      color: colors.text,
       fontWeight: '600',
     },
 
@@ -981,8 +981,8 @@ const createStyles = (colors: ThemeColors) =>
     },
 
     circleCurrent: {
-      backgroundColor: colors.black,
-      borderColor: colors.black,
+      backgroundColor: colors.control,
+      borderColor: colors.control,
     },
 
     circleDone: {
@@ -1007,7 +1007,7 @@ const createStyles = (colors: ThemeColors) =>
     },
 
     currentLabel: {
-      color: colors.black,
+      color: colors.text,
       fontWeight: '600',
     },
 
@@ -1029,7 +1029,7 @@ const createStyles = (colors: ThemeColors) =>
 
     sectionTitle: {
       fontSize: 17,
-      color: colors.black,
+      color: colors.text,
       fontWeight: '600',
       marginBottom: 16,
     },
@@ -1041,6 +1041,7 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.border,
       borderRadius: 12,
       marginBottom: 10,
+      backgroundColor: colors.surface,
     },
 
     addressSelected: {
@@ -1072,7 +1073,7 @@ const createStyles = (colors: ThemeColors) =>
 
     addressName: {
       fontSize: 14,
-      color: colors.black,
+      color: colors.text,
       fontWeight: '600',
       marginBottom: 4,
     },
@@ -1085,7 +1086,7 @@ const createStyles = (colors: ThemeColors) =>
 
     addAddressTitle: {
       fontSize: 15,
-      color: colors.black,
+      color: colors.text,
       fontWeight: '600',
       marginTop: 10,
       marginBottom: 12,
@@ -1097,7 +1098,7 @@ const createStyles = (colors: ThemeColors) =>
 
     label: {
       fontSize: 13,
-      color: colors.black,
+      color: colors.text,
       marginBottom: 7,
     },
 
@@ -1107,14 +1108,15 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.border,
       borderRadius: 12,
       paddingHorizontal: 14,
-      color: colors.black,
+      color: colors.text,
+      backgroundColor: colors.surface,
       fontSize: 14,
     },
 
     button: {
       height: 54,
       borderRadius: 12,
-      backgroundColor: colors.black,
+      backgroundColor: colors.cyan,
       alignItems: 'center',
       justifyContent: 'center',
       marginTop: 10,
@@ -1125,7 +1127,7 @@ const createStyles = (colors: ThemeColors) =>
     },
 
     buttonText: {
-      color: colors.white,
+      color: colors.control,
       fontSize: 15,
       fontWeight: '600',
     },
@@ -1139,6 +1141,7 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: 14,
       padding: 14,
       marginBottom: 12,
+      backgroundColor: colors.surface,
     },
 
     paymentSelected: {
@@ -1152,7 +1155,7 @@ const createStyles = (colors: ThemeColors) =>
 
     paymentGroupTitle: {
       fontSize: 15,
-      color: colors.black,
+      color: colors.text,
       fontWeight: '700',
       marginBottom: 4,
     },
@@ -1179,7 +1182,7 @@ const createStyles = (colors: ThemeColors) =>
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: 14,
-      backgroundColor: colors.background,
+      backgroundColor: colors.surface,
     },
 
     upiAppIcon: {
@@ -1192,13 +1195,13 @@ const createStyles = (colors: ThemeColors) =>
     },
 
     upiAppIconText: {
-      color: '#FFFFFF',
+      color: colors.white,
       fontSize: 21,
       fontWeight: '800',
     },
 
     upiAppTitle: {
-      color: colors.black,
+      color: colors.text,
       fontSize: 11,
       fontWeight: '600',
       marginBottom: 8,
@@ -1234,6 +1237,7 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: 14,
       padding: 12,
       marginBottom: 10,
+      backgroundColor: colors.surface,
     },
 
     methodIcon: {
@@ -1246,7 +1250,7 @@ const createStyles = (colors: ThemeColors) =>
     },
 
     methodIconText: {
-      color: '#217C6D',
+      color: colors.cyan,
       fontSize: 21,
       fontWeight: '700',
     },
@@ -1271,7 +1275,7 @@ const createStyles = (colors: ThemeColors) =>
     paymentIconText: {
       fontSize: 22,
       fontWeight: '700',
-      color: '#217C6D',
+      color: colors.cyan,
     },
 
     paymentText: {
@@ -1281,7 +1285,7 @@ const createStyles = (colors: ThemeColors) =>
 
     paymentTitle: {
       fontSize: 14,
-      color: colors.black,
+      color: colors.text,
       fontWeight: '600',
     },
 
@@ -1298,7 +1302,7 @@ const createStyles = (colors: ThemeColors) =>
 
     summaryTitle: {
       fontSize: 16,
-      color: colors.black,
+      color: colors.text,
       fontWeight: '600',
       marginBottom: 14,
     },
@@ -1323,19 +1327,19 @@ const createStyles = (colors: ThemeColors) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       borderTopWidth: 1,
-      borderTopColor: colors.grey50,
+      borderTopColor: colors.border,
       paddingTop: 14,
     },
 
     totalLabel: {
       fontSize: 16,
-      color: colors.black,
+      color: colors.text,
       fontWeight: '600',
     },
 
     totalValue: {
       fontSize: 17,
-      color: colors.black,
+      color: colors.text,
       fontWeight: '600',
     },
 
@@ -1348,17 +1352,18 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.border,
       borderRadius: 12,
       marginBottom: 20,
+      backgroundColor: colors.surface,
     },
 
     itemsLinkTitle: {
       fontSize: 15,
-      color: colors.black,
+      color: colors.text,
       fontWeight: '600',
     },
 
     arrow: {
       fontSize: 28,
-      color: colors.black,
+      color: colors.text,
     },
 
     reviewCard: {
@@ -1367,18 +1372,19 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.border,
       borderRadius: 12,
       marginBottom: 18,
+      backgroundColor: colors.surface,
     },
 
     reviewLabel: {
       fontSize: 14,
-      color: colors.black,
+      color: colors.text,
       fontWeight: '600',
       marginBottom: 8,
     },
 
     reviewValue: {
       fontSize: 14,
-      color: colors.black,
+      color: colors.text,
       fontWeight: '600',
       marginBottom: 3,
     },
@@ -1422,13 +1428,13 @@ const createStyles = (colors: ThemeColors) =>
 
     itemName: {
       fontSize: 13,
-      color: colors.black,
+      color: colors.text,
       lineHeight: 18,
     },
 
     itemPrice: {
       fontSize: 14,
-      color: colors.black,
+      color: colors.text,
       fontWeight: '600',
       marginTop: 8,
     },
@@ -1472,7 +1478,7 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 24,
       lineHeight: 30,
       fontWeight: '700',
-      color: colors.black,
+      color: colors.text,
       textAlign: 'center',
       marginTop: 26,
     },
