@@ -11,8 +11,6 @@ import {
   Image,
   Linking,
   Pressable,
-  Platform,
-  PermissionsAndroid,
   RefreshControl,
   ScrollView,
   Text,
@@ -22,7 +20,6 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
-import Geolocation from 'react-native-geolocation-service';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -44,7 +41,11 @@ import type { CartProduct } from '../../store/slices/cartSlice';
 import type { RootState } from '../../store/store';
 import { radius, spacing, typography, useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
-import { reverseGeocodeCoordinates } from '../../services/locationService';
+import {
+  getCurrentLocation,
+  requestLocationPermission,
+  reverseGeocodeCoordinates,
+} from '../../services/locationService';
 
 interface Category {
   _id: string;
@@ -96,23 +97,6 @@ const HomeScreen = () => {
   const hasRequestedInitialLocation = useRef(false);
   const cartToastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const requestLocationPermission = useCallback(async () => {
-    if (Platform.OS !== 'android') return true;
-
-    const permission = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-      {
-        title: 'Allow QuickCart to access your location',
-        message:
-          'Your location helps us show the area you want your order delivered to.',
-        buttonPositive: 'Allow',
-        buttonNegative: 'Not now',
-      },
-    );
-
-    return permission === PermissionsAndroid.RESULTS.GRANTED;
-  }, []);
-
   const detectCurrentLocation = useCallback(async () => {
     if (isLocating) return;
     setIsLocating(true);
@@ -128,40 +112,19 @@ const HomeScreen = () => {
         return;
       }
 
-      Geolocation.getCurrentPosition(
-        async position => {
-          try {
-            const label = await reverseGeocodeCoordinates(
-              position.coords.latitude,
-              position.coords.longitude,
-            );
-            setCurrentLocation(label || 'Current location');
-          } catch (error) {
-            console.warn('Reverse geocoding failed:', error);
-            // Do not show raw coordinates as the delivery location. The service
-            // already tries both the QuickCart backend and address-provider fallback.
-            setCurrentLocation('Address unavailable — tap to retry');
-          } finally {
-            setIsLocating(false);
-          }
-        },
-        error => {
-          setIsLocating(false);
-          const message =
-            error.code === 1
-              ? 'Location permission was denied. Please allow it in your device settings.'
-              : error.code === 2
-              ? 'Your location is unavailable. Please turn on device location and try again.'
-              : 'Could not detect your location. Please try again.';
-          Alert.alert('Unable to detect location', message);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 20000,
-          maximumAge: 0,
-          forceRequestLocation: true,
-        },
-      );
+      const coordinates = await getCurrentLocation();
+      try {
+        const label = await reverseGeocodeCoordinates(
+          coordinates.latitude,
+          coordinates.longitude,
+        );
+        setCurrentLocation(label || 'Current location');
+      } catch (error) {
+        console.warn('Reverse geocoding failed:', error);
+        setCurrentLocation('Address unavailable — tap to retry');
+      } finally {
+        setIsLocating(false);
+      }
     } catch (error) {
       setIsLocating(false);
       console.error('Location permission request failed:', error);
@@ -170,7 +133,7 @@ const HomeScreen = () => {
         'Could not access your location. Please try again.',
       );
     }
-  }, [isLocating, requestLocationPermission]);
+  }, [isLocating]);
 
   useEffect(() => {
     if (hasRequestedInitialLocation.current) return;

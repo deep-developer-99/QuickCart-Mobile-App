@@ -39,27 +39,6 @@ const AddressIcon = ({ color = '#777C8D', size = 24 }: IconProps) => (
   </Svg>
 );
 
-const PaymentIcon = ({ color = '#777C8D', size = 24 }: IconProps) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Rect
-      x="3"
-      y="5"
-      width="18"
-      height="14"
-      rx="2.5"
-      stroke={color}
-      strokeWidth="1.6"
-    />
-    <Path
-      d="M3 9h18M7 14h4"
-      stroke={color}
-      strokeWidth="1.6"
-      strokeLinecap="round"
-    />
-    <Circle cx="17" cy="15" r="2.25" stroke={color} strokeWidth="1.4" />
-  </Svg>
-);
-
 const OrdersIcon = ({ color = '#777C8D', size = 24 }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Rect
@@ -315,11 +294,6 @@ const ProfileScreen = () => {
               icon={<AddressIcon color={theme.colors.grey150} />}
               label={t('profile.shipping')}
               onPress={() => navigation.navigate('ShippingAddress')}
-            />
-            <MenuRow
-              icon={<PaymentIcon color={theme.colors.grey150} />}
-              label={t('profile.payment')}
-              onPress={() => navigation.navigate('PaymentMethod')}
             />
             <MenuRow
               icon={<OrdersIcon color={theme.colors.grey150} />}
