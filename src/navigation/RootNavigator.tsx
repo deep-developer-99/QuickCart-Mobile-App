@@ -56,7 +56,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
-const RootNavigator = () => {
+const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
   const styles = useStyles();
   const dispatch = useDispatch<AppDispatch>();
 
@@ -128,6 +128,7 @@ const RootNavigator = () => {
       import('../services/pushNotifications').then(({ flushPendingNotification }) => {
         flushPendingNotification();
       });
+      onReady?.();
     }}>
       {isAuthenticated ? (
         <Stack.Navigator screenOptions={{ headerShown: false }}>

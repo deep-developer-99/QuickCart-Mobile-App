@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { Alert, StatusBar } from 'react-native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -14,26 +14,66 @@ import type { RootState } from './src/store/store';
 import {
   configurePushNotifications,
   handleNotificationOpen,
+  openNotificationSettings,
   type NotificationData,
 } from './src/services/pushNotifications';
+import InAppNotification from './src/components/InAppNotification';
 
-const PushNotificationManager = () => {
+const PushNotificationManager = ({ navigationReady }: { navigationReady: boolean }) => {
   const user = useSelector((state: RootState) => state.auth.user);
   const [foregroundNotification, setForegroundNotification] = React.useState<{
     data: NotificationData;
     title: string;
     message: string;
+    timestamp?: number;
   } | null>(null);
+  const [notificationKey, setNotificationKey] = React.useState<string | null>(
+    null,
+  );
+  const notificationKeyRef = React.useRef<string | null>(null);
+  const permissionNoticeShown = React.useRef(false);
 
   React.useEffect(() => {
-    if (!user || (user.role !== 'user' && user.role !== 'customer')) return;
+    if (
+      !navigationReady ||
+      !user ||
+      (user.role !== 'user' && user.role !== 'customer')
+    )
+      return;
 
     let cleanup: (() => void) | undefined;
     let active = true;
 
-    configurePushNotifications(notification => {
-      if (active) setForegroundNotification(notification);
-    })
+    configurePushNotifications(
+      notification => {
+        if (!active) return;
+        const key =
+          notification.data.notificationId ||
+          [
+            notification.data.event ?? notification.data.type,
+            notification.data.orderId ?? notification.data.offerId,
+            notification.title,
+            notification.message,
+          ].join(':');
+        if (key === notificationKeyRef.current) return;
+        notificationKeyRef.current = key;
+        setNotificationKey(key);
+        setForegroundNotification(notification);
+      },
+      () => {
+        if (!active || permissionNoticeShown.current) return;
+        permissionNoticeShown.current = true;
+        Alert.alert(
+          'Notifications are off',
+          'You can enable QuickCart notifications later from your device settings.',
+          [
+            { text: 'Not now', style: 'cancel' },
+            { text: 'Open Settings', onPress: openNotificationSettings },
+          ],
+        );
+      },
+      () => active,
+    )
       .then(unsubscribe => {
         cleanup = unsubscribe;
       })
@@ -45,34 +85,26 @@ const PushNotificationManager = () => {
       active = false;
       cleanup?.();
     };
-  }, [user]);
+  }, [navigationReady, user]);
 
   if (!foregroundNotification) return null;
 
   return (
-    <Pressable
-      style={styles.notificationBanner}
-      onPress={() => {
-        handleNotificationOpen(foregroundNotification.data);
-        setForegroundNotification(null);
-      }}
-      onLongPress={() => setForegroundNotification(null)}
-    >
-      <View style={styles.notificationCopy}>
-        <Text style={styles.notificationTitle} numberOfLines={1}>
-          {foregroundNotification.title}
-        </Text>
-        <Text style={styles.notificationMessage} numberOfLines={2}>
-          {foregroundNotification.message}
-        </Text>
-      </View>
-      <Text style={styles.notificationClose}>×</Text>
-    </Pressable>
+    <InAppNotification
+      key={notificationKey ?? foregroundNotification.title}
+      title={foregroundNotification.title}
+      message={foregroundNotification.message}
+      timestamp={foregroundNotification.timestamp}
+      data={foregroundNotification.data}
+      onPress={handleNotificationOpen}
+      onDismiss={() => setForegroundNotification(null)}
+    />
   );
 };
 
 const ThemedApp = () => {
   const { mode } = useTheme();
+  const [navigationReady, setNavigationReady] = React.useState(false);
 
   useEffect(() => {
     restoreLanguage().catch(error => {
@@ -85,45 +117,11 @@ const ThemedApp = () => {
       <StatusBar
         barStyle={mode === 'dark' ? 'light-content' : 'dark-content'}
       />
-      <RootNavigator />
-      <PushNotificationManager />
+      <RootNavigator onReady={() => setNavigationReady(true)} />
+      <PushNotificationManager navigationReady={navigationReady} />
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  notificationBanner: {
-    position: 'absolute',
-    top: 48,
-    left: 16,
-    right: 16,
-    minHeight: 64,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 14,
-    backgroundColor: '#17171A',
-    flexDirection: 'row',
-    alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  notificationCopy: { flex: 1 },
-  notificationTitle: {
-    color: '#FFFFFF',
-    fontFamily: 'PlusJakartaSans-Bold',
-    fontSize: 13,
-  },
-  notificationMessage: {
-    color: '#E8E8EA',
-    fontFamily: 'PlusJakartaSans-Regular',
-    fontSize: 12,
-    marginTop: 3,
-  },
-  notificationClose: { color: '#FFFFFF', fontSize: 24, marginLeft: 10 },
-});
 
 const App = () => {
   return (

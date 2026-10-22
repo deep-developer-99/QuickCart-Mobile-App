@@ -1,9 +1,10 @@
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import {
   AuthorizationStatus,
   getInitialNotification,
   getMessaging,
   getToken,
+  hasPermission,
   onMessage,
   onNotificationOpenedApp,
   onTokenRefresh,
@@ -29,12 +30,14 @@ export type NotificationData = {
   message?: string;
   redirectType?: string;
   redirectValue?: string;
+  timestamp?: string;
 };
 
 type ForegroundMessage = {
   data: NotificationData;
   title: string;
   message: string;
+  timestamp?: number;
 };
 
 let pendingNotification: NotificationData | null = null;
@@ -62,6 +65,11 @@ export const getForegroundMessage = (
       (data.event === 'ORDER_STATUS_UPDATED'
         ? `Order status updated to ${data.status ?? 'updated'}`
         : 'A new offer is available'),
+    timestamp:
+      message.sentTime ??
+      (data.timestamp && Number.isFinite(Number(data.timestamp))
+        ? Number(data.timestamp)
+        : undefined),
   };
 };
 
@@ -136,9 +144,12 @@ export const flushPendingNotification = () => {
   handleNotificationOpen(data);
 };
 
-export const registerCurrentDeviceToken = async () => {
+export const registerCurrentDeviceToken = async (
+  isActive: () => boolean = () => true,
+) => {
+  if (!isActive()) return null;
   const token = await getToken(getMessaging());
-  if (!token) return null;
+  if (!token || !isActive()) return null;
 
   await store.dispatch(
     quickCartApi.endpoints.registerFcmToken.initiate({ token }),
@@ -158,42 +169,65 @@ export const removeCurrentDeviceToken = async () => {
   }
 };
 
+export const openNotificationSettings = async () => {
+  try {
+    await Linking.openSettings();
+  } catch (error) {
+    console.warn('Failed to open notification settings:', error);
+  }
+};
+
 export const configurePushNotifications = async (
   onForegroundMessage: (message: ForegroundMessage) => void,
+  onPermissionDenied?: () => void,
+  isActive: () => boolean = () => true,
 ) => {
+  const messaging = getMessaging();
+
   if (Platform.OS === 'ios') {
-    await registerDeviceForRemoteMessages(getMessaging());
-    const status = await requestPermission(getMessaging());
-    if (
-      status !== AuthorizationStatus.AUTHORIZED &&
-      status !== AuthorizationStatus.PROVISIONAL
-    ) {
-      return () => undefined;
-    }
-  } else {
-    await requestPermission(getMessaging());
+    await registerDeviceForRemoteMessages(messaging);
   }
 
-  await registerCurrentDeviceToken();
+  let permissionStatus: number = AuthorizationStatus.AUTHORIZED;
+  if (Platform.OS === 'android' && Platform.Version >= 33) {
+    permissionStatus = await hasPermission(messaging);
+    if (permissionStatus === AuthorizationStatus.NOT_DETERMINED) {
+      permissionStatus = await requestPermission(messaging);
+    }
+  } else if (Platform.OS === 'ios') {
+    permissionStatus = await hasPermission(messaging);
+    if (permissionStatus === AuthorizationStatus.NOT_DETERMINED) {
+      permissionStatus = await requestPermission(messaging);
+    }
+  }
 
-  const unsubscribeMessage = onMessage(getMessaging(), (message: RemoteMessage) => {
+  const permissionGranted =
+    permissionStatus === AuthorizationStatus.AUTHORIZED ||
+    permissionStatus === AuthorizationStatus.PROVISIONAL;
+  if (!isActive()) return () => undefined;
+  if (!permissionGranted) onPermissionDenied?.();
+  if (permissionGranted) await registerCurrentDeviceToken(isActive);
+  if (!isActive()) return () => undefined;
+
+  const unsubscribeMessage = onMessage(messaging, (message: RemoteMessage) => {
     const foregroundMessage = getForegroundMessage(message);
     if (foregroundMessage) onForegroundMessage(foregroundMessage);
   });
-  const unsubscribeToken = onTokenRefresh(getMessaging(), (token: string) => {
+  const unsubscribeToken = onTokenRefresh(messaging, (token: string) => {
+    if (!permissionGranted || !isActive()) return;
     store
       .dispatch(quickCartApi.endpoints.registerFcmToken.initiate({ token }))
       .unwrap()
       .catch(error => console.warn('Failed to refresh FCM token:', error));
   });
   const unsubscribeOpened = onNotificationOpenedApp(
-    getMessaging(),
+    messaging,
     (message: RemoteMessage) => {
     handleNotificationOpen(getData(message));
     },
   );
 
-  const initialMessage = await getInitialNotification(getMessaging());
+  const initialMessage = await getInitialNotification(messaging);
   if (initialMessage) handleNotificationOpen(getData(initialMessage));
 
   return () => {
