@@ -27,7 +27,6 @@ import {
   resolveLocation,
   searchLocationSuggestions,
   type LocationSearchResult,
-  type NearbyLandmark,
   type LocationCoordinates,
 } from '../services/locationService';
 import { typography, useTheme } from '../theme';
@@ -108,15 +107,6 @@ const stylesFor = (colors: ThemeColors) =>
     suggestionTitle: { ...typography.captionSemiBold, color: colors.text, marginBottom: 3 },
     suggestionAddress: { ...typography.captionRegular, color: colors.secondaryText },
     searchMessage: { padding: 12, ...typography.captionRegular, color: colors.secondaryText },
-    nearbyBlock: { marginBottom: 14, padding: 12, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-    nearbyTitle: { ...typography.captionSemiBold, color: colors.text, marginBottom: 8 },
-    nearestLandmark: { ...typography.captionRegular, color: colors.cyan, marginBottom: 8 },
-    nearbyItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border },
-    nearbyItemLast: { borderBottomWidth: 0 },
-    nearbyCopy: { flex: 1, marginRight: 8 },
-    nearbyName: { ...typography.captionSemiBold, color: colors.text },
-    nearbyMeta: { ...typography.captionRegular, color: colors.secondaryText, marginTop: 2 },
-    nearbyDistance: { ...typography.captionRegular, color: colors.cyan },
     mapFrame: {
       height: 280,
       marginBottom: 14,
@@ -267,12 +257,6 @@ export default function AddAddressModal({
   const [searchResults, setSearchResults] = useState<LocationSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
-  const [nearbyLandmarks, setNearbyLandmarks] = useState<NearbyLandmark[]>([]);
-  const [nearestLandmark, setNearestLandmark] = useState<NearbyLandmark | null>(null);
-  const [landmarksLoading, setLandmarksLoading] = useState(false);
-  const [landmarksError, setLandmarksError] = useState('');
-  const [landmarksLoaded, setLandmarksLoaded] = useState(false);
-
   useEffect(
     () => () => {
       mounted.current = false;
@@ -297,8 +281,6 @@ export default function AddAddressModal({
     ) => {
       const currentRequest = ++requestId.current;
       setLocationStatus('loading');
-      setLandmarksLoading(true);
-      setLandmarksError('');
       try {
         const resolution = await resolveLocation(
           next.latitude,
@@ -327,11 +309,6 @@ export default function AddAddressModal({
             ? previous.pincode
             : resolution.address?.pincode || previous.pincode,
         }));
-        setNearbyLandmarks(resolution.landmarks);
-        setNearestLandmark(resolution.nearestLandmark);
-        setLandmarksLoading(false);
-        setLandmarksLoaded(true);
-        setLandmarksError('');
         setLocationStatus(resolution.address ? 'ready' : 'error');
         setLocationError(
           resolution.address ? '' : t('shipping.locationAddressUnavailable'),
@@ -350,11 +327,6 @@ export default function AddAddressModal({
           latitude: next.latitude,
           longitude: next.longitude,
         }));
-        setNearbyLandmarks([]);
-        setNearestLandmark(null);
-        setLandmarksLoading(false);
-        setLandmarksLoaded(true);
-        setLandmarksError('Nearby places are unavailable right now.');
       }
     },
     [t],
@@ -426,11 +398,6 @@ export default function AddAddressModal({
     setSearchResults([]);
     setSearchError('');
     setSearching(false);
-    setNearbyLandmarks([]);
-    setNearestLandmark(null);
-    setLandmarksError('');
-    setLandmarksLoading(false);
-    setLandmarksLoaded(false);
     detectLocation(sessionId);
   }, [visible, detectLocation]);
 
@@ -490,24 +457,6 @@ export default function AddAddressModal({
     setSearchError('');
     Keyboard.dismiss();
   }, []);
-
-  const selectLandmark = useCallback((landmark: NearbyLandmark) => {
-    const next = { latitude: landmark.latitude, longitude: landmark.longitude };
-    locationSession.current += 1;
-    requestId.current += 1;
-    if (timer.current) clearTimeout(timer.current);
-    setCoordinates(next);
-    setSearchResults([]);
-    setSearchQuery(landmark.name);
-    setNearbyLandmarks([]);
-    setNearestLandmark(null);
-    setLandmarksLoaded(false);
-    setLandmarksError('');
-    setLocationStatus('loading');
-    setLocationError('');
-    Keyboard.dismiss();
-    reverseGeocode(next, locationSession.current);
-  }, [reverseGeocode]);
 
   const save = async () => {
     const required: Array<keyof CreateAddressData> = [
@@ -634,32 +583,6 @@ export default function AddAddressModal({
                 </View>
               ) : null}
             </View>
-    {coordinates && (landmarksLoading || landmarksError || landmarksLoaded || nearbyLandmarks.length > 0) ? (
-              <View style={styles.nearbyBlock}>
-                <Text style={styles.nearbyTitle}>Nearby places</Text>
-                {nearestLandmark ? (
-                  <Text style={styles.nearestLandmark}>
-                    Closest suitable landmark: {nearestLandmark.name}
-                  </Text>
-                ) : null}
-                {landmarksLoading ? <ActivityIndicator size="small" color={theme.colors.cyan} /> : null}
-                {!landmarksLoading && landmarksError ? <Text style={styles.searchMessage}>{landmarksError}</Text> : null}
-                {!landmarksLoading && !landmarksError && nearbyLandmarks.length === 0 ? <Text style={styles.searchMessage}>No named nearby places found.</Text> : null}
-                {!landmarksLoading ? nearbyLandmarks.map((landmark, index) => (
-                  <Pressable
-                    key={`${landmark.name}-${landmark.latitude}-${landmark.longitude}`}
-                    style={[styles.nearbyItem, index === nearbyLandmarks.length - 1 && styles.nearbyItemLast]}
-                    onPress={() => selectLandmark(landmark)}
-                  >
-                    <View style={styles.nearbyCopy}>
-                      <Text style={styles.nearbyName} numberOfLines={1}>{landmark.name}</Text>
-                      <Text style={styles.nearbyMeta}>{landmark.category}</Text>
-                    </View>
-                    <Text style={styles.nearbyDistance}>{landmark.distanceMeters < 1000 ? `${Math.round(landmark.distanceMeters)} m` : `${(landmark.distanceMeters / 1000).toFixed(1)} km`}</Text>
-                  </Pressable>
-                )) : null}
-              </View>
-            ) : null}
             {coordinates ? (
               <View style={styles.mapFrame}>
                 <OpenStreetMapPicker

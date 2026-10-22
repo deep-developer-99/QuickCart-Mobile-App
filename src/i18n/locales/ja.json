@@ -1,5 +1,5 @@
 {
-  "search": { "filterTitle": "商品を絞り込む", "clear": "クリア", "category": "カテゴリー", "all": "すべて", "priceRange": "価格帯", "minimum": "最低", "maximum": "最高", "minimumRating": "最低評価", "stars": "{{count}}以上の星", "any": "指定なし", "inStock": "在庫ありの商品のみ表示", "sortBy": "並べ替え", "apply": "フィルターを適用" },
+  "search": { "filterTitle": "商品を絞り込む", "clear": "クリア", "category": "カテゴリー", "all": "すべて", "priceRange": "価格帯", "minimum": "最低", "maximum": "最高", "inStock": "在庫ありの商品のみ表示", "sortBy": "並べ替え", "apply": "フィルターを適用" },
   "common": { "cancel": "キャンセル", "tryAgain": "再試行", "free": "無料", "product": "商品" },
   "orders": {
     "title": "注文履歴", "ongoing": "進行中", "completed": "完了", "order": "注文", "orders": "注文",

@@ -37,7 +37,7 @@ import type { ThemeColors } from '../../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Checkout'>;
 
-type Step = 'shipping' | 'payment' | 'review' | 'items' | 'success';
+type Step = 'shipping' | 'payment' | 'review' | 'success';
 type PaymentMethod =
   | 'COD'
   | 'UPI_GPAY'
@@ -245,7 +245,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
       return;
     }
 
-    if (step === 'review' || step === 'items') {
+    if (step === 'review') {
       setStep('payment');
     }
   };
@@ -287,15 +287,6 @@ export default function CheckoutScreen({ navigation, route }: Props) {
             }
           />
         </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (step === 'items') {
-    return (
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <Header title={`Items (${items.length})`} onBack={goBack} />
-        <Items items={items} />
       </SafeAreaView>
     );
   }
@@ -421,7 +412,12 @@ export default function CheckoutScreen({ navigation, route }: Props) {
               </Text>
             )}
 
-            <Summary subtotal={subtotal} shipping={shipping} total={total} />
+            <Summary
+              items={items}
+              subtotal={subtotal}
+              shipping={shipping}
+              total={total}
+            />
 
             <Button title="Continue" onPress={() => setStep('review')} />
           </>
@@ -430,14 +426,6 @@ export default function CheckoutScreen({ navigation, route }: Props) {
         {step === 'review' && (
           <>
             <SectionTitle title="Review Order" />
-
-            <Pressable
-              style={styles.itemsLink}
-              onPress={() => setStep('items')}
-            >
-              <Text style={styles.itemsLinkTitle}>Items ({items.length})</Text>
-              <Text style={styles.arrow}>›</Text>
-            </Pressable>
 
             <View style={styles.reviewCard}>
               <Text style={styles.reviewLabel}>Shipping Address</Text>
@@ -461,7 +449,12 @@ export default function CheckoutScreen({ navigation, route }: Props) {
               )}
             </View>
 
-            <Summary subtotal={subtotal} shipping={shipping} total={total} />
+            <Summary
+              items={items}
+              subtotal={subtotal}
+              shipping={shipping}
+              total={total}
+            />
 
             <Button
               title={
@@ -670,20 +663,71 @@ function MethodRow({
 }
 
 function Summary({
+  items,
   subtotal,
   shipping,
   total,
 }: {
+  items: CartItem[];
   subtotal: number;
   shipping: number;
   total: number;
 }) {
   const styles = useStyles();
+  const originalSubtotal = items.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
+    0,
+  );
+  const discount = Math.max(0, originalSubtotal - subtotal);
+
   return (
     <View style={styles.summary}>
       <Text style={styles.summaryTitle}>Order Info</Text>
 
+      {items.length > 0 ? (
+        <View style={styles.orderItems}>
+          {items.map(item => {
+            const unitPrice = item.product.discountPrice ?? item.product.price;
+            const itemTotal = unitPrice * item.quantity;
+            const imageUri = item.product.image || item.product.images?.[0];
+
+            return (
+              <View key={item.product._id} style={styles.orderItem}>
+                <View style={styles.orderItemImageBox}>
+                  {imageUri ? (
+                    <Image
+                      source={{ uri: imageUri }}
+                      style={styles.orderItemImage}
+                      accessibilityLabel={`${item.product.name} thumbnail`}
+                    />
+                  ) : (
+                    <Text style={styles.orderItemPlaceholder}>🛍️</Text>
+                  )}
+                </View>
+                <View style={styles.orderItemDetails}>
+                  <Text numberOfLines={2} style={styles.orderItemName}>
+                    {item.product.name || 'Product unavailable'}
+                  </Text>
+                  <Text style={styles.orderItemMeta}>
+                    Qty {item.quantity} · ₹{unitPrice.toFixed(2)} each
+                  </Text>
+                </View>
+                <Text style={styles.orderItemTotal}>₹{itemTotal.toFixed(2)}</Text>
+              </View>
+            );
+          })}
+        </View>
+      ) : (
+        <Text style={[styles.muted, styles.orderItemsEmpty]}>
+          No order items available.
+        </Text>
+      )}
+
       <Row label="Subtotal" value={`₹${subtotal.toFixed(2)}`} />
+
+      {discount > 0 ? (
+        <Row label="Discount" value={`-₹${discount.toFixed(2)}`} />
+      ) : null}
 
       <Row label="Shipping Cost" value={`₹${shipping.toFixed(2)}`} />
 
@@ -723,53 +767,6 @@ function Button({
     >
       <Text style={styles.buttonText}>{title}</Text>
     </Pressable>
-  );
-}
-
-function Items({ items }: { items: CartItem[] }) {
-  const styles = useStyles();
-  if (items.length === 0) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.muted}>No items in your cart.</Text>
-      </View>
-    );
-  }
-
-  return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.itemsContent}
-    >
-      {items.map(item => {
-        const price = item.product.discountPrice ?? item.product.price;
-
-        return (
-          <View key={item.product._id} style={styles.item}>
-            <View style={styles.itemImageBox}>
-              {item.product.image ? (
-                <Image
-                  source={{ uri: item.product.image }}
-                  style={styles.itemImage}
-                />
-              ) : (
-                <Text>🛍️</Text>
-              )}
-            </View>
-
-            <View style={styles.itemInfo}>
-              <Text numberOfLines={2} style={styles.itemName}>
-                {item.product.name}
-              </Text>
-
-              <Text style={styles.itemPrice}>₹{price.toFixed(2)}</Text>
-
-              <Text style={styles.qty}>Quantity: {item.quantity}</Text>
-            </View>
-          </View>
-        );
-      })}
-    </ScrollView>
   );
 }
 
@@ -1166,6 +1163,73 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: 14,
     },
 
+    orderItems: {
+      marginBottom: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      padding: 10,
+      backgroundColor: colors.surface,
+    },
+
+    orderItemsEmpty: {
+      marginBottom: 14,
+      paddingVertical: 8,
+    },
+
+    orderItem: {
+      minHeight: 64,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 6,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+
+    orderItemImageBox: {
+      width: 56,
+      height: 56,
+      borderRadius: 8,
+      backgroundColor: colors.cyan50,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+
+    orderItemImage: {
+      width: '100%',
+      height: '100%',
+    },
+
+    orderItemPlaceholder: {
+      fontSize: 20,
+    },
+
+    orderItemDetails: {
+      flex: 1,
+      minWidth: 0,
+      marginHorizontal: 10,
+    },
+
+    orderItemName: {
+      fontSize: 12,
+      lineHeight: 17,
+      color: colors.text,
+      fontWeight: '600',
+    },
+
+    orderItemMeta: {
+      marginTop: 4,
+      fontSize: 11,
+      color: colors.grey150,
+    },
+
+    orderItemTotal: {
+      fontSize: 12,
+      color: colors.text,
+      fontWeight: '600',
+    },
+
     row: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -1202,29 +1266,6 @@ const createStyles = (colors: ThemeColors) =>
       fontWeight: '600',
     },
 
-    itemsLink: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: 16,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 12,
-      marginBottom: 20,
-      backgroundColor: colors.surface,
-    },
-
-    itemsLinkTitle: {
-      fontSize: 15,
-      color: colors.text,
-      fontWeight: '600',
-    },
-
-    arrow: {
-      fontSize: 28,
-      color: colors.text,
-    },
-
     reviewCard: {
       padding: 14,
       borderWidth: 1,
@@ -1252,56 +1293,6 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 13,
       color: colors.grey150,
       lineHeight: 20,
-    },
-
-    itemsContent: {
-      padding: 16,
-      paddingBottom: 30,
-    },
-
-    item: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      marginBottom: 16,
-    },
-
-    itemImageBox: {
-      width: 120,
-      height: 120,
-      borderRadius: 12,
-      backgroundColor: colors.cyan50,
-      overflow: 'hidden',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-
-    itemImage: {
-      width: '100%',
-      height: '100%',
-    },
-
-    itemInfo: {
-      flex: 1,
-      marginLeft: 10,
-    },
-
-    itemName: {
-      fontSize: 13,
-      color: colors.text,
-      lineHeight: 18,
-    },
-
-    itemPrice: {
-      fontSize: 14,
-      color: colors.text,
-      fontWeight: '600',
-      marginTop: 8,
-    },
-
-    qty: {
-      fontSize: 12,
-      color: colors.grey150,
-      marginTop: 8,
     },
 
     success: {

@@ -592,13 +592,13 @@ const createStyles = (
     buyText: {
       fontFamily: 'PlusJakartaSans-Medium',
       fontSize: 14,
-      color: colors.text,
+      color: mode === 'dark' ? colors.cyan : colors.text,
     },
     addButton: {
       flex: 1,
       height: 61,
       borderRadius: 12,
-      backgroundColor: colors.black,
+      backgroundColor: mode === 'dark' ? colors.cyan : colors.black,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',

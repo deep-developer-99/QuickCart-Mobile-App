@@ -1,5 +1,5 @@
 {
-  "search": { "filterTitle": "उत्पाद फ़िल्टर करें", "clear": "साफ़ करें", "category": "श्रेणी", "all": "सभी", "priceRange": "मूल्य सीमा", "minimum": "न्यूनतम", "maximum": "अधिकतम", "minimumRating": "न्यूनतम रेटिंग", "stars": "{{count}}+ स्टार", "any": "कोई भी", "inStock": "केवल स्टॉक में उपलब्ध उत्पाद दिखाएँ", "sortBy": "क्रमबद्ध करें", "apply": "फ़िल्टर लागू करें" },
+  "search": { "filterTitle": "उत्पाद फ़िल्टर करें", "clear": "साफ़ करें", "category": "श्रेणी", "all": "सभी", "priceRange": "मूल्य सीमा", "minimum": "न्यूनतम", "maximum": "अधिकतम", "inStock": "केवल स्टॉक में उपलब्ध उत्पाद दिखाएँ", "sortBy": "क्रमबद्ध करें", "apply": "फ़िल्टर लागू करें" },
   "common": { "cancel": "रद्द करें", "tryAgain": "पुनः प्रयास करें", "free": "मुफ़्त", "product": "उत्पाद" },
   "orders": {
     "title": "मेरे ऑर्डर", "ongoing": "जारी", "completed": "पूर्ण", "order": "ऑर्डर", "orders": "ऑर्डर",

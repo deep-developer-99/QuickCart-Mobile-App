@@ -32,7 +32,6 @@ type ProductFilters = {
   categoryId: string | null;
   minPrice: string;
   maxPrice: string;
-  minRating: number | null;
   inStock: boolean;
   sort: SortOption;
 };
@@ -41,7 +40,6 @@ const emptyFilters: ProductFilters = {
   categoryId: null,
   minPrice: '',
   maxPrice: '',
-  minRating: null,
   inStock: false,
   sort: null,
 };
@@ -145,7 +143,6 @@ const SearchScreen = () => {
     Boolean(filters.categoryId) ||
     filters.minPrice.trim() !== '' ||
     filters.maxPrice.trim() !== '' ||
-    filters.minRating !== null ||
     filters.inStock ||
     filters.sort !== null;
 
@@ -171,7 +168,6 @@ const SearchScreen = () => {
 
     const result = productResponse.data.filter(product => {
       const price = product.discountPrice ?? product.price;
-      const rating = product.rating ?? 0;
       const category = typeof product.category === 'string'
         ? product.category
         : product.category?._id;
@@ -180,7 +176,6 @@ const SearchScreen = () => {
         (!filters.categoryId || category === filters.categoryId) &&
         (!hasMinPrice || price >= minPrice) &&
         (!hasMaxPrice || price <= maxPrice) &&
-        (!filters.minRating || rating >= filters.minRating) &&
         (!filters.inStock || product.stock > 0)
       );
     });
@@ -517,13 +512,6 @@ const FilterModal = ({
             <View style={styles.priceInputs}>
               <TextInput value={filters.minPrice} onChangeText={minPrice => update({ minPrice })} placeholder={tr('search.minimum', 'Minimum')} placeholderTextColor={styles.filterInputPlaceholder.color} keyboardType="decimal-pad" style={styles.filterInput} />
               <TextInput value={filters.maxPrice} onChangeText={maxPrice => update({ maxPrice })} placeholder={tr('search.maximum', 'Maximum')} placeholderTextColor={styles.filterInputPlaceholder.color} keyboardType="decimal-pad" style={styles.filterInput} />
-            </View>
-
-            <Text style={styles.filterSectionTitle}>{tr('search.minimumRating', 'Minimum rating')}</Text>
-            <View style={styles.filterChoices}>
-              {[null, 3, 4].map(rating => (
-                <FilterChoice key={rating ?? 'any'} label={rating ? tr('search.stars', `${rating}+ stars`, { count: rating }) : tr('search.any', 'Any')} selected={filters.minRating === rating} onPress={() => update({ minRating: rating })} styles={styles} />
-              ))}
             </View>
 
             <Pressable style={styles.filterToggleRow} onPress={() => update({ inStock: !filters.inStock })}>

@@ -1,5 +1,5 @@
 {
-  "search": { "filterTitle": "Filtrer les produits", "clear": "Effacer", "category": "Catégorie", "all": "Tous", "priceRange": "Fourchette de prix", "minimum": "Minimum", "maximum": "Maximum", "minimumRating": "Note minimale", "stars": "{{count}}+ étoiles", "any": "Tous", "inStock": "Afficher uniquement les produits en stock", "sortBy": "Trier par", "apply": "Appliquer les filtres" },
+  "search": { "filterTitle": "Filtrer les produits", "clear": "Effacer", "category": "Catégorie", "all": "Tous", "priceRange": "Fourchette de prix", "minimum": "Minimum", "maximum": "Maximum", "inStock": "Afficher uniquement les produits en stock", "sortBy": "Trier par", "apply": "Appliquer les filtres" },
   "common": { "cancel": "Annuler", "tryAgain": "Réessayer", "free": "GRATUIT", "product": "Produit" },
   "orders": {
     "title": "Mes commandes", "ongoing": "En cours", "completed": "Terminées", "order": "commande", "orders": "commandes",

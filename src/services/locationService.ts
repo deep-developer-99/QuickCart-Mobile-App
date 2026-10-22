@@ -24,25 +24,15 @@ export interface LocationSearchResult extends ReverseGeocodedAddress {
   displayAddress: string;
 }
 
-export interface NearbyLandmark {
-  name: string;
-  category: string;
-  latitude: number;
-  longitude: number;
-  distanceMeters: number;
-}
-
 export interface ResolvedLocation {
   formattedAddress: string | null;
   address: ReverseGeocodedAddress | null;
-  nearestLandmark: NearbyLandmark | null;
-  landmarks: NearbyLandmark[];
 }
 
 interface ReverseGeocodeResponse {
   success?: boolean;
   message?: string;
-  data?: NominatimResult | ResolvedLocation;
+  data?: NominatimResult;
 }
 
 interface NominatimResult {
@@ -56,11 +46,6 @@ interface NominatimResult {
 const searchCache = new Map<string, LocationSearchResult[]>();
 let lastSearchAt = 0;
 const reverseCache = new Map<string, ReverseGeocodedAddress | null>();
-const landmarkCache = new Map<string, { value: NearbyLandmark[]; expiresAt: number }>();
-let lastLandmarkRequestAt = 0;
-const LOCATION_CACHE_TTL = 5 * 60 * 1000;
-const LOCATION_RADIUS_METERS = 1200;
-const MAX_RELIABLE_LANDMARK_DISTANCE_METERS = 1000;
 
 const coordinateKey = (latitude: number, longitude: number): string =>
   `${latitude.toFixed(5)},${longitude.toFixed(5)}`;
@@ -261,8 +246,7 @@ const fetchReverseGeocodeResult = async (
           (await backendResponse.json()) as ReverseGeocodeResponse;
         if (
           payload.success &&
-          payload.data &&
-          !('landmarks' in payload.data)
+          payload.data
         ) {
           return payload.data;
         }
@@ -369,87 +353,6 @@ export const searchLocationSuggestions = async (
   return results;
 };
 
-const landmarkCategory = (tags: Record<string, string | undefined>): string | null => {
-  if (tags.railway === 'station' || tags.station === 'subway') return 'Metro or train station';
-  if (tags.highway === 'bus_stop' || tags.public_transport === 'platform' || tags.public_transport === 'stop_position') return 'Bus stop';
-  if (tags.amenity === 'hospital' || tags.healthcare === 'hospital') return 'Hospital';
-  if (tags.amenity === 'clinic' || tags.healthcare === 'clinic') return 'Clinic';
-  if (tags.amenity === 'school') return 'School';
-  if (tags.amenity === 'college' || tags.amenity === 'university') return 'College or university';
-  if (tags.amenity === 'place_of_worship' || tags.religion) return 'Place of worship';
-  if (tags.shop === 'mall' || tags.shop === 'supermarket') return 'Mall or supermarket';
-  if (tags.amenity === 'marketplace' || tags.shop) return 'Market or shop';
-  if (tags.leisure === 'park' || tags.leisure === 'garden') return 'Park';
-  if (tags.building) return 'Named building';
-  return null;
-};
-
-const distanceBetween = (latitude: number, longitude: number, otherLatitude: number, otherLongitude: number): number => {
-  const earthRadius = 6371000;
-  const radians = (value: number) => (value * Math.PI) / 180;
-  const dLat = radians(otherLatitude - latitude);
-  const dLon = radians(otherLongitude - longitude);
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(radians(latitude)) * Math.cos(radians(otherLatitude)) * Math.sin(dLon / 2) ** 2;
-  return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
-
-export const getNearbyLandmarks = async (
-  latitude: number,
-  longitude: number,
-): Promise<NearbyLandmark[]> => {
-  if (
-    !Number.isFinite(latitude) ||
-    !Number.isFinite(longitude) ||
-    latitude < -90 ||
-    latitude > 90 ||
-    longitude < -180 ||
-    longitude > 180
-  ) {
-    return [];
-  }
-  const cacheKey = coordinateKey(latitude, longitude);
-  const cached = landmarkCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) return cached.value;
-
-  const wait = Math.max(0, 1100 - (Date.now() - lastLandmarkRequestAt));
-  if (wait > 0) await new Promise<void>(resolve => setTimeout(resolve, wait));
-  lastLandmarkRequestAt = Date.now();
-  const query = `[out:json][timeout:12];(nwr(around:${LOCATION_RADIUS_METERS},${latitude},${longitude})["name"]["amenity"~"hospital|clinic|school|college|university|marketplace|place_of_worship"];nwr(around:${LOCATION_RADIUS_METERS},${latitude},${longitude})["name"]["public_transport"];nwr(around:${LOCATION_RADIUS_METERS},${latitude},${longitude})["name"]["railway"~"station|subway_entrance"];nwr(around:${LOCATION_RADIUS_METERS},${latitude},${longitude})["name"]["highway"="bus_stop"];nwr(around:${LOCATION_RADIUS_METERS},${latitude},${longitude})["name"]["shop"];nwr(around:${LOCATION_RADIUS_METERS},${latitude},${longitude})["name"]["leisure"~"park|garden"];nwr(around:${LOCATION_RADIUS_METERS},${latitude},${longitude})["name"]["building"];);out center tags;`;
-  const response = await fetchWithTimeout('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    headers: { Accept: 'application/json', 'Content-Type': 'text/plain' },
-    body: query,
-  }, 15000);
-  if (!response.ok) throw new Error(`Nearby places lookup failed (${response.status}).`);
-  const payload = (await response.json()) as { elements?: Array<{ lat?: number; lon?: number; center?: { lat?: number; lon?: number }; tags?: Record<string, string | undefined> }> };
-  const unique = new Map<string, NearbyLandmark>();
-  for (const element of payload.elements ?? []) {
-    const tags = element.tags ?? {};
-    const name = tags.name?.trim();
-    const category = landmarkCategory(tags);
-    const point = element.lat !== undefined && element.lon !== undefined ? element : element.center;
-    if (!name || !category || point?.lat === undefined || point.lon === undefined) continue;
-    const distanceMeters = distanceBetween(latitude, longitude, point.lat, point.lon);
-    if (distanceMeters > LOCATION_RADIUS_METERS) continue;
-    const key = name.toLowerCase().replace(/\s+/g, ' ');
-    const candidate = { name, category, latitude: point.lat, longitude: point.lon, distanceMeters };
-    const existing = unique.get(key);
-    if (!existing || candidate.distanceMeters < existing.distanceMeters) unique.set(key, candidate);
-  }
-  const result = [...unique.values()].sort((a, b) => a.distanceMeters - b.distanceMeters).slice(0, 8);
-  landmarkCache.set(cacheKey, { value: result, expiresAt: Date.now() + LOCATION_CACHE_TTL });
-  return result;
-};
-
-const selectNearestLandmark = (
-  landmarks: NearbyLandmark[],
-): NearbyLandmark | null => {
-  const candidate = landmarks.find(
-    landmark => landmark.distanceMeters <= MAX_RELIABLE_LANDMARK_DISTANCE_METERS,
-  );
-  return candidate ?? null;
-};
-
 export const resolveLocation = async (
   latitude: number,
   longitude: number,
@@ -485,7 +388,7 @@ export const resolveLocation = async (
           success?: boolean;
           data?: ResolvedLocation;
         };
-        if (payload.success && payload.data?.landmarks) {
+        if (payload.success && payload.data?.address) {
           return payload.data;
         }
       }
@@ -494,18 +397,9 @@ export const resolveLocation = async (
     console.warn('Combined location endpoint unavailable; using OSM fallback.', error);
   }
 
-  const [addressResult, landmarkResult] = await Promise.allSettled([
-    reverseGeocodeAddress(latitude, longitude),
-    getNearbyLandmarks(latitude, longitude),
-  ]);
-  const address =
-    addressResult.status === 'fulfilled' ? addressResult.value : null;
-  const landmarks =
-    landmarkResult.status === 'fulfilled' ? landmarkResult.value : [];
+  const address = await reverseGeocodeAddress(latitude, longitude);
   return {
     formattedAddress: address?.formattedAddress ?? null,
     address,
-    landmarks,
-    nearestLandmark: selectNearestLandmark(landmarks),
   };
 };

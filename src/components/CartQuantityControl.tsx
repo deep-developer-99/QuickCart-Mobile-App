@@ -26,7 +26,7 @@ const CartQuantityControl = ({
   disabled = false,
   onAdded,
 }: CartQuantityControlProps) => {
-  const { theme } = useTheme();
+  const { theme, mode } = useTheme();
   const styles = useStyles();
   const [addToCart, { isLoading: adding }] = useAddToCartMutation();
   const [updateCartItem, { isLoading: updating }] =
@@ -73,6 +73,7 @@ const CartQuantityControl = ({
           styles.addButton,
           compact && styles.compactAddButton,
           !compact && styles.fullAddButton,
+          !compact && mode === 'dark' && styles.fullAddButtonDark,
         ]}
         onPress={handleAdd}
         onPressIn={event => event.stopPropagation()}
@@ -147,6 +148,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>['theme']['colors']) =>
       paddingHorizontal: spacing.lg,
     },
     fullAddButton: { minHeight: 61, borderRadius: radius.md, flex: 1 },
+    fullAddButtonDark: { backgroundColor: colors.cyan },
     addText: { ...typography.body2Medium, color: colors.white },
     quantityControl: {
       minHeight: 36,
