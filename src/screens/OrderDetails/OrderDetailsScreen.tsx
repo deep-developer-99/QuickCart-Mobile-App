@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { ActivityIndicator } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import {
@@ -16,6 +17,7 @@ import {
 } from 'react-native-safe-area-context';
 
 import type { MyOrder, OrderStatus } from '../../api/orderApi';
+import { useGetMyOrdersQuery } from '../../api/orderApi';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { radius, spacing, typography, useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
@@ -69,8 +71,35 @@ const OrderDetailsScreen = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { params } = useRoute<DetailsRoute>();
-  const { order } = params;
+  const { order: passedOrder, orderId } = params;
+  const { data, isLoading } = useGetMyOrdersQuery(undefined, {
+    skip: Boolean(passedOrder),
+  });
+  const order = passedOrder ?? data?.data?.find(item => item._id === orderId);
   const insets = useSafeAreaInsets();
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <ActivityIndicator style={styles.loading} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!order) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <View style={styles.header}>
+          <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Text style={styles.backArrow}>‹</Text>
+          </Pressable>
+          <Text style={styles.headerTitle}>Order details</Text>
+        </View>
+        <Text style={styles.muted}>This order is no longer available.</Text>
+      </SafeAreaView>
+    );
+  }
+
   const currentStep = Math.max(0, STEPS.indexOf(order.status));
 
   return (
@@ -229,6 +258,7 @@ const OrderDetailsScreen = () => {
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
+    loading: { flex: 1 },
     header: {
       height: 76,
       borderBottomWidth: 1,

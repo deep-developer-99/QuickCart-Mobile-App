@@ -20,6 +20,7 @@ import type { AppDispatch, RootState } from '../../store/store';
 import { logout } from '../../store/slices/authSlice';
 import { useTheme } from '../../theme/ThemeContext';
 import { removeToken } from '../../services/secureStorage';
+import { removeCurrentDeviceToken } from '../../services/pushNotifications';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import i18n, {
   changeLanguage,
@@ -231,6 +232,7 @@ const ProfileScreen = () => {
         text: t('profile.logout'),
         style: 'destructive',
         onPress: async () => {
+          await removeCurrentDeviceToken();
           await removeToken();
           dispatch(logout());
         },

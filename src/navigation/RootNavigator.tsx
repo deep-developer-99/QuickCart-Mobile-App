@@ -5,6 +5,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import {
   NavigationContainer,
   type NavigatorScreenParams,
+  createNavigationContainerRef,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useDispatch, useSelector } from 'react-redux';
@@ -30,7 +31,10 @@ export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   Search: { categoryId?: string } | undefined;
   OrderHistory: undefined;
-  OrderDetails: { order: import('../api/orderApi').MyOrder };
+  OrderDetails: {
+    order?: import('../api/orderApi').MyOrder;
+    orderId?: string;
+  };
 
   // ProductDetails receives the product selected from Home/Categories/Wishlist.
   ProductDetails: {
@@ -49,6 +53,8 @@ export type RootStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 const RootNavigator = () => {
   const styles = useStyles();
@@ -118,7 +124,11 @@ const RootNavigator = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef} onReady={() => {
+      import('../services/pushNotifications').then(({ flushPendingNotification }) => {
+        flushPendingNotification();
+      });
+    }}>
       {isAuthenticated ? (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="MainTabs" component={MainTabNavigator} />

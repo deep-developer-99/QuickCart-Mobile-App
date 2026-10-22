@@ -351,6 +351,28 @@ export const quickCartApi = createApi({
       providesTags: ['Me'],
     }),
 
+    registerFcmToken: builder.mutation<
+      { success: boolean; message?: string },
+      { token: string }
+    >({
+      query: body => ({
+        url: '/notifications/fcm-token',
+        method: 'POST',
+        body,
+      }),
+    }),
+
+    removeFcmToken: builder.mutation<
+      { success: boolean; message?: string },
+      { token: string }
+    >({
+      query: body => ({
+        url: '/notifications/fcm-token',
+        method: 'DELETE',
+        body,
+      }),
+    }),
+
     // Send OTP to mobile number
     sendOtp: builder.mutation<unknown, string>({
       query: phone => ({
@@ -388,6 +410,8 @@ export const {
   useGoogleLoginMutation,
   useGetMeQuery,
   useLazyGetMeQuery,
+  useRegisterFcmTokenMutation,
+  useRemoveFcmTokenMutation,
   useGetCategoriesQuery,
   useGetBannersQuery,
   useGetProductsQuery,
