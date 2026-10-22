@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -23,7 +24,10 @@ import OpenStreetMapPicker from './OpenStreetMapPicker';
 import {
   getCurrentLocation,
   requestLocationPermission,
-  reverseGeocodeAddress,
+  resolveLocation,
+  searchLocationSuggestions,
+  type LocationSearchResult,
+  type NearbyLandmark,
   type LocationCoordinates,
 } from '../services/locationService';
 import { typography, useTheme } from '../theme';
@@ -92,6 +96,27 @@ const stylesFor = (colors: ThemeColors) =>
     },
     closeText: { fontSize: 22, color: colors.text },
     content: { padding: 18, paddingBottom: 30 },
+    searchBlock: { marginBottom: 12, zIndex: 20, elevation: 8 },
+    searchRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, backgroundColor: colors.surface },
+    searchIcon: { fontSize: 20, color: colors.secondaryText, marginRight: 8 },
+    searchInput: { flex: 1, minHeight: 46, paddingVertical: 0, color: colors.text, fontFamily: 'PlusJakartaSans-Regular', fontSize: 13 },
+    searchClear: { padding: 5 },
+    searchClearText: { color: colors.secondaryText, fontSize: 18 },
+    suggestions: { marginTop: 6, borderWidth: 1, borderColor: colors.border, borderRadius: 12, backgroundColor: colors.surface, overflow: 'hidden' },
+    suggestion: { paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: colors.border },
+    suggestionLast: { borderBottomWidth: 0 },
+    suggestionTitle: { ...typography.captionSemiBold, color: colors.text, marginBottom: 3 },
+    suggestionAddress: { ...typography.captionRegular, color: colors.secondaryText },
+    searchMessage: { padding: 12, ...typography.captionRegular, color: colors.secondaryText },
+    nearbyBlock: { marginBottom: 14, padding: 12, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+    nearbyTitle: { ...typography.captionSemiBold, color: colors.text, marginBottom: 8 },
+    nearestLandmark: { ...typography.captionRegular, color: colors.cyan, marginBottom: 8 },
+    nearbyItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border },
+    nearbyItemLast: { borderBottomWidth: 0 },
+    nearbyCopy: { flex: 1, marginRight: 8 },
+    nearbyName: { ...typography.captionSemiBold, color: colors.text },
+    nearbyMeta: { ...typography.captionRegular, color: colors.secondaryText, marginTop: 2 },
+    nearbyDistance: { ...typography.captionRegular, color: colors.cyan },
     mapFrame: {
       height: 280,
       marginBottom: 14,
@@ -235,12 +260,24 @@ export default function AddAddressModal({
   const requestId = useRef(0);
   const locationSession = useRef(0);
   const autoDetectionStarted = useRef(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRequestId = useRef(0);
   const mounted = useRef(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<LocationSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [nearbyLandmarks, setNearbyLandmarks] = useState<NearbyLandmark[]>([]);
+  const [nearestLandmark, setNearestLandmark] = useState<NearbyLandmark | null>(null);
+  const [landmarksLoading, setLandmarksLoading] = useState(false);
+  const [landmarksError, setLandmarksError] = useState('');
+  const [landmarksLoaded, setLandmarksLoaded] = useState(false);
 
   useEffect(
     () => () => {
       mounted.current = false;
       if (timer.current) clearTimeout(timer.current);
+      if (searchTimer.current) clearTimeout(searchTimer.current);
     },
     [],
   );
@@ -260,8 +297,10 @@ export default function AddAddressModal({
     ) => {
       const currentRequest = ++requestId.current;
       setLocationStatus('loading');
+      setLandmarksLoading(true);
+      setLandmarksError('');
       try {
-        const address = await reverseGeocodeAddress(
+        const resolution = await resolveLocation(
           next.latitude,
           next.longitude,
         );
@@ -277,20 +316,25 @@ export default function AddAddressModal({
           longitude: next.longitude,
           addressLine: touched.current.has('addressLine')
             ? previous.addressLine
-            : address?.addressLine || previous.addressLine,
+            : resolution.address?.addressLine || previous.addressLine,
           city: touched.current.has('city')
             ? previous.city
-            : address?.city || previous.city,
+            : resolution.address?.city || previous.city,
           state: touched.current.has('state')
             ? previous.state
-            : address?.state || previous.state,
+            : resolution.address?.state || previous.state,
           pincode: touched.current.has('pincode')
             ? previous.pincode
-            : address?.pincode || previous.pincode,
+            : resolution.address?.pincode || previous.pincode,
         }));
-        setLocationStatus(address ? 'ready' : 'error');
+        setNearbyLandmarks(resolution.landmarks);
+        setNearestLandmark(resolution.nearestLandmark);
+        setLandmarksLoading(false);
+        setLandmarksLoaded(true);
+        setLandmarksError('');
+        setLocationStatus(resolution.address ? 'ready' : 'error');
         setLocationError(
-          address ? '' : t('shipping.locationAddressUnavailable'),
+          resolution.address ? '' : t('shipping.locationAddressUnavailable'),
         );
       } catch {
       if (
@@ -306,6 +350,11 @@ export default function AddAddressModal({
           latitude: next.latitude,
           longitude: next.longitude,
         }));
+        setNearbyLandmarks([]);
+        setNearestLandmark(null);
+        setLandmarksLoading(false);
+        setLandmarksLoaded(true);
+        setLandmarksError('Nearby places are unavailable right now.');
       }
     },
     [t],
@@ -358,6 +407,9 @@ export default function AddAddressModal({
       requestId.current += 1;
       if (timer.current) clearTimeout(timer.current);
       timer.current = null;
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+      searchTimer.current = null;
+      searchRequestId.current += 1;
       return;
     }
     if (autoDetectionStarted.current) return;
@@ -370,8 +422,92 @@ export default function AddAddressModal({
     setCoordinates(null);
     setLocationStatus('idle');
     setLocationError('');
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchError('');
+    setSearching(false);
+    setNearbyLandmarks([]);
+    setNearestLandmark(null);
+    setLandmarksError('');
+    setLandmarksLoading(false);
+    setLandmarksLoaded(false);
     detectLocation(sessionId);
   }, [visible, detectLocation]);
+
+  const searchLocations = useCallback((value: string) => {
+    setSearchQuery(value);
+    setSearchError('');
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    const query = value.trim();
+    if (query.length < 3) {
+      searchRequestId.current += 1;
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    const searchId = ++searchRequestId.current;
+    setSearching(true);
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const results = await searchLocationSuggestions(query);
+        if (!mounted.current || searchId !== searchRequestId.current) return;
+        setSearchResults(results);
+      } catch {
+        if (!mounted.current || searchId !== searchRequestId.current) return;
+        setSearchResults([]);
+        setSearchError(t('shipping.locationRetry'));
+      } finally {
+        if (mounted.current && searchId === searchRequestId.current) {
+          setSearching(false);
+        }
+      }
+    }, 450);
+  }, [t]);
+
+  const selectSearchResult = useCallback((result: LocationSearchResult) => {
+    const next = { latitude: result.latitude, longitude: result.longitude };
+    locationSession.current += 1;
+    requestId.current += 1;
+    if (timer.current) clearTimeout(timer.current);
+    touched.current.delete('addressLine');
+    touched.current.delete('city');
+    touched.current.delete('state');
+    touched.current.delete('pincode');
+    setCoordinates(next);
+    setForm(previous => ({
+      ...previous,
+      latitude: next.latitude,
+      longitude: next.longitude,
+      addressLine: result.addressLine || previous.addressLine,
+      city: result.city || previous.city,
+      state: result.state || previous.state,
+      pincode: result.pincode || previous.pincode,
+    }));
+    setLocationStatus('ready');
+    setLocationError('');
+    setSearchQuery(result.displayAddress);
+    setSearchResults([]);
+    setSearchError('');
+    Keyboard.dismiss();
+  }, []);
+
+  const selectLandmark = useCallback((landmark: NearbyLandmark) => {
+    const next = { latitude: landmark.latitude, longitude: landmark.longitude };
+    locationSession.current += 1;
+    requestId.current += 1;
+    if (timer.current) clearTimeout(timer.current);
+    setCoordinates(next);
+    setSearchResults([]);
+    setSearchQuery(landmark.name);
+    setNearbyLandmarks([]);
+    setNearestLandmark(null);
+    setLandmarksLoaded(false);
+    setLandmarksError('');
+    setLocationStatus('loading');
+    setLocationError('');
+    Keyboard.dismiss();
+    reverseGeocode(next, locationSession.current);
+  }, [reverseGeocode]);
 
   const save = async () => {
     const required: Array<keyof CreateAddressData> = [
@@ -452,6 +588,78 @@ export default function AddAddressModal({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.content}
           >
+            <View style={styles.searchBlock}>
+              <View style={styles.searchRow}>
+                <Text style={styles.searchIcon}>⌕</Text>
+                <TextInput
+                  value={searchQuery}
+                  onChangeText={searchLocations}
+                  placeholder="Search for an area, street or address"
+                  placeholderTextColor="#9FA3AD"
+                  style={styles.searchInput}
+                  returnKeyType="search"
+                  autoCorrect={false}
+                  accessibilityLabel="Search for an area, street or address"
+                />
+                {searching ? <ActivityIndicator size="small" color={theme.colors.cyan} /> : null}
+                {!searching && searchQuery ? (
+                  <Pressable
+                    style={styles.searchClear}
+                    onPress={() => searchLocations('')}
+                    accessibilityLabel="Clear address search"
+                  >
+                    <Text style={styles.searchClearText}>×</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              {searching || searchError || (searchQuery.trim().length >= 3 && !searchResults.length) ? (
+                <View style={styles.suggestions}>
+                  {searching ? <Text style={styles.searchMessage}>Searching…</Text> : null}
+                  {!searching && searchError ? <Text style={styles.searchMessage}>{searchError}</Text> : null}
+                  {!searching && !searchError && searchQuery.trim().length >= 3 && !searchResults.length ? <Text style={styles.searchMessage}>No matching locations found.</Text> : null}
+                </View>
+              ) : null}
+              {!searching && searchResults.length ? (
+                <View style={styles.suggestions}>
+                  {searchResults.map((result, index) => (
+                    <Pressable
+                      key={`${result.latitude},${result.longitude},${index}`}
+                      style={[styles.suggestion, index === searchResults.length - 1 && styles.suggestionLast]}
+                      onPress={() => selectSearchResult(result)}
+                    >
+                      <Text style={styles.suggestionTitle}>{result.formattedAddress || result.displayAddress}</Text>
+                      <Text style={styles.suggestionAddress} numberOfLines={2}>{result.displayAddress}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+    {coordinates && (landmarksLoading || landmarksError || landmarksLoaded || nearbyLandmarks.length > 0) ? (
+              <View style={styles.nearbyBlock}>
+                <Text style={styles.nearbyTitle}>Nearby places</Text>
+                {nearestLandmark ? (
+                  <Text style={styles.nearestLandmark}>
+                    Closest suitable landmark: {nearestLandmark.name}
+                  </Text>
+                ) : null}
+                {landmarksLoading ? <ActivityIndicator size="small" color={theme.colors.cyan} /> : null}
+                {!landmarksLoading && landmarksError ? <Text style={styles.searchMessage}>{landmarksError}</Text> : null}
+                {!landmarksLoading && !landmarksError && nearbyLandmarks.length === 0 ? <Text style={styles.searchMessage}>No named nearby places found.</Text> : null}
+                {!landmarksLoading ? nearbyLandmarks.map((landmark, index) => (
+                  <Pressable
+                    key={`${landmark.name}-${landmark.latitude}-${landmark.longitude}`}
+                    style={[styles.nearbyItem, index === nearbyLandmarks.length - 1 && styles.nearbyItemLast]}
+                    onPress={() => selectLandmark(landmark)}
+                  >
+                    <View style={styles.nearbyCopy}>
+                      <Text style={styles.nearbyName} numberOfLines={1}>{landmark.name}</Text>
+                      <Text style={styles.nearbyMeta}>{landmark.category}</Text>
+                    </View>
+                    <Text style={styles.nearbyDistance}>{landmark.distanceMeters < 1000 ? `${Math.round(landmark.distanceMeters)} m` : `${(landmark.distanceMeters / 1000).toFixed(1)} km`}</Text>
+                  </Pressable>
+                )) : null}
+              </View>
+            ) : null}
             {coordinates ? (
               <View style={styles.mapFrame}>
                 <OpenStreetMapPicker

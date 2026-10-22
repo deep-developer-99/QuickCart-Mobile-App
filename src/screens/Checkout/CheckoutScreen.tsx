@@ -485,8 +485,11 @@ export default function CheckoutScreen({ navigation, route }: Props) {
         hasExistingAddresses={addresses.length > 0}
         onClose={() => setAddressModalOpen(false)}
         onSaved={async address => {
-          setAddressId(address._id);
-          await refetchAddresses();
+          const refreshed = await refetchAddresses();
+          const savedAddress = refreshed.data?.data.find(
+            item => item._id === address._id,
+          );
+          setAddressId(savedAddress?._id ?? address._id);
           setStep('payment');
         }}
       />
