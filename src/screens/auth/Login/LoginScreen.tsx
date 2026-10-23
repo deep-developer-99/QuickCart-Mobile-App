@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import {
   KeyboardAvoidingView,
+  Alert,
   Platform,
   Pressable,
   Text,
@@ -10,6 +11,7 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import {
   useGoogleLoginMutation,
@@ -18,7 +20,11 @@ import {
 import { AuthStackParamList } from '../../../navigation/AuthNavigator';
 import { LoginScreenStyles } from './LoginScreen.styles';
 import { useTheme } from '../../../theme';
-import { signInWithGoogle } from '../../../services/googleSignIn';
+import {
+  isErrorWithCode,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
+import { signInWithGoogle as getGoogleIdToken } from '../../../services/googleSignIn';
 import { saveToken } from '../../../services/secureStorage';
 import { setCredentials } from '../../../store/slices/authSlice';
 import type { AppDispatch } from '../../../store/store';
@@ -26,6 +32,7 @@ import type { AppDispatch } from '../../../store/store';
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
 const LoginScreen = ({ navigation }: Props) => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const styles = LoginScreenStyles(theme.colors);
   const [mobileNumber, setMobileNumber] = useState('');
@@ -33,6 +40,7 @@ const LoginScreen = ({ navigation }: Props) => {
   const [sendOtp, { isLoading }] = useSendOtpMutation();
   const [googleLogin, { isLoading: isGoogleLoading }] =
     useGoogleLoginMutation();
+  const [isGoogleSignInLoading, setIsGoogleSignInLoading] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
 
   const handleContinue = async () => {
@@ -41,47 +49,72 @@ const LoginScreen = ({ navigation }: Props) => {
     }
 
     try {
-      console.log('Sending OTP to:', mobileNumber);
-
-      const response = await sendOtp(mobileNumber).unwrap();
-
-      console.log('OTP sent successfully:', response);
+      await sendOtp(mobileNumber).unwrap();
 
       navigation.navigate('OTP', { phone: mobileNumber });
-    } catch (error) {
-      console.log('Send OTP error:', error);
+    } catch {
+      // Keep authentication response details out of logs.
     }
   };
 
   const handleGoogleLogin = async () => {
-    if (isGoogleLoading) {
+    if (isGoogleLoading || isGoogleSignInLoading) {
       return;
     }
 
+    setIsGoogleSignInLoading(true);
+
     try {
-      const firebaseIdToken = await signInWithGoogle();
+      const firebaseIdToken = await getGoogleIdToken();
 
       if (!firebaseIdToken) {
-        console.log('Google Sign-In cancelled');
         return;
+      }
+
+      if (typeof firebaseIdToken !== 'string' || !firebaseIdToken.trim()) {
+        throw new Error('Google Sign-In did not return an ID token');
       }
 
       const response = await googleLogin({
         idToken: firebaseIdToken,
       }).unwrap();
 
-      await saveToken(response.token);
+      const backendToken = response?.token;
+      const user = response?.data;
+      const isJwt =
+        typeof backendToken === 'string' &&
+        backendToken.trim().split('.').length === 3 &&
+        backendToken.trim().split('.').every(Boolean);
+      if (
+        response?.success !== true ||
+        !isJwt ||
+        !user ||
+        ![user.id, user.name, user.email, user.role].every(
+          value => typeof value === 'string' && value.trim().length > 0,
+        )
+      ) {
+        throw new Error('Google authentication did not return valid credentials');
+      }
+
+      await saveToken(backendToken.trim());
 
       dispatch(
         setCredentials({
-          user: response.data,
-          token: response.token,
+          user,
+          token: backendToken.trim(),
         }),
       );
-
-      console.log('Google Login successful');
     } catch (error) {
-      console.error('Google Login error:', error);
+      if (
+        isErrorWithCode(error) &&
+        error.code === statusCodes.SIGN_IN_CANCELLED
+      ) {
+        return;
+      }
+
+      Alert.alert(t('auth.loginFailed'), t('auth.googleLoginFailed'));
+    } finally {
+      setIsGoogleSignInLoading(false);
     }
   };
 
@@ -142,12 +175,14 @@ const LoginScreen = ({ navigation }: Props) => {
           <Pressable
             style={styles.googleButton}
             onPress={handleGoogleLogin}
-            disabled={isGoogleLoading}
+            disabled={isGoogleLoading || isGoogleSignInLoading}
           >
             <Text style={styles.googleIcon}>G</Text>
 
             <Text style={styles.googleButtonText}>
-              {isGoogleLoading ? 'Signing in...' : 'Continue with Google'}
+              {isGoogleLoading || isGoogleSignInLoading
+                ? t('auth.signingIn')
+                : t('auth.continueWithGoogle')}
             </Text>
           </Pressable>
         </View>

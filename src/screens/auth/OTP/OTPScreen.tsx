@@ -48,25 +48,21 @@ const OTPScreen = ({ route }: Props) => {
       return;
     }
 
-    console.log('Verify button pressed');
-    console.log('Phone:', phone);
-    console.log('OTP:', enteredOtp);
-
     try {
       const response = await verifyOtp({
         phone,
         code: enteredOtp,
       }).unwrap();
 
-      console.log('OTP verified successfully:', response);
+      const token = response?.token;
 
-      if (response.success && response.token) {
-        await saveToken(response.token);
+      if (response?.success && typeof token === 'string' && token.trim()) {
+        await saveToken(token.trim());
 
         dispatch(
           setCredentials({
             user: response.data,
-            token: response.token,
+            token: token.trim(),
           }),
         );
 
@@ -78,13 +74,11 @@ const OTPScreen = ({ route }: Props) => {
         Alert.alert('Login Failed', 'Authentication token was not received.');
       }
     } catch (error) {
-      console.log('Verify OTP error:', error);
-
       Alert.alert('OTP Verification Failed', JSON.stringify(error));
     }
   };
   const handleResend = () => {
-    console.log('Resend OTP for:', phone);
+    // OTP resend is not implemented yet.
   };
 
   return (
