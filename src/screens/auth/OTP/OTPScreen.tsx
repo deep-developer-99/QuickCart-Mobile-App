@@ -1,5 +1,14 @@
 import React, { useRef, useState } from 'react';
-import { Alert, Pressable, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useDispatch } from 'react-redux';
@@ -83,49 +92,58 @@ const OTPScreen = ({ route }: Props) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Verify your number</Text>
-
-        <Text style={styles.description}>
-          Enter the 6-digit OTP sent to your mobile number.
-        </Text>
-
-        <View style={styles.otpContainer}>
-          {otp.map((digit, index) => (
-            <TextInput
-              key={index}
-              ref={ref => {
-                inputRefs.current[index] = ref;
-              }}
-              style={styles.otpInput}
-              value={digit}
-              onChangeText={value => handleChange(value, index)}
-              keyboardType="number-pad"
-              maxLength={1}
-              textAlign="center"
-              editable={!isLoading}
-            />
-          ))}
-        </View>
-
-        <Pressable
-          style={[
-            styles.verifyButton,
-            (otp.join('').length !== 6 || isLoading) &&
-              styles.verifyButtonDisabled,
-          ]}
-          onPress={handleVerify}
-          disabled={otp.join('').length !== 6 || isLoading}
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.verifyButtonText}>
-            {isLoading ? 'Verifying...' : 'Verify OTP'}
-          </Text>
-        </Pressable>
+          <Text style={styles.title}>Verify your number</Text>
 
-        <Pressable onPress={handleResend} disabled={isLoading}>
-          <Text style={styles.resendText}>Didn't receive the OTP? Resend</Text>
-        </Pressable>
-      </View>
+          <Text style={styles.description}>
+            Enter the 6-digit OTP sent to your mobile number.
+          </Text>
+
+          <View style={styles.otpContainer}>
+            {otp.map((digit, index) => (
+              <TextInput
+                key={index}
+                ref={ref => {
+                  inputRefs.current[index] = ref;
+                }}
+                style={styles.otpInput}
+                value={digit}
+                onChangeText={value => handleChange(value, index)}
+                keyboardType="number-pad"
+                maxLength={1}
+                textAlign="center"
+                editable={!isLoading}
+              />
+            ))}
+          </View>
+
+          <Pressable
+            style={[
+              styles.verifyButton,
+              (otp.join('').length !== 6 || isLoading) &&
+                styles.verifyButtonDisabled,
+            ]}
+            onPress={handleVerify}
+            disabled={otp.join('').length !== 6 || isLoading}
+          >
+            <Text style={styles.verifyButtonText}>
+              {isLoading ? 'Verifying...' : 'Verify OTP'}
+            </Text>
+          </Pressable>
+
+          <Pressable onPress={handleResend} disabled={isLoading}>
+            <Text style={styles.resendText}>Didn't receive the OTP? Resend</Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

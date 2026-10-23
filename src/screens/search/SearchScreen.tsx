@@ -4,7 +4,9 @@ import {
   ActivityIndicator,
   Image,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -490,16 +492,20 @@ const FilterModal = ({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <Pressable style={styles.modalDismiss} onPress={onClose} />
-        <View style={styles.filterSheet}>
-          <View style={styles.sheetHandle} />
-          <View style={styles.filterHeader}>
-            <Text style={styles.filterTitle}>{tr('search.filterTitle', 'Filter Products')}</Text>
-            <Pressable onPress={onClear} hitSlop={8}>
-              <Text style={styles.clearFiltersText}>{tr('search.clear', 'Clear')}</Text>
-            </Pressable>
-          </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
+          <View style={styles.filterSheet}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.filterHeader}>
+              <Text style={styles.filterTitle}>{tr('search.filterTitle', 'Filter Products')}</Text>
+              <Pressable onPress={onClear} hitSlop={8}>
+                <Text style={styles.clearFiltersText}>{tr('search.clear', 'Clear')}</Text>
+              </Pressable>
+            </View>
 
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={styles.filterSectionTitle}>{tr('search.category', 'Category')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChoices}>
               <FilterChoice label={tr('search.all', 'All')} selected={!filters.categoryId} onPress={() => update({ categoryId: null })} styles={styles} />
@@ -530,8 +536,9 @@ const FilterModal = ({
             <Pressable style={styles.applyButton} onPress={onApply}>
               <Text style={styles.applyText}>{tr('search.apply', 'Apply Filters')}</Text>
             </Pressable>
-          </ScrollView>
-        </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );

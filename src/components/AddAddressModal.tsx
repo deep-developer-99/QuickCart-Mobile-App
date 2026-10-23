@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  findNodeHandle,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -13,6 +14,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import type { ScrollViewInstance } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -40,6 +42,7 @@ type Props = {
 };
 
 type LocationStatus = 'idle' | 'loading' | 'ready' | 'error';
+type TextInputRef = React.ElementRef<typeof TextInput>;
 
 const COUNTRY_CODES = [
   { code: '+91', country: 'India' },
@@ -70,6 +73,7 @@ const stylesFor = (colors: ThemeColors) =>
       backgroundColor: 'rgba(0,0,0,0.45)',
     },
     card: {
+      flex: 1,
       maxHeight: '92%',
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
@@ -94,7 +98,7 @@ const stylesFor = (colors: ThemeColors) =>
       backgroundColor: colors.surface,
     },
     closeText: { fontSize: 22, color: colors.text },
-    content: { padding: 18, paddingBottom: 30 },
+    content: { padding: 18, paddingBottom: 120 },
     searchBlock: { marginBottom: 12, zIndex: 20, elevation: 8 },
     searchRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, backgroundColor: colors.surface },
     searchIcon: { fontSize: 20, color: colors.secondaryText, marginRight: 8 },
@@ -257,6 +261,22 @@ export default function AddAddressModal({
   const [searchResults, setSearchResults] = useState<LocationSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const formScrollRef = useRef<ScrollViewInstance>(null);
+  const searchInputRef = useRef<TextInputRef>(null);
+  const phoneInputRef = useRef<TextInputRef>(null);
+
+  const scrollInputIntoView = useCallback((input: TextInputRef | null) => {
+    const nodeHandle = input ? findNodeHandle(input) : null;
+    if (nodeHandle == null) return;
+
+    setTimeout(() => {
+      formScrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(
+        nodeHandle,
+        24,
+        true,
+      );
+    }, 50);
+  }, []);
   useEffect(
     () => () => {
       mounted.current = false;
@@ -520,7 +540,8 @@ export default function AddAddressModal({
       <View style={styles.backdrop}>
         <KeyboardAvoidingView
           style={styles.card}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
         >
           <View style={styles.header}>
             <Text style={styles.title}>{t('shipping.addNewAddress')}</Text>
@@ -533,6 +554,7 @@ export default function AddAddressModal({
             </Pressable>
           </View>
           <ScrollView
+            ref={formScrollRef}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.content}
@@ -541,6 +563,7 @@ export default function AddAddressModal({
               <View style={styles.searchRow}>
                 <Text style={styles.searchIcon}>⌕</Text>
                 <TextInput
+                  ref={searchInputRef}
                   value={searchQuery}
                   onChangeText={searchLocations}
                   placeholder="Search for an area, street or address"
@@ -548,6 +571,7 @@ export default function AddAddressModal({
                   style={styles.searchInput}
                   returnKeyType="search"
                   autoCorrect={false}
+                  onFocus={() => scrollInputIntoView(searchInputRef.current)}
                   accessibilityLabel="Search for an area, street or address"
                 />
                 {searching ? <ActivityIndicator size="small" color={theme.colors.cyan} /> : null}
@@ -630,6 +654,7 @@ export default function AddAddressModal({
               value={form.fullName}
               placeholder={t('shipping.fullNamePlaceholder')}
               onChangeText={value => updateField('fullName', value)}
+              onFocus={scrollInputIntoView}
             />
             <View style={styles.fieldBlock}>
               <Text style={styles.label}>
@@ -665,12 +690,14 @@ export default function AddAddressModal({
                   ) : null}
                 </View>
                 <TextInput
+                  ref={phoneInputRef}
                   value={form.phone}
                   placeholder={t('shipping.phonePlaceholder')}
                   placeholderTextColor="#9FA3AD"
                   onChangeText={value => updateField('phone', value)}
                   keyboardType="phone-pad"
                   style={styles.phoneInput}
+                  onFocus={() => scrollInputIntoView(phoneInputRef.current)}
                 />
               </View>
             </View>
@@ -680,6 +707,7 @@ export default function AddAddressModal({
               value={form.addressLine}
               placeholder={t('shipping.streetAddressPlaceholder')}
               onChangeText={value => updateField('addressLine', value)}
+              onFocus={scrollInputIntoView}
             />
             <Field
               styles={styles}
@@ -687,6 +715,7 @@ export default function AddAddressModal({
               value={form.state}
               placeholder={t('shipping.statePlaceholder')}
               onChangeText={value => updateField('state', value)}
+              onFocus={scrollInputIntoView}
             />
             <Field
               styles={styles}
@@ -694,6 +723,7 @@ export default function AddAddressModal({
               value={form.city}
               placeholder={t('shipping.cityPlaceholder')}
               onChangeText={value => updateField('city', value)}
+              onFocus={scrollInputIntoView}
             />
             <Field
               styles={styles}
@@ -702,6 +732,7 @@ export default function AddAddressModal({
               placeholder={t('shipping.postalCodePlaceholder')}
               keyboardType="number-pad"
               onChangeText={value => updateField('pincode', value)}
+              onFocus={scrollInputIntoView}
             />
             <Pressable
               style={[styles.save, saving && styles.disabled]}
@@ -728,6 +759,7 @@ function Field({
   placeholder,
   keyboardType,
   onChangeText,
+  onFocus,
 }: {
   styles: ReturnType<typeof stylesFor>;
   label: string;
@@ -735,13 +767,17 @@ function Field({
   placeholder: string;
   keyboardType?: 'default' | 'phone-pad' | 'number-pad';
   onChangeText: (value: string) => void;
+  onFocus: (input: TextInputRef | null) => void;
 }) {
+  const inputRef = useRef<TextInputRef>(null);
+
   return (
     <View style={styles.fieldBlock}>
       <Text style={styles.label}>
         {label} <Text style={styles.required}>*</Text>
       </Text>
       <TextInput
+        ref={inputRef}
         value={value}
         placeholder={placeholder}
         placeholderTextColor="#9FA3AD"
@@ -749,6 +785,7 @@ function Field({
         keyboardType={keyboardType}
         style={styles.input}
         autoCapitalize={label.toLowerCase().includes('name') ? 'words' : 'none'}
+        onFocus={() => onFocus(inputRef.current)}
       />
     </View>
   );

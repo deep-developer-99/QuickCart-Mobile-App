@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -344,30 +346,35 @@ const CartScreen = () => {
             onPress={() => setVoucherVisible(false)}
           />
 
-          <View style={styles.voucherSheet}>
-            <View style={styles.sheetHandle} />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={0}
+          >
+            <View style={styles.voucherSheet}>
+              <View style={styles.sheetHandle} />
 
-            <Text style={styles.sheetTitle}>{t('cart.voucher')}</Text>
+              <Text style={styles.sheetTitle}>{t('cart.voucher')}</Text>
 
-            <TextInput
-              value={voucherCode}
-              onChangeText={setVoucherCode}
-              placeholder="Enter Voucher Code"
-              placeholderTextColor={theme.colors.grey150}
-              autoCapitalize="characters"
-              style={styles.voucherInput}
-            />
+              <TextInput
+                value={voucherCode}
+                onChangeText={setVoucherCode}
+                placeholder="Enter Voucher Code"
+                placeholderTextColor={theme.colors.grey150}
+                autoCapitalize="characters"
+                style={styles.voucherInput}
+              />
 
-            <Pressable
-              style={styles.applyButton}
-              onPress={() => {
-                // Voucher validation API will be connected here.
-                setVoucherVisible(false);
-              }}
-            >
-              <Text style={styles.applyText}>{t('cart.apply')}</Text>
-            </Pressable>
-          </View>
+              <Pressable
+                style={styles.applyButton}
+                onPress={() => {
+                  // Voucher validation API will be connected here.
+                  setVoucherVisible(false);
+                }}
+              >
+                <Text style={styles.applyText}>{t('cart.apply')}</Text>
+              </Pressable>
+            </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </SafeAreaView>
