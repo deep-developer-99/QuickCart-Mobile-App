@@ -15,6 +15,7 @@ export interface OrderItem {
     | {
         _id: string;
         shopName?: string;
+        address?: string;
       };
   name: string;
   image: string;

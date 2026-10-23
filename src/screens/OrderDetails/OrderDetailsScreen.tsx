@@ -20,6 +20,7 @@ import type { MyOrder, OrderStatus } from '../../api/orderApi';
 import { useGetMyOrdersQuery } from '../../api/orderApi';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { radius, spacing, typography, useTheme } from '../../theme';
+import DummyLiveOrderTracking from '../../components/DummyLiveOrderTracking';
 import type { ThemeColors } from '../../theme';
 
 type DetailsRoute = RouteProp<RootStackParamList, 'OrderDetails'>;
@@ -90,7 +91,10 @@ const OrderDetailsScreen = () => {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Pressable
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
             <Text style={styles.backArrow}>‹</Text>
           </Pressable>
           <Text style={styles.headerTitle}>Order details</Text>
@@ -100,6 +104,8 @@ const OrderDetailsScreen = () => {
     );
   }
 
+  const normalizedStatus = String(order.status).trim().toLowerCase();
+  const isDelivered = ['delivered', 'completed'].includes(normalizedStatus);
   const currentStep = Math.max(0, STEPS.indexOf(order.status));
 
   return (
@@ -145,6 +151,48 @@ const OrderDetailsScreen = () => {
             <Text style={styles.statusText}>{order.status}</Text>
           </View>
         </View>
+
+        {!isDelivered
+          ? (() => {
+              const firstVendor = order.items.find(
+                item => item.vendor && typeof item.vendor === 'object',
+              )?.vendor;
+              const vendor =
+                firstVendor && typeof firstVendor === 'object'
+                  ? firstVendor
+                  : undefined;
+              const delivery =
+                order.address && typeof order.address === 'object'
+                  ? (order.address as Record<string, unknown>)
+                  : undefined;
+              const deliveryCoordinates =
+                delivery &&
+                typeof delivery.latitude === 'number' &&
+                typeof delivery.longitude === 'number'
+                  ? { latitude: delivery.latitude, longitude: delivery.longitude }
+                  : undefined;
+              const shopAddress =
+                typeof vendor?.address === 'string' ? vendor.address : '';
+              const deliveryAddress = addressText(order.address);
+              return shopAddress ? (
+                <DummyLiveOrderTracking
+                  shopName={vendor?.shopName || 'QuickCart shop'}
+                  shopAddress={shopAddress}
+                  deliveryAddress={deliveryAddress}
+                  deliveryCoordinates={deliveryCoordinates}
+                  status={order.status}
+                />
+              ) : (
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Live order tracking</Text>
+                  <Text style={styles.muted}>
+                    The shop address is not available for this order yet, so the
+                    map cannot be displayed.
+                  </Text>
+                </View>
+              );
+            })()
+          : null}
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Order status</Text>
