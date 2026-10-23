@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  findNodeHandle,
+  Dimensions,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -72,6 +72,7 @@ const stylesFor = (colors: ThemeColors) =>
       justifyContent: 'flex-end',
       backgroundColor: 'rgba(0,0,0,0.45)',
     },
+    keyboardContainer: { flex: 1, justifyContent: 'flex-end' },
     card: {
       flex: 1,
       maxHeight: '92%',
@@ -98,7 +99,7 @@ const stylesFor = (colors: ThemeColors) =>
       backgroundColor: colors.surface,
     },
     closeText: { fontSize: 22, color: colors.text },
-    content: { padding: 18, paddingBottom: 120 },
+    content: { flexGrow: 1, padding: 18, paddingBottom: 24 },
     searchBlock: { marginBottom: 12, zIndex: 20, elevation: 8 },
     searchRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, backgroundColor: colors.surface },
     searchIcon: { fontSize: 20, color: colors.secondaryText, marginRight: 8 },
@@ -262,26 +263,107 @@ export default function AddAddressModal({
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
   const formScrollRef = useRef<ScrollViewInstance>(null);
+  const scrollOffsetRef = useRef(0);
   const searchInputRef = useRef<TextInputRef>(null);
   const phoneInputRef = useRef<TextInputRef>(null);
+  const formInputRefs = useRef<Array<TextInputRef | null>>([]);
+  const focusedInputRef = useRef<TextInputRef | null>(null);
+  const keyboardVisibleRef = useRef(false);
+  const keyboardTopRef = useRef<number | null>(null);
+  const pendingScrollFrameRef = useRef<number | null>(null);
+  const [keyboardBottomPadding, setKeyboardBottomPadding] = useState(24);
 
-  const scrollInputIntoView = useCallback((input: TextInputRef | null) => {
-    const nodeHandle = input ? findNodeHandle(input) : null;
-    if (nodeHandle == null) return;
+  const scheduleFocusedInputScroll = useCallback(() => {
+    if (!keyboardVisibleRef.current || !focusedInputRef.current) return;
 
-    setTimeout(() => {
-      formScrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(
-        nodeHandle,
-        24,
-        true,
-      );
-    }, 50);
+    if (pendingScrollFrameRef.current !== null) {
+      cancelAnimationFrame(pendingScrollFrameRef.current);
+    }
+
+    pendingScrollFrameRef.current = requestAnimationFrame(() => {
+      pendingScrollFrameRef.current = requestAnimationFrame(() => {
+        pendingScrollFrameRef.current = null;
+        const input = focusedInputRef.current;
+        const scrollView = formScrollRef.current;
+        if (!input || !scrollView) return;
+
+        input.measureInWindow((_inputX, inputY, _inputWidth, inputHeight) => {
+          scrollView.measureInWindow(
+            (_scrollX, scrollY, _scrollWidth, scrollHeight) => {
+              const visibleTop = scrollY + 12;
+              const keyboardTop =
+                keyboardTopRef.current ?? Dimensions.get('screen').height;
+              const visibleBottom =
+                Math.min(scrollY + scrollHeight, keyboardTop) - 24;
+              const inputBottom = inputY + inputHeight;
+              let targetOffset = scrollOffsetRef.current;
+              if (inputY < visibleTop) {
+                targetOffset -= visibleTop - inputY;
+              } else if (inputBottom > visibleBottom) {
+                targetOffset += inputBottom - visibleBottom;
+              }
+
+              if (targetOffset !== scrollOffsetRef.current) {
+                scrollView.scrollTo({
+                  y: Math.max(0, targetOffset),
+                  animated: true,
+                });
+              }
+            },
+          );
+        });
+      });
+    });
   }, []);
+
+  const scrollInputIntoView = useCallback(
+    (input: TextInputRef | null) => {
+      focusedInputRef.current = input;
+      scheduleFocusedInputScroll();
+    },
+    [scheduleFocusedInputScroll],
+  );
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener('keyboardDidShow', event => {
+      keyboardVisibleRef.current = true;
+      keyboardTopRef.current = event.endCoordinates.screenY;
+      requestAnimationFrame(() => {
+        formScrollRef.current?.measureInWindow(
+          (_x, scrollY, _width, scrollHeight) => {
+            const obscuredHeight = Math.max(
+              0,
+              scrollY + scrollHeight - event.endCoordinates.screenY,
+            );
+            setKeyboardBottomPadding(obscuredHeight + 24);
+          },
+        );
+      });
+      scheduleFocusedInputScroll();
+    });
+    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+      keyboardVisibleRef.current = false;
+      keyboardTopRef.current = null;
+      setKeyboardBottomPadding(24);
+      if (pendingScrollFrameRef.current !== null) {
+        cancelAnimationFrame(pendingScrollFrameRef.current);
+        pendingScrollFrameRef.current = null;
+      }
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [scheduleFocusedInputScroll]);
   useEffect(
     () => () => {
       mounted.current = false;
       if (timer.current) clearTimeout(timer.current);
       if (searchTimer.current) clearTimeout(searchTimer.current);
+      if (pendingScrollFrameRef.current !== null) {
+        cancelAnimationFrame(pendingScrollFrameRef.current);
+      }
     },
     [],
   );
@@ -539,10 +621,12 @@ export default function AddAddressModal({
     >
       <View style={styles.backdrop}>
         <KeyboardAvoidingView
-          style={styles.card}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={0}
+          onLayout={scheduleFocusedInputScroll}
         >
+          <View style={styles.card}>
           <View style={styles.header}>
             <Text style={styles.title}>{t('shipping.addNewAddress')}</Text>
             <Pressable
@@ -555,9 +639,17 @@ export default function AddAddressModal({
           </View>
           <ScrollView
             ref={formScrollRef}
+              onScroll={event => {
+                scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+              }}
+              scrollEventThrottle={16}
+            onLayout={scheduleFocusedInputScroll}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.content}
+            contentContainerStyle={[
+              styles.content,
+              { paddingBottom: keyboardBottomPadding },
+            ]}
           >
             <View style={styles.searchBlock}>
               <View style={styles.searchRow}>
@@ -569,8 +661,9 @@ export default function AddAddressModal({
                   placeholder="Search for an area, street or address"
                   placeholderTextColor="#9FA3AD"
                   style={styles.searchInput}
-                  returnKeyType="search"
+                  returnKeyType="next"
                   autoCorrect={false}
+                  onSubmitEditing={() => formInputRefs.current[0]?.focus()}
                   onFocus={() => scrollInputIntoView(searchInputRef.current)}
                   accessibilityLabel="Search for an area, street or address"
                 />
@@ -654,6 +747,11 @@ export default function AddAddressModal({
               value={form.fullName}
               placeholder={t('shipping.fullNamePlaceholder')}
               onChangeText={value => updateField('fullName', value)}
+              onInputRef={input => {
+                formInputRefs.current[0] = input;
+              }}
+              returnKeyType="next"
+              onSubmitEditing={() => phoneInputRef.current?.focus()}
               onFocus={scrollInputIntoView}
             />
             <View style={styles.fieldBlock}>
@@ -697,6 +795,8 @@ export default function AddAddressModal({
                   onChangeText={value => updateField('phone', value)}
                   keyboardType="phone-pad"
                   style={styles.phoneInput}
+                  returnKeyType="next"
+                  onSubmitEditing={() => formInputRefs.current[1]?.focus()}
                   onFocus={() => scrollInputIntoView(phoneInputRef.current)}
                 />
               </View>
@@ -707,6 +807,11 @@ export default function AddAddressModal({
               value={form.addressLine}
               placeholder={t('shipping.streetAddressPlaceholder')}
               onChangeText={value => updateField('addressLine', value)}
+              onInputRef={input => {
+                formInputRefs.current[1] = input;
+              }}
+              returnKeyType="next"
+              onSubmitEditing={() => formInputRefs.current[2]?.focus()}
               onFocus={scrollInputIntoView}
             />
             <Field
@@ -715,6 +820,11 @@ export default function AddAddressModal({
               value={form.state}
               placeholder={t('shipping.statePlaceholder')}
               onChangeText={value => updateField('state', value)}
+              onInputRef={input => {
+                formInputRefs.current[2] = input;
+              }}
+              returnKeyType="next"
+              onSubmitEditing={() => formInputRefs.current[3]?.focus()}
               onFocus={scrollInputIntoView}
             />
             <Field
@@ -723,6 +833,11 @@ export default function AddAddressModal({
               value={form.city}
               placeholder={t('shipping.cityPlaceholder')}
               onChangeText={value => updateField('city', value)}
+              onInputRef={input => {
+                formInputRefs.current[3] = input;
+              }}
+              returnKeyType="next"
+              onSubmitEditing={() => formInputRefs.current[4]?.focus()}
               onFocus={scrollInputIntoView}
             />
             <Field
@@ -732,6 +847,11 @@ export default function AddAddressModal({
               placeholder={t('shipping.postalCodePlaceholder')}
               keyboardType="number-pad"
               onChangeText={value => updateField('pincode', value)}
+              onInputRef={input => {
+                formInputRefs.current[4] = input;
+              }}
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
               onFocus={scrollInputIntoView}
             />
             <Pressable
@@ -746,6 +866,7 @@ export default function AddAddressModal({
               )}
             </Pressable>
           </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </View>
     </Modal>
@@ -759,6 +880,9 @@ function Field({
   placeholder,
   keyboardType,
   onChangeText,
+  onInputRef,
+  returnKeyType,
+  onSubmitEditing,
   onFocus,
 }: {
   styles: ReturnType<typeof stylesFor>;
@@ -767,6 +891,9 @@ function Field({
   placeholder: string;
   keyboardType?: 'default' | 'phone-pad' | 'number-pad';
   onChangeText: (value: string) => void;
+  onInputRef: (input: TextInputRef | null) => void;
+  returnKeyType: 'next' | 'done';
+  onSubmitEditing: () => void;
   onFocus: (input: TextInputRef | null) => void;
 }) {
   const inputRef = useRef<TextInputRef>(null);
@@ -777,12 +904,17 @@ function Field({
         {label} <Text style={styles.required}>*</Text>
       </Text>
       <TextInput
-        ref={inputRef}
+        ref={input => {
+          inputRef.current = input;
+          onInputRef(input);
+        }}
         value={value}
         placeholder={placeholder}
         placeholderTextColor="#9FA3AD"
         onChangeText={onChangeText}
         keyboardType={keyboardType}
+        returnKeyType={returnKeyType}
+        onSubmitEditing={onSubmitEditing}
         style={styles.input}
         autoCapitalize={label.toLowerCase().includes('name') ? 'words' : 'none'}
         onFocus={() => onFocus(inputRef.current)}
