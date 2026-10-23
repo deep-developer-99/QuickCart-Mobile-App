@@ -5,6 +5,7 @@ import {
   Image,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -20,7 +21,6 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   getWishlistProducts,
@@ -28,9 +28,13 @@ import {
   useAddToWishlistMutation,
   useGetWishlistQuery,
   useRemoveFromWishlistMutation,
+  useGetProductByIdQuery,
 } from '../../api/quickCartApi';
 import CartAddedToast from '../../components/CartAddedToast';
 import CartQuantityControl from '../../components/CartQuantityControl';
+import { createProductUrl, isValidProductId } from '../../services/productLinks';
+import BackArrowIcon from '../../assets/icons/arrow-left-line.svg';
+import ShareNodesIcon from '../../assets/icons/share-nodes.svg';
 
 type ProductDetailsRouteProp = RouteProp<RootStackParamList, 'ProductDetails'>;
 
@@ -45,19 +49,8 @@ type DetailProduct = {
   stock: number;
   rating?: number;
   reviews?: number;
+  isActive?: boolean;
 };
-
-const BackIcon = () => (
-  <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="m15 5-7 7 7 7"
-      stroke="#17171A"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
 
 const HeartIcon = ({
   color = '#FFFFFF',
@@ -88,8 +81,21 @@ const ProductDetailsScreen = () => {
     useRemoveFromWishlistMutation();
   const { data: wishlistResponse } = useGetWishlistQuery();
   const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery();
-
-  const product = route.params.product as DetailProduct;
+  const hasProduct = 'product' in route.params;
+  const productId = hasProduct ? route.params.product._id : route.params.productId;
+  const validProductId = isValidProductId(productId);
+  const {
+    data: fetchedProductResponse,
+    isLoading: productLoading,
+    isError: productError,
+  } = useGetProductByIdQuery(validProductId ? productId : '', {
+    skip: hasProduct || !validProductId,
+  });
+  const product = hasProduct
+    ? (route.params.product as DetailProduct)
+    : (fetchedProductResponse?.success
+        ? (fetchedProductResponse.data as DetailProduct)
+        : undefined);
   const [quantity, setQuantity] = useState(1);
   const [expanded, setExpanded] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
@@ -99,24 +105,39 @@ const ProductDetailsScreen = () => {
     () => getWishlistProducts(wishlistResponse).map(item => item._id),
     [wishlistResponse],
   );
-  const isWishlisted = wishlistIds.includes(product._id);
+  const isWishlisted = product ? wishlistIds.includes(product._id) : false;
   const updatingWishlist = addingToWishlist || removingFromWishlist;
 
   const images = useMemo(() => {
-    const list = Array.isArray(product.images)
+    const list = Array.isArray(product?.images)
       ? product.images.filter(Boolean)
       : [];
     if (list.length > 0) return list;
-    return product.image ? [product.image] : [];
-  }, [product.images, product.image]);
+    return product?.image ? [product.image] : [];
+  }, [product?.images, product?.image]);
 
-  const sellingPrice = product.discountPrice ?? product.price;
+  const shareProduct = useCallback(async () => {
+    if (!product) return;
+    const productUrl = createProductUrl(product._id);
+    if (!productUrl) return;
+    const shortDescription = product.description?.trim().slice(0, 180);
+    const message = [
+      'Check out this product on QuickCart!',
+      '',
+      product.name,
+      shortDescription || 'Discover this product on QuickCart.',
+      productUrl,
+    ].join('\n');
+    await Share.share({ message, url: productUrl, title: product.name });
+  }, [product]);
+
+  const sellingPrice = product?.discountPrice ?? product?.price ?? 0;
   const hasDiscount =
-    product.discountPrice !== undefined &&
-    product.discountPrice < product.price;
+    product?.discountPrice !== undefined &&
+    product.discountPrice < (product?.price ?? 0);
 
   const description =
-    product.description?.trim() ||
+    product?.description?.trim() ||
     'This product is designed with quality materials and made for comfortable everyday use.';
 
   const shouldCollapse = description.length > 220;
@@ -126,6 +147,7 @@ const ProductDetailsScreen = () => {
       : `${description.slice(0, 220).trim()}...`;
 
   const handleBuyNow = () => {
+    if (!product) return;
     navigation.navigate('Checkout', {
       mode: 'buyNow',
       product,
@@ -134,7 +156,7 @@ const ProductDetailsScreen = () => {
   };
 
   const cartItem = cartResponse?.data?.items?.find(
-    item => item.product?._id === product._id,
+    item => item.product?._id === product?._id,
   );
 
   const showCartToast = useCallback(() => {
@@ -143,6 +165,7 @@ const ProductDetailsScreen = () => {
   }, []);
 
   const handleWishlistToggle = useCallback(async () => {
+    if (!product) return;
     try {
       if (isWishlisted) {
         await removeFromWishlist(product._id).unwrap();
@@ -152,10 +175,46 @@ const ProductDetailsScreen = () => {
     } catch (error) {
       console.error('Failed to update wishlist:', error);
     }
-  }, [addToWishlist, isWishlisted, product._id, removeFromWishlist]);
+  }, [addToWishlist, isWishlisted, product, removeFromWishlist]);
+
+  if (!product || product.isActive === false) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.unavailableState}>
+          <Text style={styles.description}>
+            {productLoading
+              ? 'Loading product…'
+              : productError || !validProductId || product?.isActive === false
+                ? 'This product is unavailable.'
+                : 'This product could not be found.'}
+          </Text>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            hitSlop={4}
+          >
+            <BackArrowIcon width={24} height={24} />
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <View style={styles.header}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          hitSlop={4}
+        >
+          <BackArrowIcon width={24} height={24} />
+        </Pressable>
+      </View>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -192,12 +251,6 @@ const ProductDetailsScreen = () => {
 
           <View style={styles.topControls}>
             <Pressable
-              style={styles.iconCircle}
-              onPress={() => navigation.goBack()}
-            >
-              <BackIcon />
-            </Pressable>
-            <Pressable
               style={[
                 styles.heartCircle,
                 updatingWishlist && styles.heartCircleDisabled,
@@ -228,6 +281,18 @@ const ProductDetailsScreen = () => {
               ))}
             </View>
           ) : null}
+        </View>
+
+        <View style={styles.shareRow}>
+          <Pressable
+            style={styles.shareButton}
+            onPress={shareProduct}
+            accessibilityRole="button"
+            accessibilityLabel={`Share ${product.name}`}
+            hitSlop={4}
+          >
+            <ShareNodesIcon width={22} height={22} />
+          </Pressable>
         </View>
 
         <View style={styles.sheet}>
@@ -357,6 +422,26 @@ const createStyles = (
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     scrollContent: { paddingBottom: 112 + bottomInset },
+    header: {
+      height: 56,
+      paddingHorizontal: 16,
+      justifyContent: 'center',
+      alignItems: 'flex-start',
+      backgroundColor: colors.background,
+    },
+    backButton: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#FFFFFF',
+      shadowColor: '#000000',
+      shadowOpacity: 0.12,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 3,
+    },
     imageSection: {
       height: 290,
       backgroundColor: colors.cyan50,
@@ -372,20 +457,29 @@ const createStyles = (
     fallbackText: { color: colors.secondaryText, fontSize: 14 },
     topControls: {
       position: 'absolute',
-      left: 16,
       right: 16,
-      top: 6,
+      top: 12,
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-end',
     },
-    iconCircle: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: 'rgba(255,255,255,0.82)',
+    shareRow: {
+      height: 60,
+      paddingHorizontal: 16,
+      justifyContent: 'center',
+      alignItems: 'flex-end',
+      backgroundColor: colors.background,
+    },
+    shareButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       alignItems: 'center',
       justifyContent: 'center',
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1,
+      borderColor: colors.grey50,
     },
+    unavailableState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 20 },
     heartCircle: {
       width: 40,
       height: 40,
@@ -419,7 +513,6 @@ const createStyles = (
     },
     activeDot: { backgroundColor: colors.cyan },
     sheet: {
-      marginTop: -20,
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
       backgroundColor: colors.surface,

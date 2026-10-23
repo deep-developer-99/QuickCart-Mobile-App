@@ -17,9 +17,16 @@ export type AuthStackParamList = {
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
-const AuthNavigator = () => {
+const AuthNavigator = ({
+  initialRouteName = 'Splash',
+}: {
+  initialRouteName?: keyof AuthStackParamList;
+}) => {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      initialRouteName={initialRouteName}
+      screenOptions={{ headerShown: false }}
+    >
       <Stack.Screen name="Splash" component={SplashScreen} />
 
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />

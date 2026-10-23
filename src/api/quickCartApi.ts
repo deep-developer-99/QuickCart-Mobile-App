@@ -230,6 +230,19 @@ export const quickCartApi = createApi({
       providesTags: ['Products'],
     }),
 
+    getProductById: builder.query<
+      { success: boolean; data: CartProduct; message?: string },
+      string
+    >({
+      query: productId => ({
+        url: `/products/${encodeURIComponent(productId)}`,
+        method: 'GET',
+      }),
+      providesTags: (_result, _error, productId) => [
+        { type: 'Products', id: productId },
+      ],
+    }),
+
     // Get current user's cart
     getCart: builder.query<CartResponse, void>({
       query: () => ({
@@ -415,6 +428,7 @@ export const {
   useGetCategoriesQuery,
   useGetBannersQuery,
   useGetProductsQuery,
+  useGetProductByIdQuery,
   useGetCartQuery,
   useGetWishlistQuery,
   useAddToWishlistMutation,

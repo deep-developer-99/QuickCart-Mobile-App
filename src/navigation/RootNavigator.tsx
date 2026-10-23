@@ -1,9 +1,10 @@
 import { useTheme } from '../theme';
 import type { ThemeColors } from '../theme';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
 import {
   NavigationContainer,
+  type LinkingOptions,
   type NavigatorScreenParams,
   createNavigationContainerRef,
 } from '@react-navigation/native';
@@ -26,6 +27,12 @@ import { useLazyGetMeQuery } from '../api/quickCartApi';
 import { getToken, removeToken } from '../services/secureStorage';
 import { logout, setCredentials } from '../store/slices/authSlice';
 import type { AppDispatch, RootState } from '../store/store';
+import {
+  consumePendingProductId,
+  parseProductUrl,
+  PRODUCT_LINK_HOST,
+  setPendingProductId,
+} from '../services/productLinks';
 
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
@@ -39,6 +46,8 @@ export type RootStackParamList = {
   // ProductDetails receives the product selected from Home/Categories/Wishlist.
   ProductDetails: {
     product: CartProduct;
+  } | {
+    productId: string;
   };
 
   Checkout:
@@ -65,7 +74,90 @@ const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
   );
 
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [pendingProductRoute, setPendingProductRoute] = useState<string | null>(
+    null,
+  );
   const [getMe, { isLoading }] = useLazyGetMeQuery();
+  const lastHandledUrl = useRef({ value: '', at: 0 });
+
+  const handleIncomingUrl = useCallback(
+    (url: string) => {
+      const productId = parseProductUrl(url);
+      if (!productId) return;
+
+      const now = Date.now();
+      if (
+        lastHandledUrl.current.value === url &&
+        now - lastHandledUrl.current.at < 1500
+      ) {
+        return;
+      }
+      lastHandledUrl.current = { value: url, at: now };
+
+      if (!isAuthenticated) {
+        setPendingProductId(productId);
+        setPendingProductRoute(productId);
+        return;
+      }
+
+      if (navigationRef.isReady()) {
+        navigationRef.navigate('ProductDetails', { productId });
+      }
+    },
+    [isAuthenticated],
+  );
+
+  const linking = React.useMemo<LinkingOptions<RootStackParamList>>(
+    () => ({
+      prefixes: PRODUCT_LINK_HOST ? [`https://${PRODUCT_LINK_HOST}`] : [],
+      config: {
+        screens: {
+          ProductDetails: {
+            path: 'products/:productId',
+            parse: { productId: (value: string) => value },
+          },
+        },
+      },
+      getInitialURL: async () => {
+        const initialUrl = await Linking.getInitialURL();
+        if (!initialUrl) return null;
+        const productId = parseProductUrl(initialUrl);
+        if (!productId) return null;
+        if (!isAuthenticated) {
+          setPendingProductId(productId);
+          setPendingProductRoute(productId);
+          return null;
+        }
+        lastHandledUrl.current = { value: initialUrl, at: Date.now() };
+        return initialUrl;
+      },
+      subscribe: () => {
+        const subscription = Linking.addEventListener('url', ({ url }) => {
+          const productId = parseProductUrl(url);
+          if (!productId) return;
+          // Route validated links here so logged-out recipients can authenticate first.
+          handleIncomingUrl(url);
+        });
+        return () => subscription.remove();
+      },
+    }),
+    [handleIncomingUrl, isAuthenticated],
+  );
+
+  useEffect(() => {
+    if (!isAuthenticated || !navigationRef.isReady()) return;
+    const productId = consumePendingProductId();
+    if (productId) {
+      setPendingProductRoute(null);
+      const frame = requestAnimationFrame(() => {
+        if (navigationRef.isReady()) {
+          navigationRef.navigate('ProductDetails', { productId });
+        }
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+    return undefined;
+  }, [isAuthenticated]);
 
   useEffect(() => {
     let mounted = true;
@@ -124,7 +216,14 @@ const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
   }
 
   return (
-    <NavigationContainer ref={navigationRef} onReady={() => {
+    <NavigationContainer ref={navigationRef} linking={linking} onReady={() => {
+      if (isAuthenticated) {
+        const productId = consumePendingProductId();
+        if (productId) {
+          setPendingProductRoute(null);
+          navigationRef.navigate('ProductDetails', { productId });
+        }
+      }
       import('../services/pushNotifications').then(({ flushPendingNotification }) => {
         flushPendingNotification();
       });
@@ -152,7 +251,10 @@ const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
           <Stack.Screen name="PaymentMethod" component={PaymentMethodScreen} />
         </Stack.Navigator>
       ) : (
-        <AuthNavigator />
+        <AuthNavigator
+          key={pendingProductRoute ? 'product-login' : 'auth'}
+          initialRouteName={pendingProductRoute ? 'Login' : 'Splash'}
+        />
       )}
     </NavigationContainer>
   );
