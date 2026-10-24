@@ -91,7 +91,7 @@ export const isSupportedNotification = (data: NotificationData) => {
   if (event === 'NEW_OFFER') {
     return Boolean(data.offerId && OBJECT_ID.test(data.offerId));
   }
-  return event === 'CUSTOM';
+  return event === 'CUSTOM' || event === 'CUSTOM_MESSAGE';
 };
 
 const readableStatus = (status: string | undefined) => {
