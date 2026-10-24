@@ -63,6 +63,15 @@ export interface BannerResponse {
   message?: string;
 }
 
+export interface PublishedOffer {
+  _id: string;
+  title: string;
+  message: string;
+  redirectType: 'category' | 'product';
+  redirectValue: string;
+  status?: 'published';
+}
+
 export type ProductsQuery =
   | string
   | {
@@ -215,11 +224,11 @@ export const quickCartApi = createApi({
           typeof request === 'string'
             ? { search: request }
             : request
-              ? {
-                  ...(request.search ? { search: request.search } : {}),
-                  ...(request.category ? { category: request.category } : {}),
-                }
-              : undefined;
+            ? {
+                ...(request.search ? { search: request.search } : {}),
+                ...(request.category ? { category: request.category } : {}),
+              }
+            : undefined;
 
         return {
           url: '/products',
@@ -241,6 +250,16 @@ export const quickCartApi = createApi({
       providesTags: (_result, _error, productId) => [
         { type: 'Products', id: productId },
       ],
+    }),
+
+    getPublishedOffer: builder.query<
+      { success: boolean; data: PublishedOffer },
+      string
+    >({
+      query: offerId => ({
+        url: `/offers/${encodeURIComponent(offerId)}`,
+        method: 'GET',
+      }),
     }),
 
     // Get current user's cart

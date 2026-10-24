@@ -19,7 +19,11 @@ import {
 } from './src/services/pushNotifications';
 import InAppNotification from './src/components/InAppNotification';
 
-const PushNotificationManager = ({ navigationReady }: { navigationReady: boolean }) => {
+const PushNotificationManager = ({
+  navigationReady,
+}: {
+  navigationReady: boolean;
+}) => {
   const user = useSelector((state: RootState) => state.auth.user);
   const [foregroundNotification, setForegroundNotification] = React.useState<{
     data: NotificationData;
@@ -30,7 +34,9 @@ const PushNotificationManager = ({ navigationReady }: { navigationReady: boolean
   const [notificationKey, setNotificationKey] = React.useState<string | null>(
     null,
   );
-  const notificationKeyRef = React.useRef<string | null>(null);
+  const notificationKeyRef = React.useRef<{ key: string; at: number } | null>(
+    null,
+  );
   const permissionNoticeShown = React.useRef(false);
 
   React.useEffect(() => {
@@ -54,9 +60,15 @@ const PushNotificationManager = ({ navigationReady }: { navigationReady: boolean
             notification.data.orderId ?? notification.data.offerId,
             notification.title,
             notification.message,
+            notification.timestamp,
           ].join(':');
-        if (key === notificationKeyRef.current) return;
-        notificationKeyRef.current = key;
+        const now = Date.now();
+        if (
+          key === notificationKeyRef.current?.key &&
+          now - notificationKeyRef.current.at < 2500
+        )
+          return;
+        notificationKeyRef.current = { key, at: now };
         setNotificationKey(key);
         setForegroundNotification(notification);
       },
