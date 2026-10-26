@@ -17,6 +17,15 @@ describe('product links', () => {
     expect(parseProductUrl(url!)).toBe(productId);
   });
 
+  it('creates distinct canonical URLs for different products and accepts query parameters', () => {
+    const secondProductId = '507f191e810c19729de860ea';
+    const firstUrl = createProductUrl(productId);
+    const secondUrl = createProductUrl(secondProductId);
+
+    expect(firstUrl).not.toBe(secondUrl);
+    expect(parseProductUrl(`${secondUrl}?utm_source=share`)).toBe(secondProductId);
+  });
+
   it('rejects malformed IDs, paths, hosts, and non-HTTPS URLs', () => {
     expect(isValidProductId('not-an-id')).toBe(false);
     expect(parseProductUrl('https://example.com/products/' + productId)).toBe(

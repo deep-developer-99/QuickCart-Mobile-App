@@ -1,7 +1,4 @@
-/**
- * The production website host must be set after confirming the Vercel deployment
- * domain. The mobile repository currently has no website URL configuration.
- */
+/** Canonical production host shared by product URLs and Android App Links. */
 export const PRODUCT_LINK_HOST: string = 'quick-cart-indol-rho-13.vercel.app';
 
 const PRODUCT_ID_PATTERN = /^[a-f\d]{24}$/i;

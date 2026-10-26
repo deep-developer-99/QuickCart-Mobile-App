@@ -60,6 +60,20 @@ react {
  */
 def enableProguardInReleaseBuilds = false
 
+// Release APKs must use the real upload/release keystore supplied by CI or the
+// release operator. Never sign a production artifact with the debug key.
+def releaseStoreFile = System.getenv("QUICKCART_RELEASE_STORE_FILE") ?: project.findProperty("QUICKCART_RELEASE_STORE_FILE")
+def releaseStorePassword = System.getenv("QUICKCART_RELEASE_STORE_PASSWORD") ?: project.findProperty("QUICKCART_RELEASE_STORE_PASSWORD")
+def releaseKeyAlias = System.getenv("QUICKCART_RELEASE_KEY_ALIAS") ?: project.findProperty("QUICKCART_RELEASE_KEY_ALIAS")
+def releaseKeyPassword = System.getenv("QUICKCART_RELEASE_KEY_PASSWORD") ?: project.findProperty("QUICKCART_RELEASE_KEY_PASSWORD")
+def releaseSigningConfigured = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { value ->
+    value != null && !value.toString().trim().isEmpty()
+}
+
+if (!releaseSigningConfigured) {
+    logger.warn("QuickCart release signing is not configured. Release outputs will be unsigned until QUICKCART_RELEASE_* signing values are supplied.")
+}
+
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
  *
@@ -93,15 +107,23 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        if (releaseSigningConfigured) {
+            release {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            if (releaseSigningConfigured) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
