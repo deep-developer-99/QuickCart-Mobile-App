@@ -1,47 +1,29 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import WebView from 'react-native-webview';
 import { radius, spacing, typography, useTheme } from '../theme';
 import type { ThemeColors } from '../theme';
 import type { OrderStatus } from '../api/orderApi';
+import {
+  forwardGeocodeAddress,
+  ForwardGeocodeError,
+  isValidLocationCoordinates,
+} from '../services/locationService';
 
 type Coordinate = { latitude: number; longitude: number };
 type Props = {
   shopName: string;
   shopAddress: string;
+  shopCoordinates?: Coordinate;
   deliveryAddress: string;
   deliveryCoordinates?: Coordinate;
   status: OrderStatus;
-};
-
-const geocode = async (query: string): Promise<Coordinate | null> => {
-  if (!query.trim()) return null;
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(
-        query,
-      )}`,
-      {
-        headers: {
-          Accept: 'application/json',
-          'User-Agent': 'QuickCartMobile/1.0',
-        },
-      },
-    );
-    if (!response.ok) return null;
-    const results = (await response.json()) as Array<{
-      lat: string;
-      lon: string;
-    }>;
-    if (!results.length) return null;
-    const latitude = Number(results[0].lat);
-    const longitude = Number(results[0].lon);
-    return Number.isFinite(latitude) && Number.isFinite(longitude)
-      ? { latitude, longitude }
-      : null;
-  } catch {
-    return null;
-  }
 };
 
 const mapHtml = (
@@ -60,12 +42,49 @@ const mapHtml = (
     [shop.latitude, shop.longitude],
     [customer.latitude, customer.longitude],
   ]);
-  return `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><style>html,body,#map{height:100%;width:100%;margin:0;padding:0;background:#f4f7f8}.leaflet-control-attribution{font-size:9px}</style></head><body><div id="map"></div><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>const shop=[${shop.latitude},${shop.longitude}], customer=[${customer.latitude},${customer.longitude}], current=[${current.latitude},${current.longitude}];const map=L.map('map',{zoomControl:true,scrollWheelZoom:false}).setView(shop,13);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);const route=L.polyline(${points},{color:'#21BFA6',weight:5,opacity:.9,dashArray:'8 8'}).addTo(map);L.marker(shop).addTo(map).bindPopup('Shop / pickup location');L.marker(customer).addTo(map).bindPopup('Your delivery address');L.circleMarker(current,{radius:9,color:'#ffffff',weight:3,fillColor:'#f59e0b',fillOpacity:1}).addTo(map).bindPopup('Dummy delivery location');map.fitBounds(route.getBounds().pad(0.18));</script></body></html>`;
+  return `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><style>html,body,#map{height:100%;width:100%;margin:0;padding:0;background:#f4f7f8}.leaflet-control-attribution{font-size:9px}</style></head><body><div id="map"></div><script>
+function report(type){try{window.ReactNativeWebView.postMessage(JSON.stringify({type:type}))}catch(e){}}
+window.addEventListener('error',function(event){if(event.target&&(event.target.tagName==='SCRIPT'||event.target.tagName==='LINK'))report('asset-error');else report('javascript-error')},true);
+window.onerror=function(){report('javascript-error');return true};
+function initializeMap(){try{if(!window.L){report('leaflet-error');return}const shop=[${shop.latitude},${shop.longitude}],customer=[${customer.latitude},${customer.longitude}],current=[${current.latitude},${current.longitude}];const map=L.map('map',{zoomControl:true,scrollWheelZoom:false}).setView(shop,13);const tiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'}).addTo(map);let tileErrors=0;let tileLoaded=false;tiles.on('tileload',function(){tileLoaded=true});tiles.on('tileerror',function(){tileErrors+=1;if(!tileLoaded&&tileErrors>=3)report('tile-error')});const route=L.polyline(${points},{color:'#21BFA6',weight:5,opacity:.9,dashArray:'8 8'}).addTo(map);L.marker(shop).addTo(map).bindPopup('Shop / pickup location');L.marker(customer).addTo(map).bindPopup('Your delivery address');L.circleMarker(current,{radius:9,color:'#ffffff',weight:3,fillColor:'#f59e0b',fillOpacity:1}).addTo(map).bindPopup('Demo delivery location');if(shop[0]===customer[0]&&shop[1]===customer[1])map.setView(shop,15);else map.fitBounds(route.getBounds().pad(0.18));report('map-ready');setTimeout(function(){if(!tileLoaded&&tileErrors>0)report('tile-error')},12000)}catch(e){report('map-error')}}
+</script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onerror="report('asset-error')"></script><script>initializeMap()</script></body></html>`;
+};
+
+const coordinateErrorMessage = (
+  code: string,
+  location: 'shop' | 'delivery',
+): string => {
+  const locationLabel = location === 'shop' ? 'shop' : 'delivery address';
+  switch (code) {
+    case 'NOT_FOUND':
+      return `We could not find the ${locationLabel} on the map. Check the saved address and try again.`;
+    case 'INVALID_INPUT':
+      return `A complete ${locationLabel} is needed to find this location.`;
+    case 'RATE_LIMITED':
+      return 'The map address service is busy. Please wait a moment and try again.';
+    case 'TIMEOUT':
+      return 'The address lookup took too long. Check your connection and try again.';
+    case 'AUTHENTICATION_REQUIRED':
+      return 'Please sign in again to look up this map location.';
+    default:
+      return 'We could not look up one of these addresses. Check your connection and try again.';
+  }
+};
+
+const mapErrorMessage = (type: string): string => {
+  if (type === 'tile-error') {
+    return 'Map tiles are not loading. Check your internet connection and retry.';
+  }
+  if (type === 'asset-error' || type === 'leaflet-error') {
+    return 'The map could not load. Check your internet connection and retry.';
+  }
+  return 'The map could not start. Please retry in a moment.';
 };
 
 const DummyLiveOrderTracking = ({
   shopName,
   shopAddress,
+  shopCoordinates,
   deliveryAddress,
   deliveryCoordinates,
   status,
@@ -77,43 +96,91 @@ const DummyLiveOrderTracking = ({
     customer: Coordinate;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [lookupAttempt, setLookupAttempt] = useState(0);
+  const [mapAttempt, setMapAttempt] = useState(0);
+
+  const shopLatitude = shopCoordinates?.latitude;
+  const shopLongitude = shopCoordinates?.longitude;
+  const customerLatitude = deliveryCoordinates?.latitude;
+  const customerLongitude = deliveryCoordinates?.longitude;
 
   useEffect(() => {
     let active = true;
-
     const resolve = async (): Promise<void> => {
       setLoading(true);
-
+      setLookupError(null);
+      setCoordinates(null);
+      let resolving: 'shop' | 'delivery' = 'shop';
       try {
-        const customer =
-          deliveryCoordinates ?? (await geocode(deliveryAddress));
-
-        const shop = await geocode(shopAddress);
-
-        if (active) {
-          setCoordinates(shop && customer ? { shop, customer } : null);
-        }
+        const savedShop = { latitude: shopLatitude, longitude: shopLongitude };
+        const shop = isValidLocationCoordinates(savedShop)
+          ? savedShop
+          : await forwardGeocodeAddress(shopAddress);
+        resolving = 'delivery';
+        const savedCustomer = {
+          latitude: customerLatitude,
+          longitude: customerLongitude,
+        };
+        const customer = isValidLocationCoordinates(savedCustomer)
+          ? savedCustomer
+          : await forwardGeocodeAddress(deliveryAddress);
+        if (active) setCoordinates({ shop, customer });
       } catch (error) {
-        console.error('Failed to resolve tracking coordinates:', error);
-
         if (active) {
-          setCoordinates(null);
+          const code =
+            error instanceof ForwardGeocodeError ? error.code : 'PROVIDER_ERROR';
+          setLookupError(coordinateErrorMessage(code, resolving));
         }
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     };
-
-    resolve().catch((error: unknown) => {
-      console.error('Order tracking initialization failed:', error);
+    resolve().catch(() => {
+      if (active) {
+        setLookupError(
+          'We could not look up one of these addresses. Check your connection and try again.',
+        );
+        setLoading(false);
+      }
     });
-
     return () => {
       active = false;
     };
-  }, [shopAddress, deliveryAddress, deliveryCoordinates]);
+  }, [
+    shopAddress,
+    shopLatitude,
+    shopLongitude,
+    deliveryAddress,
+    customerLatitude,
+    customerLongitude,
+    lookupAttempt,
+  ]);
+
+  const handleMapMessage = (event: { nativeEvent: { data: string } }) => {
+    try {
+      const message = JSON.parse(event.nativeEvent.data) as { type?: string };
+      if (!message.type || message.type === 'map-ready') {
+        setMapError(null);
+        return;
+      }
+      setMapError(mapErrorMessage(message.type));
+      console.warn('[OrderTrackingMap]', message.type);
+    } catch {
+      setMapError(mapErrorMessage('map-error'));
+    }
+  };
+
+  const retryLookup = () => {
+    setLookupError(null);
+    setLookupAttempt(value => value + 1);
+  };
+
+  const retryMap = () => {
+    setMapError(null);
+    setMapAttempt(value => value + 1);
+  };
 
   return (
     <View style={styles.card}>
@@ -141,35 +208,50 @@ const DummyLiveOrderTracking = ({
         <View style={styles.mapPlaceholder}>
           <ActivityIndicator color={theme.colors.cyan} />
           <Text style={styles.mapMessage}>
-            Finding locations on OpenStreetMap…
+            Finding saved locations for the demo map…
           </Text>
+        </View>
+      ) : lookupError ? (
+        <View style={styles.mapPlaceholder}>
+          <Text style={styles.mapMessage}>{lookupError}</Text>
+          <Pressable style={styles.retryButton} onPress={retryLookup}>
+            <Text style={styles.retryText}>Retry location lookup</Text>
+          </Pressable>
         </View>
       ) : coordinates ? (
-        <WebView
-          originWhitelist={['*']}
-          source={{
-            html: mapHtml(coordinates.shop, coordinates.customer, status),
-          }}
-          style={styles.map}
-          javaScriptEnabled
-          domStorageEnabled
-          setSupportMultipleWindows={false}
-          startInLoadingState
-          renderLoading={() => (
-            <ActivityIndicator
-              style={styles.mapLoader}
-              color={theme.colors.cyan}
-            />
-          )}
-        />
-      ) : (
-        <View style={styles.mapPlaceholder}>
-          <Text style={styles.mapMessage}>
-            We couldn’t locate one of the addresses on the map. Please check the
-            shop and delivery address.
-          </Text>
+        <View style={styles.mapWrap}>
+          <WebView
+            key={mapAttempt}
+            originWhitelist={['*']}
+            source={{
+              html: mapHtml(coordinates.shop, coordinates.customer, status),
+              baseUrl: 'https://quickcart-bxod.onrender.com/',
+            }}
+            style={styles.map}
+            javaScriptEnabled
+            domStorageEnabled
+            setSupportMultipleWindows={false}
+            startInLoadingState
+            onMessage={handleMapMessage}
+            onError={() => setMapError(mapErrorMessage('map-error'))}
+            onHttpError={() => setMapError(mapErrorMessage('asset-error'))}
+            renderLoading={() => (
+              <ActivityIndicator
+                style={styles.mapLoader}
+                color={theme.colors.cyan}
+              />
+            )}
+          />
+          {mapError ? (
+            <View style={styles.mapErrorOverlay}>
+              <Text style={styles.mapMessage}>{mapError}</Text>
+              <Pressable style={styles.retryButton} onPress={retryMap}>
+                <Text style={styles.retryText}>Retry map</Text>
+              </Pressable>
+            </View>
+          ) : null}
         </View>
-      )}
+      ) : null}
       <Text style={styles.disclaimer}>
         This is a visual demo only. The marker does not represent a real
         delivery partner’s GPS location.
@@ -220,16 +302,25 @@ const createStyles = (colors: ThemeColors) =>
     routeTextWrap: { flex: 1 },
     label: { ...typography.overlineSemiBold, color: colors.secondaryText },
     address: { ...typography.captionRegular, color: colors.text, marginTop: 2 },
-    map: {
+    mapWrap: {
       height: 250,
       borderRadius: radius.md,
       overflow: 'hidden',
       backgroundColor: colors.grey50,
     },
+    map: { flex: 1, backgroundColor: colors.grey50 },
     mapPlaceholder: {
       height: 180,
       backgroundColor: colors.background,
       borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.lg,
+      gap: spacing.sm,
+    },
+    mapErrorOverlay: {
+      ...StyleSheet.absoluteFill,
+      backgroundColor: colors.background,
       alignItems: 'center',
       justifyContent: 'center',
       padding: spacing.lg,
@@ -240,6 +331,13 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.secondaryText,
       textAlign: 'center',
     },
+    retryButton: {
+      borderRadius: radius.md,
+      backgroundColor: colors.cyan,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    retryText: { ...typography.captionSemiBold, color: colors.white },
     mapLoader: { flex: 1 },
     disclaimer: {
       ...typography.overlineRegular,

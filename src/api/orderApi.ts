@@ -16,12 +16,28 @@ export interface OrderItem {
         _id: string;
         shopName?: string;
         address?: string;
+        city?: string;
+        state?: string;
+        pincode?: string;
+        latitude?: number;
+        longitude?: number;
       };
   name: string;
   image: string;
   price: number;
   discountedPrice?: number;
   quantity: number;
+}
+
+export interface OrderAddress {
+  _id?: string;
+  fullName?: string;
+  addressLine?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export type OrderStatus =
@@ -35,16 +51,27 @@ export interface MyOrder {
   items: OrderItem[];
   totalAmount: number;
   status: OrderStatus;
-  paymentMethod: 'COD' | 'RAZORPAY' | 'RAZORPAY_FAKE' | 'PAYTM';
+  paymentMethod:
+    | 'COD'
+    | 'RAZORPAY'
+    | 'RAZORPAY_FAKE'
+    | 'PAYTM'
+    | 'CASHFREE';
   createdAt: string;
   updatedAt?: string;
-  address?: unknown;
+  address?: OrderAddress | string;
 }
 
 interface OrdersResponse {
   success: boolean;
   message?: string;
   data: MyOrder[];
+}
+
+export interface SingleOrderResponse {
+  success: boolean;
+  message?: string;
+  data: MyOrder;
 }
 
 export interface CreateOrderRequest {
@@ -93,6 +120,13 @@ export const orderApi = quickCartApi.injectEndpoints({
         method: 'GET',
       }),
     }),
+
+    getOrderById: builder.query<SingleOrderResponse, string>({
+      query: orderId => ({
+        url: `/orders/${encodeURIComponent(orderId)}`,
+        method: 'GET',
+      }),
+    }),
   }),
   overrideExisting: false,
 });
@@ -101,4 +135,5 @@ export const {
   useCreateOrderMutation,
   useCreateBuyNowOrderMutation,
   useGetMyOrdersQuery,
+  useGetOrderByIdQuery,
 } = orderApi;

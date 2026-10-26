@@ -35,6 +35,12 @@ interface ReverseGeocodeResponse {
   data?: NominatimResult;
 }
 
+interface ForwardGeocodeResponse {
+  success?: boolean;
+  code?: ForwardGeocodeErrorCode;
+  data?: LocationCoordinates & { displayName?: string | null };
+}
+
 interface NominatimResult {
   lat?: string;
   lon?: string;
@@ -46,9 +52,140 @@ interface NominatimResult {
 const searchCache = new Map<string, LocationSearchResult[]>();
 let lastSearchAt = 0;
 const reverseCache = new Map<string, ReverseGeocodedAddress | null>();
+const forwardCache = new Map<string, LocationCoordinates>();
+const forwardRequests = new Map<string, Promise<LocationCoordinates>>();
+
+export type ForwardGeocodeErrorCode =
+  | 'INVALID_INPUT'
+  | 'NOT_FOUND'
+  | 'RATE_LIMITED'
+  | 'TIMEOUT'
+  | 'AUTHENTICATION_REQUIRED'
+  | 'PROVIDER_ERROR';
+
+export class ForwardGeocodeError extends Error {
+  constructor(public readonly code: ForwardGeocodeErrorCode) {
+    super(code);
+    this.name = 'ForwardGeocodeError';
+  }
+}
 
 const coordinateKey = (latitude: number, longitude: number): string =>
   `${latitude.toFixed(5)},${longitude.toFixed(5)}`;
+
+export const isValidLocationCoordinates = (
+  value: unknown,
+): value is LocationCoordinates => {
+  if (!value || typeof value !== 'object') return false;
+  const coordinate = value as Partial<LocationCoordinates>;
+  return (
+    typeof coordinate.latitude === 'number' &&
+    typeof coordinate.longitude === 'number' &&
+    Number.isFinite(coordinate.latitude) &&
+    Number.isFinite(coordinate.longitude) &&
+    coordinate.latitude >= -90 &&
+    coordinate.latitude <= 90 &&
+    coordinate.longitude >= -180 &&
+    coordinate.longitude <= 180
+  );
+};
+
+export const forwardGeocodeAddress = async (
+  address: string,
+): Promise<LocationCoordinates> => {
+  const normalizedAddress = address.trim().replace(/\s+/g, ' ');
+  if (normalizedAddress.length < 5 || normalizedAddress.length > 500) {
+    throw new ForwardGeocodeError('INVALID_INPUT');
+  }
+  const key = normalizedAddress.toLocaleLowerCase('en-IN');
+  const cached = forwardCache.get(key);
+  if (cached) return cached;
+  const pending = forwardRequests.get(key);
+  if (pending) return pending;
+
+  const request = (async () => {
+    let token: string | null;
+    try {
+      token = await getToken();
+    } catch {
+      throw new ForwardGeocodeError('PROVIDER_ERROR');
+    }
+    if (!token) throw new ForwardGeocodeError('PROVIDER_ERROR');
+
+    let response: Response;
+    try {
+      response = await fetchWithTimeout(
+        `${API_BASE_URL}/location/forward`,
+        {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ address: normalizedAddress }),
+        },
+        12000,
+      );
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('timed out')) {
+        throw new ForwardGeocodeError('TIMEOUT');
+      }
+      throw new ForwardGeocodeError('PROVIDER_ERROR');
+    }
+
+    let payload: ForwardGeocodeResponse;
+    try {
+      payload = (await response.json()) as ForwardGeocodeResponse;
+    } catch {
+      if (response.status === 429) {
+        throw new ForwardGeocodeError('RATE_LIMITED');
+      }
+      if (response.status === 504) throw new ForwardGeocodeError('TIMEOUT');
+      throw new ForwardGeocodeError('PROVIDER_ERROR');
+    }
+    if (!response.ok || !payload.success) {
+      const code = payload.code;
+      if (
+        code === 'INVALID_INPUT' ||
+        code === 'NOT_FOUND' ||
+        code === 'RATE_LIMITED' ||
+        code === 'TIMEOUT' ||
+        code === 'PROVIDER_ERROR'
+      ) {
+        throw new ForwardGeocodeError(code);
+      }
+      if (response.status === 404) throw new ForwardGeocodeError('NOT_FOUND');
+      if (response.status === 429) {
+        throw new ForwardGeocodeError('RATE_LIMITED');
+      }
+      if (response.status === 504) throw new ForwardGeocodeError('TIMEOUT');
+      if (response.status === 401 || response.status === 403) {
+        throw new ForwardGeocodeError('AUTHENTICATION_REQUIRED');
+      }
+      throw new ForwardGeocodeError('PROVIDER_ERROR');
+    }
+    if (!isValidLocationCoordinates(payload.data)) {
+      throw new ForwardGeocodeError('PROVIDER_ERROR');
+    }
+    const coordinate = {
+      latitude: payload.data.latitude,
+      longitude: payload.data.longitude,
+    };
+    forwardCache.set(key, coordinate);
+    if (forwardCache.size > 100) {
+      const oldestKey = forwardCache.keys().next().value;
+      if (oldestKey) forwardCache.delete(oldestKey);
+    }
+    return coordinate;
+  })();
+  forwardRequests.set(key, request);
+  try {
+    return await request;
+  } finally {
+    forwardRequests.delete(key);
+  }
+};
 
 const fetchWithTimeout = async (
   input: RequestInfo,

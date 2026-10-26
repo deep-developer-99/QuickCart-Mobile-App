@@ -17,7 +17,7 @@ import {
 } from 'react-native-safe-area-context';
 
 import type { MyOrder, OrderStatus } from '../../api/orderApi';
-import { useGetMyOrdersQuery } from '../../api/orderApi';
+import { useGetOrderByIdQuery } from '../../api/orderApi';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { radius, spacing, typography, useTheme } from '../../theme';
 import DummyLiveOrderTracking from '../../components/DummyLiveOrderTracking';
@@ -73,10 +73,16 @@ const OrderDetailsScreen = () => {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { params } = useRoute<DetailsRoute>();
   const { order: passedOrder, orderId } = params;
-  const { data, isLoading } = useGetMyOrdersQuery(undefined, {
-    skip: Boolean(passedOrder),
+  const {
+    data: singleOrderResponse,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useGetOrderByIdQuery(orderId ?? '', {
+    skip: Boolean(passedOrder) || !orderId,
   });
-  const order = passedOrder ?? data?.data?.find(item => item._id === orderId);
+  const order = passedOrder ?? singleOrderResponse?.data;
   const insets = useSafeAreaInsets();
 
   if (isLoading) {
@@ -88,6 +94,16 @@ const OrderDetailsScreen = () => {
   }
 
   if (!order) {
+    const status =
+      error && typeof error === 'object' && 'status' in error
+        ? error.status
+        : undefined;
+    const errorMessage =
+      status === 401 || status === 403
+        ? 'Please sign in again to view this order.'
+        : status === 404 || (!isError && !isLoading)
+          ? 'This order is no longer available.'
+          : 'We couldn’t load this order. Check your connection and try again.';
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.header}>
@@ -99,7 +115,12 @@ const OrderDetailsScreen = () => {
           </Pressable>
           <Text style={styles.headerTitle}>Order details</Text>
         </View>
-        <Text style={styles.muted}>This order is no longer available.</Text>
+        <Text style={styles.muted}>{errorMessage}</Text>
+        {isError && status !== 401 && status !== 403 ? (
+          <Pressable style={styles.retryButton} onPress={() => refetch()}>
+            <Text style={styles.retryText}>Try again</Text>
+          </Pressable>
+        ) : null}
       </SafeAreaView>
     );
   }
@@ -171,13 +192,39 @@ const OrderDetailsScreen = () => {
                 typeof delivery.longitude === 'number'
                   ? { latitude: delivery.latitude, longitude: delivery.longitude }
                   : undefined;
-              const shopAddress =
-                typeof vendor?.address === 'string' ? vendor.address : '';
+              const vendorCoordinates =
+                vendor &&
+                typeof vendor.latitude === 'number' &&
+                typeof vendor.longitude === 'number'
+                  ? { latitude: vendor.latitude, longitude: vendor.longitude }
+                  : undefined;
+              const shopAddress = vendor
+                ? [
+                    vendor.address,
+                    vendor.city,
+                    vendor.state,
+                    vendor.pincode,
+                  ]
+                    .filter(
+                      (part): part is string =>
+                        typeof part === 'string' && Boolean(part.trim()),
+                    )
+                    .filter(
+                      (part, index, parts) =>
+                        parts.findIndex(
+                          value =>
+                            value.toLocaleLowerCase('en-IN') ===
+                            part.toLocaleLowerCase('en-IN'),
+                        ) === index,
+                    )
+                    .join(', ')
+                : '';
               const deliveryAddress = addressText(order.address);
-              return shopAddress ? (
+              return shopAddress || vendorCoordinates ? (
                 <DummyLiveOrderTracking
                   shopName={vendor?.shopName || 'QuickCart shop'}
                   shopAddress={shopAddress}
+                  shopCoordinates={vendorCoordinates}
                   deliveryAddress={deliveryAddress}
                   deliveryCoordinates={deliveryCoordinates}
                   status={order.status}
@@ -464,6 +511,15 @@ const createStyles = (colors: ThemeColors) =>
     },
     totalLabel: { ...typography.body2Medium, color: colors.text },
     totalValue: { ...typography.body2Medium, color: colors.text },
+    retryButton: {
+      alignSelf: 'center',
+      marginTop: spacing.md,
+      borderRadius: radius.md,
+      backgroundColor: colors.cyan,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+    },
+    retryText: { ...typography.captionSemiBold, color: colors.white },
   });
 
 const useStyles = () => {
