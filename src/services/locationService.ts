@@ -504,36 +504,6 @@ export const resolveLocation = async (
   ) {
     throw new Error('Invalid latitude or longitude coordinates.');
   }
-
-  try {
-    const token = await getToken();
-    if (token) {
-      const response = await fetchWithTimeout(
-        `${API_BASE_URL}/location/resolve?lat=${encodeURIComponent(
-          String(latitude),
-        )}&lon=${encodeURIComponent(String(longitude))}`,
-        {
-          headers: {
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        },
-        12000,
-      );
-      if (response.ok) {
-        const payload = (await response.json()) as {
-          success?: boolean;
-          data?: ResolvedLocation;
-        };
-        if (payload.success && payload.data?.address) {
-          return payload.data;
-        }
-      }
-    }
-  } catch (error) {
-    console.warn('Combined location endpoint unavailable; using OSM fallback.', error);
-  }
-
   const address = await reverseGeocodeAddress(latitude, longitude);
   return {
     formattedAddress: address?.formattedAddress ?? null,
