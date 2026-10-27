@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { OnboardingScreenStyles } from './OnboardingScreen.styles';
 import { AuthStackParamList } from '../../navigation/AuthNavigator';
 import { useTheme } from '../../theme';
+import BackButton from '../../components/common/BackButton';
 
 import ShoppingIllustration from '../../assets/onboarding/shopping.svg';
 import OffersIllustration from '../../assets/onboarding/offers.svg';
@@ -105,15 +106,12 @@ const OnboardingScreen = ({ navigation }: Props) => {
                 <Text style={styles.brandText}>QuickCart</Text>
               </View>
             ) : (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t('ui.onboarding.previous')}
+              <BackButton
                 onPress={goBack}
                 hitSlop={12}
                 style={styles.backButton}
-              >
-                <Text style={styles.backArrow}>‹</Text>
-              </Pressable>
+                accessibilityLabel={t('ui.onboarding.previous')}
+              />
             )}
             {index < onboardingData.length - 1 && (
               <Pressable

@@ -27,6 +27,7 @@ import {
   useRemoveFromWishlistMutation,
 } from '../../api/quickCartApi';
 import CartAddedToast from '../../components/CartAddedToast';
+import BackButton from '../../components/common/BackButton';
 import CartQuantityControl from '../../components/CartQuantityControl';
 import type { CartProduct } from '../../store/slices/cartSlice';
 import { radius, spacing, typography, useTheme } from '../../theme';
@@ -490,9 +491,7 @@ const Header = ({
 
   return (
     <View style={styles.header}>
-      <Pressable onPress={onBack} hitSlop={10}>
-        <Text style={styles.backIcon}>←</Text>
-      </Pressable>
+      <BackButton onPress={onBack} hitSlop={10} />
       <Text style={styles.headerTitle} numberOfLines={1}>
         {title}
       </Text>

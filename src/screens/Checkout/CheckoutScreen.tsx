@@ -18,6 +18,7 @@ import {
   useGetAddressesQuery,
 } from '../../api/addressApi';
 import AddAddressModal from '../../components/AddAddressModal';
+import BackButton from '../../components/common/BackButton';
 import {
   useCreateBuyNowOrderMutation,
   useCreateOrderMutation,
@@ -507,9 +508,7 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
   const styles = useStyles();
   return (
     <View style={styles.header}>
-      <Pressable onPress={onBack} style={styles.back}>
-        <Text style={styles.backText}>‹</Text>
-      </Pressable>
+      <BackButton onPress={onBack} style={styles.back} />
       <Text style={styles.headerTitle}>{title}</Text>
       <View style={styles.headerSpacer} />
     </View>

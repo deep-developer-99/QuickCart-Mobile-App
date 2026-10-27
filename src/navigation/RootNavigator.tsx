@@ -1,7 +1,5 @@
-import { useTheme } from '../theme';
-import type { ThemeColors } from '../theme';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
+import { Linking } from 'react-native';
 import {
   NavigationContainer,
   type LinkingOptions,
@@ -13,6 +11,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import AuthNavigator from './AuthNavigator';
 import MainTabNavigator, { type MainTabParamList } from './MainTabNavigator';
+import { SplashScreenContent } from '../screens/splash/SplashScreen';
 
 import SearchScreen from '../screens/search/SearchScreen';
 import OrderHistoryScreen from '../screens/OrderHistory/OrderHistoryScreen';
@@ -66,7 +65,6 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
-  const styles = useStyles();
   const dispatch = useDispatch<AppDispatch>();
 
   const isAuthenticated = useSelector(
@@ -163,6 +161,16 @@ const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
     let mounted = true;
 
     const restoreSession = async () => {
+      const invalidateSession = async () => {
+        try {
+          await removeToken();
+        } catch (error) {
+          console.warn('Failed to remove invalid session token:', error);
+        } finally {
+          dispatch(logout());
+        }
+      };
+
       try {
         const token = await getToken();
 
@@ -183,15 +191,13 @@ const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
             }),
           );
         } else if (mounted) {
-          await removeToken();
-          dispatch(logout());
+          await invalidateSession();
         }
       } catch (error) {
         console.log('Session restore failed:', error);
 
         if (mounted) {
-          await removeToken();
-          dispatch(logout());
+          await invalidateSession();
         }
       } finally {
         if (mounted) {
@@ -208,11 +214,7 @@ const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
   }, [dispatch, getMe]);
 
   if (checkingAuth || isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return <SplashScreenContent />;
   }
 
   return (
@@ -258,21 +260,6 @@ const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
       )}
     </NavigationContainer>
   );
-};
-
-const createStyles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    loadingContainer: {
-      flex: 1,
-      backgroundColor: colors.background,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-  });
-
-const useStyles = () => {
-  const { theme } = useTheme();
-  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
 };
 
 export default RootNavigator;

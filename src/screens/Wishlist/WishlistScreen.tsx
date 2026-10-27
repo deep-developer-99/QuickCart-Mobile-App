@@ -12,6 +12,7 @@ import { spacing, typography, useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
 import EmptyWishlist from './EmptyWishlist';
 import WishlistProducts from './WishlistProducts';
+import BackButton from '../../components/common/BackButton';
 
 const WishlistScreen = () => {
   const { t } = useTranslation();
@@ -86,14 +87,11 @@ const WishlistHeader = ({
   const { t } = useTranslation();
   return (
   <View style={styles.header}>
-    <Pressable
+    <BackButton
       style={styles.backButton}
       onPress={() => navigation.canGoBack() && navigation.goBack()}
       hitSlop={10}
-      accessibilityLabel={t('ui.common.back')}
-    >
-      <Text style={styles.backIcon}>←</Text>
-    </Pressable>
+    />
     <Text style={styles.headerTitle}>{t('ui.wishlist.title')}</Text>
   </View>
   );

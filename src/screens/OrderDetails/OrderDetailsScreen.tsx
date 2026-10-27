@@ -20,6 +20,7 @@ import {
 import type { MyOrder, OrderStatus } from '../../api/orderApi';
 import { useGetOrderByIdQuery } from '../../api/orderApi';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import BackButton from '../../components/common/BackButton';
 import { radius, spacing, typography, useTheme } from '../../theme';
 import DummyLiveOrderTracking from '../../components/DummyLiveOrderTracking';
 import type { ThemeColors } from '../../theme';
@@ -114,12 +115,10 @@ const OrderDetailsScreen = () => {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.header}>
-          <Pressable
+          <BackButton
             style={styles.backButton}
             onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backArrow}>‹</Text>
-          </Pressable>
+          />
           <Text style={styles.headerTitle}>{t('ui.orderDetails.title')}</Text>
         </View>
         <Text style={styles.muted}>{errorMessage}</Text>
@@ -139,13 +138,11 @@ const OrderDetailsScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable
+        <BackButton
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           hitSlop={10}
-        >
-          <Text style={styles.backArrow}>‹</Text>
-        </Pressable>
+        />
         <Text style={styles.headerTitle}>{t('ui.orderDetails.title')}</Text>
       </View>
 

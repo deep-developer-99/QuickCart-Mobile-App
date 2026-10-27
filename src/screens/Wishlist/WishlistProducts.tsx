@@ -141,19 +141,6 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
 
   return (
     <View style={styles.container}>
-      {/*
-      <View style={styles.header}>
-        <Pressable
-          style={styles.backButton}
-          onPress={() => navigation.canGoBack() && navigation.goBack()}
-          hitSlop={10}
-          accessibilityLabel={t('ui.common.back')}
-        >
-          <Text style={styles.backIcon}>←</Text>
-        </Pressable>
-        <Text style={styles.headerTitle}>Wishlist</Text>
-      */}
-
       <FlatList
         data={products}
         keyExtractor={item => item._id}
@@ -168,31 +155,6 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    header: {
-      height: 61,
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: spacing.lg,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.grey50,
-    },
-    backButton: {
-      width: 32,
-      height: 40,
-      alignItems: 'flex-start',
-      justifyContent: 'center',
-    },
-    backIcon: {
-      fontSize: 31,
-      lineHeight: 34,
-      color: colors.text,
-      fontWeight: '300',
-    },
-    headerTitle: {
-      ...typography.body1Regular,
-      color: colors.text,
-      marginLeft: 8,
-    },
     listContent: {
       paddingHorizontal: spacing.lg,
       paddingTop: 12,

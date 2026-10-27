@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 
 import { type Address, useGetAddressesQuery } from '../../api/addressApi';
 import AddAddressModal from '../../components/AddAddressModal';
+import BackButton from '../../components/common/BackButton';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { typography, useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
@@ -220,13 +221,11 @@ export default function ShippingAddressScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable
+        <BackButton
           onPress={() => navigation.goBack()}
           style={styles.backButton}
           hitSlop={10}
-        >
-          <Text style={styles.backArrow}>‹</Text>
-        </Pressable>
+        />
         <Text style={styles.headerTitle}>{t('shipping.title')}</Text>
         <View style={styles.headerSpacer} />
       </View>

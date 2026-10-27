@@ -32,9 +32,9 @@ import {
   useGetProductByIdQuery,
 } from '../../api/quickCartApi';
 import CartAddedToast from '../../components/CartAddedToast';
+import BackButton from '../../components/common/BackButton';
 import CartQuantityControl from '../../components/CartQuantityControl';
 import { createProductUrl, isValidProductId } from '../../services/productLinks';
-import BackArrowIcon from '../../assets/icons/arrow-left-line.svg';
 import ShareNodesIcon from '../../assets/icons/share-nodes.svg';
 
 type ProductDetailsRouteProp = RouteProp<RootStackParamList, 'ProductDetails'>;
@@ -190,15 +190,11 @@ const ProductDetailsScreen = () => {
                 ? t('ui.product.unavailable')
                 : t('ui.product.notFound')}
           </Text>
-          <Pressable
+          <BackButton
             onPress={() => navigation.goBack()}
             style={styles.backButton}
-            accessibilityRole="button"
-            accessibilityLabel={t('ui.common.back')}
             hitSlop={4}
-          >
-            <BackArrowIcon width={24} height={24} />
-          </Pressable>
+          />
         </View>
       </SafeAreaView>
     );
@@ -207,15 +203,11 @@ const ProductDetailsScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable
+        <BackButton
           style={styles.backButton}
           onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel={t('ui.common.back')}
           hitSlop={4}
-        >
-          <BackArrowIcon width={24} height={24} />
-        </Pressable>
+        />
       </View>
       <ScrollView
         showsVerticalScrollIndicator={false}

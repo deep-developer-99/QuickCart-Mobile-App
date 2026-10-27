@@ -24,6 +24,7 @@ import {
   type OrderStatus,
 } from '../../api/orderApi';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import BackButton from '../../components/common/BackButton';
 
 type Tab = 'Ongoing' | 'Completed';
 
@@ -322,13 +323,11 @@ const OrderHistoryScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable
+        <BackButton
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           hitSlop={10}
-        >
-          <Text style={styles.backArrow}>‹</Text>
-        </Pressable>
+        />
 
         <View>
           <Text style={styles.headerTitle}>{t('orders.title')}</Text>
@@ -342,6 +341,8 @@ const OrderHistoryScreen = () => {
         <Pressable
           style={[styles.tab, activeTab === 'Ongoing' && styles.activeTab]}
           onPress={() => setActiveTab('Ongoing')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === 'Ongoing' }}
         >
           <Text
             style={[
@@ -356,6 +357,8 @@ const OrderHistoryScreen = () => {
         <Pressable
           style={[styles.tab, activeTab === 'Completed' && styles.activeTab]}
           onPress={() => setActiveTab('Completed')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === 'Completed' }}
         >
           <Text
             style={[
@@ -407,7 +410,7 @@ const OrderHistoryScreen = () => {
   );
 };
 
-const createStyles = (colors: ThemeColors) =>
+const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -459,7 +462,7 @@ const createStyles = (colors: ThemeColors) =>
       marginTop: 8,
       padding: 4,
       borderRadius: 12,
-      backgroundColor: colors.grey50,
+      backgroundColor: mode === 'dark' ? colors.control : colors.grey50,
       flexDirection: 'row',
     },
 
@@ -471,13 +474,13 @@ const createStyles = (colors: ThemeColors) =>
     },
 
     activeTab: {
-      backgroundColor: colors.control,
+      backgroundColor: colors.black,
     },
 
     tabText: {
       fontFamily: 'PlusJakartaSans-Regular',
       fontSize: 14,
-      color: colors.text,
+      color: mode === 'dark' ? colors.secondaryText : colors.text,
     },
 
     activeTabText: {
@@ -741,8 +744,11 @@ const createStyles = (colors: ThemeColors) =>
   });
 
 const useStyles = () => {
-  const { theme } = useTheme();
-  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
+  const { theme, mode } = useTheme();
+  return React.useMemo(
+    () => createStyles(theme.colors, mode),
+    [theme.colors, mode],
+  );
 };
 
 export default OrderHistoryScreen;

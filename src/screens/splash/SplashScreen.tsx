@@ -10,17 +10,10 @@ import { AuthStackParamList } from '../../navigation/AuthNavigator';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Splash'>;
 
-const SplashScreen = ({ navigation }: Props) => {
+export const SplashScreenContent = () => {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const styles = SplashScreenStyles(theme.colors);
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      navigation.replace('Onboarding');
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -29,6 +22,18 @@ const SplashScreen = ({ navigation }: Props) => {
       <Text style={styles.tagline}>{t('ui.splash.tagline')}</Text>
     </SafeAreaView>
   );
+};
+
+const SplashScreen = ({ navigation }: Props) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigation.replace('Onboarding');
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [navigation]);
+
+  return <SplashScreenContent />;
 };
 
 export default SplashScreen;

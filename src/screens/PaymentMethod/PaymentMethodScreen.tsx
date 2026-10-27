@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+import BackButton from '../../components/common/BackButton';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PaymentMethod'>;
@@ -104,13 +105,11 @@ export default function PaymentMethodScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable
+        <BackButton
           onPress={() => navigation.goBack()}
           style={styles.backButton}
           hitSlop={10}
-        >
-          <Text style={styles.backArrow}>‹</Text>
-        </Pressable>
+        />
         <Text style={styles.headerTitle}>{t('ui.payment.title')}</Text>
       </View>
 

@@ -21,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import EmptyCart from './EmptyCart';
+import BackButton from '../../components/common/BackButton';
 import TrashIcon from '../../assets/icons/trash.svg';
 import {
   CartItem,
@@ -151,7 +152,7 @@ const CartScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Pressable
+        <BackButton
           style={styles.backButton}
           onPress={() => {
             if (navigation.canGoBack()) {
@@ -160,9 +161,7 @@ const CartScreen = () => {
               navigation.navigate('Home');
             }
           }}
-        >
-          <Text style={styles.backIcon}>←</Text>
-        </Pressable>
+        />
 
         <Text style={styles.headerTitle}>{t('tabs.cart')}</Text>
 
