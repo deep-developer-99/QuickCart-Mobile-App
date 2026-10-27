@@ -167,7 +167,9 @@ const SavedAddressCard = ({
   address: Address;
   selected: boolean;
   onPress: () => void;
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <Pressable
     onPress={onPress}
     style={[styles.addressCard, selected && styles.addressCardSelected]}
@@ -181,7 +183,7 @@ const SavedAddressCard = ({
           <Text style={styles.addressName}>{address.fullName}</Text>
           {address.isDefault ? (
             <View style={styles.defaultBadge}>
-              <Text style={styles.defaultBadgeText}>DEFAULT</Text>
+              <Text style={styles.defaultBadgeText}>{t('shipping.default')}</Text>
             </View>
           ) : null}
         </View>
@@ -195,7 +197,8 @@ const SavedAddressCard = ({
       </View>
     </View>
   </Pressable>
-);
+  );
+};
 
 export default function ShippingAddressScreen({ navigation }: Props) {
   const { t } = useTranslation();

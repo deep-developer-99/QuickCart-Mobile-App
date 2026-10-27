@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import {
   FlatList,
@@ -19,6 +20,7 @@ interface WishlistProductsProps {
 }
 
 const WishlistProducts = ({ products }: WishlistProductsProps) => {
+  const { t } = useTranslation();
   const styles = useStyles();
   const navigation = useNavigation<any>();
   const [removeFromWishlist] = useRemoveFromWishlistMutation();
@@ -69,7 +71,7 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
             navigation.navigate('ProductDetails', { product: item })
           }
           accessibilityRole="button"
-          accessibilityLabel={`View details for ${item.name}`}
+          accessibilityLabel={t('ui.common.viewProductDetails', { name: item.name })}
         >
           {item.image ? (
             <Image
@@ -90,7 +92,7 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
               navigation.navigate('ProductDetails', { product: item })
             }
             accessibilityRole="button"
-            accessibilityLabel={`View details for ${item.name}`}
+            accessibilityLabel={t('ui.common.viewProductDetails', { name: item.name })}
           >
             <Text style={styles.productName} numberOfLines={2}>
               {item.name}
@@ -127,7 +129,7 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
               onPress={() => handleRemove(item._id)}
               hitSlop={10}
               accessibilityRole="button"
-              accessibilityLabel={`Remove ${item.name} from wishlist`}
+              accessibilityLabel={t('ui.common.removeFromWishlist', { name: item.name })}
             >
               <TrashIcon width={24} height={24} />
             </Pressable>
@@ -145,7 +147,7 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
           style={styles.backButton}
           onPress={() => navigation.canGoBack() && navigation.goBack()}
           hitSlop={10}
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('ui.common.back')}
         >
           <Text style={styles.backIcon}>←</Text>
         </Pressable>

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Pressable,
@@ -30,6 +31,7 @@ const mapHtml = (
   shop: Coordinate,
   customer: Coordinate,
   status: OrderStatus,
+  labels: { shopPickup: string; delivery: string; simulatedDelivery: string },
 ) => {
   const progress =
     status === 'Delivered' ? 1 : status === 'Out for Delivery' ? 0.55 : 0;
@@ -46,40 +48,16 @@ const mapHtml = (
 function report(type){try{window.ReactNativeWebView.postMessage(JSON.stringify({type:type}))}catch(e){}}
 window.addEventListener('error',function(event){if(event.target&&(event.target.tagName==='SCRIPT'||event.target.tagName==='LINK'))report('asset-error');else report('javascript-error')},true);
 window.onerror=function(){report('javascript-error');return true};
-function initializeMap(){try{if(!window.L){report('leaflet-error');return}const shop=[${shop.latitude},${shop.longitude}],customer=[${customer.latitude},${customer.longitude}],current=[${current.latitude},${current.longitude}];const map=L.map('map',{zoomControl:true,scrollWheelZoom:false}).setView(shop,13);const tiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'}).addTo(map);let tileErrors=0;let tileLoaded=false;tiles.on('tileload',function(){tileLoaded=true});tiles.on('tileerror',function(){tileErrors+=1;if(!tileLoaded&&tileErrors>=3)report('tile-error')});const route=L.polyline(${points},{color:'#21BFA6',weight:5,opacity:.9,dashArray:'8 8'}).addTo(map);L.marker(shop).addTo(map).bindPopup('Shop / pickup location');L.marker(customer).addTo(map).bindPopup('Your delivery address');L.circleMarker(current,{radius:9,color:'#ffffff',weight:3,fillColor:'#f59e0b',fillOpacity:1}).addTo(map).bindPopup('Demo delivery location');if(shop[0]===customer[0]&&shop[1]===customer[1])map.setView(shop,15);else map.fitBounds(route.getBounds().pad(0.18));report('map-ready');setTimeout(function(){if(!tileLoaded&&tileErrors>0)report('tile-error')},12000)}catch(e){report('map-error')}}
+function initializeMap(){try{if(!window.L){report('leaflet-error');return}const shop=[${shop.latitude},${shop.longitude}],customer=[${customer.latitude},${customer.longitude}],current=[${current.latitude},${current.longitude}];const map=L.map('map',{zoomControl:true,scrollWheelZoom:false}).setView(shop,13);const tiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'}).addTo(map);let tileErrors=0;let tileLoaded=false;tiles.on('tileload',function(){tileLoaded=true});tiles.on('tileerror',function(){tileErrors+=1;if(!tileLoaded&&tileErrors>=3)report('tile-error')});const route=L.polyline(${points},{color:'#21BFA6',weight:5,opacity:.9,dashArray:'8 8'}).addTo(map);L.marker(shop).addTo(map).bindPopup(${JSON.stringify(labels.shopPickup)});L.marker(customer).addTo(map).bindPopup(${JSON.stringify(labels.delivery)});L.circleMarker(current,{radius:9,color:'#ffffff',weight:3,fillColor:'#f59e0b',fillOpacity:1}).addTo(map).bindPopup(${JSON.stringify(labels.simulatedDelivery)});if(shop[0]===customer[0]&&shop[1]===customer[1])map.setView(shop,15);else map.fitBounds(route.getBounds().pad(0.18));report('map-ready');setTimeout(function(){if(!tileLoaded&&tileErrors>0)report('tile-error')},12000)}catch(e){report('map-error')}}
 </script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onerror="report('asset-error')"></script><script>initializeMap()</script></body></html>`;
 };
 
 const coordinateErrorMessage = (
-  code: string,
-  location: 'shop' | 'delivery',
-): string => {
-  const locationLabel = location === 'shop' ? 'shop' : 'delivery address';
-  switch (code) {
-    case 'NOT_FOUND':
-      return `We could not find the ${locationLabel} on the map. Check the saved address and try again.`;
-    case 'INVALID_INPUT':
-      return `A complete ${locationLabel} is needed to find this location.`;
-    case 'RATE_LIMITED':
-      return 'The map address service is busy. Please wait a moment and try again.';
-    case 'TIMEOUT':
-      return 'The address lookup took too long. Check your connection and try again.';
-    case 'AUTHENTICATION_REQUIRED':
-      return 'Please sign in again to look up this map location.';
-    default:
-      return 'We could not look up one of these addresses. Check your connection and try again.';
-  }
-};
+  _code: string,
+  _location: 'shop' | 'delivery',
+): string => 'ui.common.mapError';
 
-const mapErrorMessage = (type: string): string => {
-  if (type === 'tile-error') {
-    return 'Map tiles are not loading. Check your internet connection and retry.';
-  }
-  if (type === 'asset-error' || type === 'leaflet-error') {
-    return 'The map could not load. Check your internet connection and retry.';
-  }
-  return 'The map could not start. Please retry in a moment.';
-};
+const mapErrorMessage = (_type: string): string => 'ui.common.mapError';
 
 const DummyLiveOrderTracking = ({
   shopName,
@@ -89,6 +67,7 @@ const DummyLiveOrderTracking = ({
   deliveryCoordinates,
   status,
 }: Props) => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme.colors), [theme.colors]);
   const [coordinates, setCoordinates] = useState<{
@@ -184,21 +163,21 @@ const DummyLiveOrderTracking = ({
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>Live order tracking</Text>
-      <Text style={styles.subtitle}>Demo tracking · location is simulated</Text>
+      <Text style={styles.title}>{t('ui.tracking.title')}</Text>
+      <Text style={styles.subtitle}>{t('ui.tracking.demoSubtitle')}</Text>
       <View style={styles.routeLabels}>
         <View style={styles.routeDotShop} />
         <View style={styles.routeTextWrap}>
-          <Text style={styles.label}>FROM · {shopName || 'Shop'}</Text>
+          <Text style={styles.label}>{t('ui.tracking.from')} · {shopName || t('ui.tracking.shop')}</Text>
           <Text style={styles.address} numberOfLines={2}>
-            {shopAddress || 'Shop address unavailable'}
+            {shopAddress || t('ui.tracking.shopAddressUnavailable')}
           </Text>
         </View>
       </View>
       <View style={styles.routeLabels}>
         <View style={styles.routeDotHome} />
         <View style={styles.routeTextWrap}>
-          <Text style={styles.label}>TO · YOUR ADDRESS</Text>
+          <Text style={styles.label}>{t('ui.tracking.to')}</Text>
           <Text style={styles.address} numberOfLines={2}>
             {deliveryAddress}
           </Text>
@@ -208,14 +187,14 @@ const DummyLiveOrderTracking = ({
         <View style={styles.mapPlaceholder}>
           <ActivityIndicator color={theme.colors.cyan} />
           <Text style={styles.mapMessage}>
-            Finding saved locations for the demo map…
+            {t('ui.tracking.loading')}
           </Text>
         </View>
       ) : lookupError ? (
         <View style={styles.mapPlaceholder}>
-          <Text style={styles.mapMessage}>{lookupError}</Text>
+          <Text style={styles.mapMessage}>{t(lookupError)}</Text>
           <Pressable style={styles.retryButton} onPress={retryLookup}>
-            <Text style={styles.retryText}>Retry location lookup</Text>
+            <Text style={styles.retryText}>{t('ui.tracking.retry')}</Text>
           </Pressable>
         </View>
       ) : coordinates ? (
@@ -224,7 +203,11 @@ const DummyLiveOrderTracking = ({
             key={mapAttempt}
             originWhitelist={['*']}
             source={{
-              html: mapHtml(coordinates.shop, coordinates.customer, status),
+              html: mapHtml(coordinates.shop, coordinates.customer, status, {
+                shopPickup: t('ui.tracking.shopPickup'),
+                delivery: t('ui.tracking.deliveryMapLabel'),
+                simulatedDelivery: t('ui.tracking.demoMapLabel'),
+              }),
               baseUrl: 'https://quickcart-bxod.onrender.com/',
             }}
             style={styles.map}
@@ -244,17 +227,16 @@ const DummyLiveOrderTracking = ({
           />
           {mapError ? (
             <View style={styles.mapErrorOverlay}>
-              <Text style={styles.mapMessage}>{mapError}</Text>
+              <Text style={styles.mapMessage}>{t(mapError)}</Text>
               <Pressable style={styles.retryButton} onPress={retryMap}>
-                <Text style={styles.retryText}>Retry map</Text>
+                <Text style={styles.retryText}>{t('ui.common.retryMap')}</Text>
               </Pressable>
             </View>
           ) : null}
         </View>
       ) : null}
       <Text style={styles.disclaimer}>
-        This is a visual demo only. The marker does not represent a real
-        delivery partner’s GPS location.
+        {t('ui.tracking.notice')}
       </Text>
     </View>
   );

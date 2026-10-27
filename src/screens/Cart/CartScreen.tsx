@@ -208,7 +208,7 @@ const CartScreen = () => {
                       navigation.navigate('ProductDetails', { product })
                     }
                     accessibilityRole="button"
-                    accessibilityLabel={`View details for ${product.name}`}
+                    accessibilityLabel={t('ui.common.viewProductDetails', { name: product.name })}
                   >
                     {product.image ? (
                       <Image
@@ -227,7 +227,7 @@ const CartScreen = () => {
                           navigation.navigate('ProductDetails', { product })
                         }
                         accessibilityRole="button"
-                        accessibilityLabel={`View details for ${product.name}`}
+                        accessibilityLabel={t('ui.common.viewProductDetails', { name: product.name })}
                       >
                         <Text style={styles.productName} numberOfLines={2}>
                           {product.name}
@@ -285,7 +285,7 @@ const CartScreen = () => {
                         style={styles.deleteButton}
                         onPress={() => removeItem(productId)}
                         accessibilityRole="button"
-                        accessibilityLabel={`Remove ${product.name} from cart`}
+                        accessibilityLabel={t('ui.common.removeFromCart', { name: product.name })}
                       >
                         <TrashIcon width={24} height={24} />
                       </Pressable>
@@ -327,7 +327,7 @@ const CartScreen = () => {
               }}
             >
               <Text style={styles.checkoutText}>
-                Checkout ({selectedItems.length})
+                {t('ui.cart.checkoutItems', { count: selectedItems.length })}
               </Text>
             </Pressable>
           </View>
@@ -358,7 +358,7 @@ const CartScreen = () => {
               <TextInput
                 value={voucherCode}
                 onChangeText={setVoucherCode}
-                placeholder="Enter Voucher Code"
+                placeholder={t('ui.cart.voucherPlaceholder')}
                 placeholderTextColor={theme.colors.grey150}
                 autoCapitalize="characters"
                 style={styles.voucherInput}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Pressable,
   StyleSheet,
@@ -115,6 +116,7 @@ const EmptyWishlistIllustration = () => (
 );
 
 const EmptyWishlist = () => {
+  const { t } = useTranslation();
   const styles = useStyles();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { width } = useWindowDimensions();
@@ -125,21 +127,21 @@ const EmptyWishlist = () => {
         <EmptyWishlistIllustration />
       </View>
 
-      <Text style={styles.title}>Your wishlist is empty</Text>
+      <Text style={styles.title}>{t('ui.wishlist.emptyTitle')}</Text>
 
       <Text
         style={[styles.description, { maxWidth: Math.min(width - 48, 330) }]}
       >
-        Tap heart button to start saving your favorite items.
+        {t('ui.wishlist.emptyDescription')}
       </Text>
 
       <Pressable
         style={styles.button}
         onPress={() => navigation.navigate('Categories')}
         accessibilityRole="button"
-        accessibilityLabel="Explore Categories"
+        accessibilityLabel={t('ui.wishlist.exploreCategories')}
       >
-        <Text style={styles.buttonText}>Explore Categories</Text>
+        <Text style={styles.buttonText}>{t('ui.wishlist.exploreCategories')}</Text>
       </Pressable>
     </View>
   );

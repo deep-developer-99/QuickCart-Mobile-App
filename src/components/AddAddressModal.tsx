@@ -658,21 +658,21 @@ export default function AddAddressModal({
                   ref={searchInputRef}
                   value={searchQuery}
                   onChangeText={searchLocations}
-                  placeholder="Search for an area, street or address"
+                  placeholder={t('ui.addressSearch.placeholder')}
                   placeholderTextColor="#9FA3AD"
                   style={styles.searchInput}
                   returnKeyType="next"
                   autoCorrect={false}
                   onSubmitEditing={() => formInputRefs.current[0]?.focus()}
                   onFocus={() => scrollInputIntoView(searchInputRef.current)}
-                  accessibilityLabel="Search for an area, street or address"
+                  accessibilityLabel={t('ui.addressSearch.placeholder')}
                 />
                 {searching ? <ActivityIndicator size="small" color={theme.colors.cyan} /> : null}
                 {!searching && searchQuery ? (
                   <Pressable
                     style={styles.searchClear}
                     onPress={() => searchLocations('')}
-                    accessibilityLabel="Clear address search"
+                    accessibilityLabel={t('ui.addressSearch.clear')}
                   >
                     <Text style={styles.searchClearText}>×</Text>
                   </Pressable>
@@ -680,9 +680,9 @@ export default function AddAddressModal({
               </View>
               {searching || searchError || (searchQuery.trim().length >= 3 && !searchResults.length) ? (
                 <View style={styles.suggestions}>
-                  {searching ? <Text style={styles.searchMessage}>Searching…</Text> : null}
+                  {searching ? <Text style={styles.searchMessage}>{t('ui.common.searching')}</Text> : null}
                   {!searching && searchError ? <Text style={styles.searchMessage}>{searchError}</Text> : null}
-                  {!searching && !searchError && searchQuery.trim().length >= 3 && !searchResults.length ? <Text style={styles.searchMessage}>No matching locations found.</Text> : null}
+                  {!searching && !searchError && searchQuery.trim().length >= 3 && !searchResults.length ? <Text style={styles.searchMessage}>{t('ui.common.noLocations')}</Text> : null}
                 </View>
               ) : null}
               {!searching && searchResults.length ? (
@@ -709,7 +709,7 @@ export default function AddAddressModal({
                     detectLocation();
                   }}
                   currentLocationLoading={locationStatus === 'loading'}
-                  currentLocationLabel="📍 Use Current Location"
+                  currentLocationLabel={t('ui.common.useCurrentLocation')}
                 />
               </View>
             ) : (

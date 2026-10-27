@@ -125,14 +125,14 @@ const LoginScreen = ({ navigation }: Props) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.content}>
-          <Text style={styles.title}>Welcome to QuickCart</Text>
+          <Text style={styles.title}>{t('ui.auth.welcome', { brand: 'QuickCart' })}</Text>
 
           <Text style={styles.subtitle}>
-            Login or create an account to continue
+            {t('ui.auth.loginSubtitle')}
           </Text>
 
           <View style={styles.inputSection}>
-            <Text style={styles.label}>Mobile Number</Text>
+            <Text style={styles.label}>{t('ui.auth.mobileNumber')}</Text>
 
             <View style={styles.phoneInputContainer}>
               <Text style={styles.countryCode}>+91</Text>
@@ -143,7 +143,7 @@ const LoginScreen = ({ navigation }: Props) => {
                 onChangeText={text =>
                   setMobileNumber(text.replace(/[^0-9]/g, ''))
                 }
-                placeholder="Enter mobile number"
+                placeholder={t('ui.auth.enterMobileNumber')}
                 placeholderTextColor={theme.colors.grey150}
                 keyboardType="number-pad"
                 maxLength={10}
@@ -160,14 +160,14 @@ const LoginScreen = ({ navigation }: Props) => {
             disabled={mobileNumber.length !== 10 || isLoading}
           >
             <Text style={styles.continueButtonText}>
-              {isLoading ? 'Sending OTP...' : 'Continue'}
+              {isLoading ? t('ui.auth.sendingOtp') : t('ui.auth.continue')}
             </Text>
           </Pressable>
 
           <View style={styles.dividerContainer}>
             <View style={styles.divider} />
 
-            <Text style={styles.orText}>OR</Text>
+            <Text style={styles.orText}>{t('ui.auth.or')}</Text>
 
             <View style={styles.divider} />
           </View>

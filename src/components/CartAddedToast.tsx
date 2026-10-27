@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { radius, spacing, typography, useTheme } from '../theme';
@@ -9,6 +10,7 @@ type CartAddedToastProps = {
 };
 
 const CartAddedToast = ({ visible, onViewCart }: CartAddedToastProps) => {
+  const { t } = useTranslation();
   const styles = useStyles();
 
   if (!visible) return null;
@@ -18,9 +20,9 @@ const CartAddedToast = ({ visible, onViewCart }: CartAddedToastProps) => {
       <View style={styles.successIcon}>
         <Text style={styles.successCheck}>✓</Text>
       </View>
-      <Text style={styles.message}>The product has been added to your cart</Text>
+      <Text style={styles.message}>{t('ui.common.addedToCart')}</Text>
       <Pressable onPress={onViewCart} hitSlop={8}>
-        <Text style={styles.viewCart}>View Cart</Text>
+        <Text style={styles.viewCart}>{t('ui.common.viewCart')}</Text>
       </Pressable>
     </View>
   );

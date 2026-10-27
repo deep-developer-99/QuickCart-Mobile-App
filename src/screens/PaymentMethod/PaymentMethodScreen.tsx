@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -52,6 +53,7 @@ const Field = ({
   </View>
 );
 export default function PaymentMethodScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const [method, setMethod] = useState<BackendPaymentMethod>('RAZORPAY_FAKE');
   const [cardHolder, setCardHolder] = useState('');
   const [cardNumber, setCardNumber] = useState('');
@@ -65,24 +67,24 @@ export default function PaymentMethodScreen({ navigation }: Props) {
       !expiry.trim() ||
       !cvv.trim()
     ) {
-      Alert.alert('Missing information', 'Please fill all card fields.');
+      Alert.alert(t('ui.payment.missingInformation'), t('ui.payment.fillCardFields'));
       return;
     }
 
     const cleanCardNumber = cardNumber.replace(/\s/g, '');
 
     if (!/^\d{12,19}$/.test(cleanCardNumber)) {
-      Alert.alert('Invalid card number', 'Please enter a valid card number.');
+      Alert.alert(t('ui.payment.invalidCardNumber'), t('ui.payment.validCardNumber'));
       return;
     }
 
     if (!/^\d{2}\/\d{2}$/.test(expiry)) {
-      Alert.alert('Invalid expiry', 'Use MM/YY format.');
+      Alert.alert(t('ui.payment.invalidExpiry'), t('ui.payment.expiryFormat'));
       return;
     }
 
     if (!/^\d{3,4}$/.test(cvv)) {
-      Alert.alert('Invalid CVV', 'Please enter a valid CVV.');
+      Alert.alert(t('ui.payment.invalidCvv'), t('ui.payment.validCvv'));
       return;
     }
 
@@ -93,9 +95,9 @@ export default function PaymentMethodScreen({ navigation }: Props) {
      * never sent to or stored by QuickCart.
      */
     Alert.alert(
-      'Payment Method',
-      'Card / UPI is represented by the backend payment option RAZORPAY_FAKE. Card details are not stored because the current backend has no saved-payment API.',
-      [{ text: 'OK', onPress: () => navigation.goBack() }],
+      t('ui.payment.infoTitle'),
+      t('ui.payment.demoNotice'),
+      [{ text: t('ui.payment.ok'), onPress: () => navigation.goBack() }],
     );
   };
 
@@ -109,7 +111,7 @@ export default function PaymentMethodScreen({ navigation }: Props) {
         >
           <Text style={styles.backArrow}>‹</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>Payment Method</Text>
+        <Text style={styles.headerTitle}>{t('ui.payment.title')}</Text>
       </View>
 
       <KeyboardAvoidingView
@@ -149,14 +151,14 @@ export default function PaymentMethodScreen({ navigation }: Props) {
           {method === 'RAZORPAY_FAKE' ? (
             <>
               <Field
-                label="Card Holder Name"
+                label={t('ui.payment.cardHolderName')}
                 value={cardHolder}
-                placeholder="Enter card holder name"
+                placeholder={t('ui.payment.enterCardHolder')}
                 onChangeText={setCardHolder}
               />
 
               <Field
-                label="Card Number"
+                label={t('ui.payment.cardNumber')}
                 value={cardNumber}
                 placeholder="4111 1111 1111 1111"
                 keyboardType="number-pad"
@@ -174,7 +176,7 @@ export default function PaymentMethodScreen({ navigation }: Props) {
               <View style={styles.splitRow}>
                 <View style={styles.half}>
                   <Field
-                    label="Expiration"
+                    label={t('ui.payment.expiration')}
                     value={expiry}
                     placeholder="MM/YY"
                     keyboardType="number-pad"
@@ -190,7 +192,7 @@ export default function PaymentMethodScreen({ navigation }: Props) {
                 </View>
                 <View style={styles.half}>
                   <Field
-                    label="CVV"
+                    label={t('ui.payment.cvv')}
                     value={cvv}
                     placeholder="123"
                     keyboardType="number-pad"
@@ -205,7 +207,7 @@ export default function PaymentMethodScreen({ navigation }: Props) {
           ) : null}
 
           <Pressable style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.saveText}>Save</Text>
+            <Text style={styles.saveText}>{t('ui.payment.save')}</Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

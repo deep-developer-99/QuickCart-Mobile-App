@@ -71,6 +71,7 @@ const productEmoji = (name: string) => {
 };
 
 const SearchScreen = () => {
+  const { t } = useTranslation();
   const styles = useStyles();
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
@@ -260,7 +261,7 @@ const SearchScreen = () => {
           <View style={styles.logoMark}>
             <Text style={styles.logoMarkText}>Q</Text>
           </View>
-          <Text style={styles.logoText}>uickMart</Text>
+          <Text style={styles.logoText}>uickCart</Text>
         </View>
 
         <Pressable
@@ -281,7 +282,7 @@ const SearchScreen = () => {
           value={searchText}
           onChangeText={setSearchText}
           onSubmitEditing={handleSubmitSearch}
-          placeholder="Search"
+          placeholder={t('ui.common.searchPlaceholder')}
           placeholderTextColor={theme.colors.grey150}
           autoFocus
           returnKeyType="search"
@@ -294,7 +295,7 @@ const SearchScreen = () => {
             onPress={clearSearch}
             hitSlop={8}
             style={styles.clearButton}
-            accessibilityLabel="Clear search"
+            accessibilityLabel={t('ui.common.clearSearch')}
           >
             <Text style={styles.clearText}>×</Text>
           </Pressable>
@@ -304,7 +305,7 @@ const SearchScreen = () => {
           onPress={openFilter}
           hitSlop={8}
           style={styles.filterButton}
-          accessibilityLabel="Open product filters"
+          accessibilityLabel={t('ui.common.openProductFilters')}
         >
           <View style={styles.filterLineTop} />
           <View style={styles.filterLineMiddle} />
@@ -321,7 +322,7 @@ const SearchScreen = () => {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.recentContent}
         >
-          <Text style={styles.recentTitle}>RECENT SEARCH</Text>
+          <Text style={styles.recentTitle}>{t('ui.search.recentSearches')}</Text>
 
           {recentSearchesLoaded && recentSearches.length > 0 ? (
             recentSearches.map(item => (
@@ -336,7 +337,7 @@ const SearchScreen = () => {
             ))
           ) : (
             <View style={styles.emptyRecentBox}>
-              <Text style={styles.emptyRecentText}>No recent searches</Text>
+              <Text style={styles.emptyRecentText}>{t('ui.search.noRecentSearches')}</Text>
             </View>
           )}
         </ScrollView>
@@ -348,7 +349,7 @@ const SearchScreen = () => {
         >
           <View style={styles.resultsHeader}>
             <Text style={styles.resultsTitle}>
-              SEARCH RESULTS ({products.length})
+              {t('ui.search.resultCount', { count: products.length })}
             </Text>
             {isFetching ? <ActivityIndicator size="small" /> : null}
           </View>
@@ -359,14 +360,14 @@ const SearchScreen = () => {
             </View>
           ) : isError ? (
             <View style={styles.stateBox}>
-              <Text style={styles.stateTitle}>Something went wrong</Text>
-              <Text style={styles.stateText}>Please try searching again.</Text>
+              <Text style={styles.stateTitle}>{t('ui.search.errorTitle')}</Text>
+              <Text style={styles.stateText}>{t('ui.search.errorDescription')}</Text>
             </View>
           ) : products.length === 0 ? (
             <View style={styles.stateBox}>
-              <Text style={styles.stateTitle}>No products found</Text>
+              <Text style={styles.stateTitle}>{t('ui.search.emptyTitle')}</Text>
               <Text style={styles.stateText}>
-                Try a different product name or keyword.
+                {t('ui.search.emptyDescription')}
               </Text>
             </View>
           ) : (
@@ -478,14 +479,12 @@ const FilterModal = ({
 }) => {
   const styles = useStyles();
   const { t } = useTranslation();
-  const tr = (key: string, fallback: string, options?: Record<string, unknown>) =>
-    t(key, { ...options, defaultValue: fallback });
   const update = (changes: Partial<ProductFilters>) =>
     onChange({ ...filters, ...changes });
   const sortOptions: Array<{ key: SortOption; label: string }> = [
-    { key: 'priceLow', label: 'Price: Low to High' },
-    { key: 'priceHigh', label: 'Price: High to Low' },
-    { key: 'rating', label: 'Highest Rated' },
+    { key: 'priceLow', label: t('ui.search.sortPriceLow') },
+    { key: 'priceHigh', label: t('ui.search.sortPriceHigh') },
+    { key: 'rating', label: t('ui.search.sortHighestRated') },
   ];
 
   return (
@@ -499,33 +498,33 @@ const FilterModal = ({
           <View style={styles.filterSheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.filterHeader}>
-              <Text style={styles.filterTitle}>{tr('search.filterTitle', 'Filter Products')}</Text>
+              <Text style={styles.filterTitle}>{t('search.filterTitle')}</Text>
               <Pressable onPress={onClear} hitSlop={8}>
-                <Text style={styles.clearFiltersText}>{tr('search.clear', 'Clear')}</Text>
+                <Text style={styles.clearFiltersText}>{t('search.clear')}</Text>
               </Pressable>
             </View>
 
             <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Text style={styles.filterSectionTitle}>{tr('search.category', 'Category')}</Text>
+            <Text style={styles.filterSectionTitle}>{t('search.category')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChoices}>
-              <FilterChoice label={tr('search.all', 'All')} selected={!filters.categoryId} onPress={() => update({ categoryId: null })} styles={styles} />
+              <FilterChoice label={t('search.all')} selected={!filters.categoryId} onPress={() => update({ categoryId: null })} styles={styles} />
               {categories.map(category => (
                 <FilterChoice key={category._id} label={category.name} selected={filters.categoryId === category._id} onPress={() => update({ categoryId: category._id })} styles={styles} />
               ))}
             </ScrollView>
 
-            <Text style={styles.filterSectionTitle}>{tr('search.priceRange', 'Price range')}</Text>
+            <Text style={styles.filterSectionTitle}>{t('search.priceRange')}</Text>
             <View style={styles.priceInputs}>
-              <TextInput value={filters.minPrice} onChangeText={minPrice => update({ minPrice })} placeholder={tr('search.minimum', 'Minimum')} placeholderTextColor={styles.filterInputPlaceholder.color} keyboardType="decimal-pad" style={styles.filterInput} />
-              <TextInput value={filters.maxPrice} onChangeText={maxPrice => update({ maxPrice })} placeholder={tr('search.maximum', 'Maximum')} placeholderTextColor={styles.filterInputPlaceholder.color} keyboardType="decimal-pad" style={styles.filterInput} />
+              <TextInput value={filters.minPrice} onChangeText={minPrice => update({ minPrice })} placeholder={t('search.minimum')} placeholderTextColor={styles.filterInputPlaceholder.color} keyboardType="decimal-pad" style={styles.filterInput} />
+              <TextInput value={filters.maxPrice} onChangeText={maxPrice => update({ maxPrice })} placeholder={t('search.maximum')} placeholderTextColor={styles.filterInputPlaceholder.color} keyboardType="decimal-pad" style={styles.filterInput} />
             </View>
 
             <Pressable style={styles.filterToggleRow} onPress={() => update({ inStock: !filters.inStock })}>
               <View style={[styles.checkbox, filters.inStock && styles.checkboxChecked]}>{filters.inStock ? <Text style={styles.checkmark}>✓</Text> : null}</View>
-              <Text style={styles.filterLabel}>{tr('search.inStock', 'Only show in-stock products')}</Text>
+              <Text style={styles.filterLabel}>{t('search.inStock')}</Text>
             </Pressable>
 
-            <Text style={styles.filterSectionTitle}>{tr('search.sortBy', 'Sort by')}</Text>
+            <Text style={styles.filterSectionTitle}>{t('search.sortBy')}</Text>
             {sortOptions.map(option => (
               <Pressable key={option.key} style={styles.filterToggleRow} onPress={() => update({ sort: filters.sort === option.key ? null : option.key })}>
                 <View style={[styles.checkbox, filters.sort === option.key && styles.checkboxChecked]}>{filters.sort === option.key ? <Text style={styles.checkmark}>✓</Text> : null}</View>
@@ -534,7 +533,7 @@ const FilterModal = ({
             ))}
 
             <Pressable style={styles.applyButton} onPress={onApply}>
-              <Text style={styles.applyText}>{tr('search.apply', 'Apply Filters')}</Text>
+              <Text style={styles.applyText}>{t('search.apply')}</Text>
             </Pressable>
             </ScrollView>
           </View>

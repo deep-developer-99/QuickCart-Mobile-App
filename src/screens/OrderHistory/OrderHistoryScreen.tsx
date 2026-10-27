@@ -190,6 +190,17 @@ const OrderHistoryScreen = () => {
   const visibleOrders =
     activeTab === 'Ongoing' ? ongoingOrders : completedOrders;
 
+  const localizedStatus = (status: string) => {
+    const keys: Record<string, string> = {
+      placed: 'ui.status.placed',
+      accepted: 'ui.status.accepted',
+      'out for delivery': 'ui.status.outForDelivery',
+      delivered: 'ui.status.delivered',
+    };
+    const key = keys[status.trim().toLowerCase()];
+    return key ? t(key) : status;
+  };
+
   const renderOrder = (order: MyOrder) => {
     if (!order.items?.length) return null;
 
@@ -199,12 +210,12 @@ const OrderHistoryScreen = () => {
         style={styles.orderBlock}
         onPress={() => navigation.navigate('OrderDetails', { order })}
         accessibilityRole="button"
-        accessibilityLabel={`View order ${order._id}`}
+        accessibilityLabel={t('orders.viewOrder', { id: order._id })}
       >
         <View style={styles.orderHeader}>
           <View>
             <Text style={styles.orderNumber}>
-              ORDER #{order._id.slice(-8).toUpperCase()}
+              {t('ui.orderDetails.orderNumber', { id: order._id.slice(-8).toUpperCase() })}
             </Text>
             <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
           </View>
@@ -220,7 +231,7 @@ const OrderHistoryScreen = () => {
             ]}
           >
             <Text style={styles.statusText}>
-              {order.status === 'Delivered' ? t('orders.delivered') : order.status}
+              {localizedStatus(order.status)}
             </Text>
           </View>
 

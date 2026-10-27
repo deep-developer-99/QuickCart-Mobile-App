@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
@@ -48,6 +49,7 @@ type PaymentMethod =
   | 'WALLET';
 
 export default function CheckoutScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
   const styles = useStyles();
   const checkoutMode = route.params?.mode ?? 'cart';
   const buyNowProduct = route.params?.product;
@@ -113,18 +115,18 @@ export default function CheckoutScreen({ navigation, route }: Props) {
   const placeOrder = async () => {
     if (!addressId) {
       Alert.alert(
-        'Select address',
-        'Please select or save a delivery address.',
+        t('ui.checkout.selectAddress'),
+        t('ui.checkout.selectAddressMessage'),
       );
       return;
     }
 
     if (items.length === 0) {
       Alert.alert(
-        isBuyNow ? 'Product unavailable' : 'Empty cart',
+        isBuyNow ? t('ui.checkout.productUnavailable') : t('ui.checkout.emptyCart'),
         isBuyNow
-          ? 'This product is no longer available for checkout.'
-          : 'Your cart is empty.',
+          ? t('ui.checkout.productUnavailableMessage')
+          : t('ui.checkout.emptyCartMessage'),
       );
       return;
     }
@@ -133,8 +135,8 @@ export default function CheckoutScreen({ navigation, route }: Props) {
       if (isOnlinePayment) {
         if (isBuyNow && !buyNowProduct) {
           Alert.alert(
-            'Product unavailable',
-            'Unable to checkout this product.',
+            t('ui.checkout.productUnavailable'),
+            t('ui.checkout.unableToCheckout'),
           );
           return;
         }
@@ -176,23 +178,23 @@ export default function CheckoutScreen({ navigation, route }: Props) {
 
         if (verification.data.status === 'paid_needs_review') {
           Alert.alert(
-            'Payment received',
-            'Cashfree confirmed your payment, but the order needs a review. Please do not pay again; contact support if the order does not appear in My Orders.',
+            t('ui.checkout.paymentReceived'),
+            t('ui.checkout.paymentReview'),
           );
           return;
         }
 
         if (verification.data.status === 'pending') {
           Alert.alert(
-            'Payment processing',
-            'Cashfree is still processing your payment. Check My Orders before trying again.',
+            t('ui.checkout.paymentProcessing'),
+            t('ui.checkout.paymentPending'),
           );
           return;
         }
 
         Alert.alert(
-          'Payment not completed',
-          'Cashfree could not confirm a successful payment. You can try again or choose Cash on Delivery.',
+          t('ui.checkout.paymentNotCompleted'),
+          t('ui.checkout.paymentNotConfirmed'),
         );
         return;
       }
@@ -200,8 +202,8 @@ export default function CheckoutScreen({ navigation, route }: Props) {
       if (isBuyNow) {
         if (!buyNowProduct) {
           Alert.alert(
-            'Product unavailable',
-            'Unable to checkout this product.',
+            t('ui.checkout.productUnavailable'),
+            t('ui.checkout.unableToCheckout'),
           );
           return;
         }
@@ -225,11 +227,11 @@ export default function CheckoutScreen({ navigation, route }: Props) {
       setStep('success');
     } catch (error: any) {
       Alert.alert(
-        isOnlinePayment ? 'Payment status unavailable' : 'Order failed',
+        isOnlinePayment ? t('ui.checkout.paymentStatusUnavailable') : t('ui.checkout.orderFailed'),
         error?.data?.message ??
           (isOnlinePayment
-            ? 'We could not confirm the payment status. Please check My Orders before retrying.'
-            : 'Unable to place order.'),
+            ? t('ui.checkout.paymentCheckAgain')
+            : t('ui.checkout.unableToPlaceOrder')),
       );
     }
   };
@@ -255,7 +257,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
           <ActivityIndicator size="large" />
-          <Text style={styles.muted}>Loading checkout...</Text>
+          <Text style={styles.muted}>{t('ui.checkout.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -264,7 +266,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
   if (step === 'success') {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <Header title="Checkout" onBack={() => navigation.goBack()} />
+        <Header title={t('ui.checkout.title')} onBack={() => navigation.goBack()} />
 
         <View style={styles.success}>
           <View style={styles.successBox}>
@@ -272,16 +274,15 @@ export default function CheckoutScreen({ navigation, route }: Props) {
           </View>
 
           <Text style={styles.successTitle}>
-            Your order has been{'\n'}placed successfully
+            {t('ui.checkout.successTitle')}
           </Text>
 
           <Text style={styles.successText}>
-            Thank you for choosing us! Feel free to continue shopping and
-            explore our wide range of products. Happy Shopping!
+            {t('ui.checkout.successMessage')}
           </Text>
 
           <Button
-            title="Continue Shopping"
+            title={t('ui.checkout.continueShopping')}
             onPress={() =>
               navigation.replace('MainTabs', { screen: 'Categories' })
             }
@@ -295,7 +296,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <Header title="Checkout" onBack={goBack} />
+        <Header title={t('ui.checkout.title')} onBack={goBack} />
 
       <Steps
         current={currentStep}
@@ -316,7 +317,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
       >
         {step === 'shipping' && (
           <>
-            <SectionTitle title="Shipping Address" />
+            <SectionTitle title={t('ui.checkout.shippingAddress')} />
 
             {addresses.map(address => (
               <AddressCard
@@ -327,7 +328,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
               />
             ))}
             <Button
-              title="Add New Address"
+              title={t('ui.checkout.addNewAddress')}
               onPress={() => setAddressModalOpen(true)}
             />
           </>
@@ -335,12 +336,12 @@ export default function CheckoutScreen({ navigation, route }: Props) {
 
         {step === 'payment' && (
           <>
-            <SectionTitle title="Payment" />
+            <SectionTitle title={t('ui.checkout.payment')} />
 
             <View style={styles.paymentSection}>
-              <Text style={styles.paymentGroupTitle}>UPI</Text>
+              <Text style={styles.paymentGroupTitle}>{t('ui.checkout.upi')}</Text>
               <Text style={styles.paymentGroupSubtitle}>
-                Choose your preferred UPI option
+                {t('ui.checkout.chooseUpi')}
               </Text>
 
               <View style={styles.upiGrid}>
@@ -368,8 +369,8 @@ export default function CheckoutScreen({ navigation, route }: Props) {
               </View>
 
               <MethodRow
-                title="Pay with Other UPI"
-                subtitle="Continue to secure UPI checkout"
+                title={t('ui.checkout.payOtherUpi')}
+                subtitle={t('ui.checkout.secureUpi')}
                 icon="↗"
                 selected={payment === 'UPI_OTHER'}
                 onPress={() => setPayment('UPI_OTHER')}
@@ -378,25 +379,25 @@ export default function CheckoutScreen({ navigation, route }: Props) {
 
             <View style={styles.paymentSection}>
               <Text style={styles.paymentGroupTitle}>
-                Other payment methods
+                {t('ui.checkout.otherMethods')}
               </Text>
               <MethodRow
-                title="Credit / Debit Cards"
-                subtitle="Visa, Mastercard and supported cards"
+                title={t('ui.checkout.cards')}
+                subtitle={t('ui.checkout.supportedCards')}
                 icon="▤"
                 selected={payment === 'CARD'}
                 onPress={() => setPayment('CARD')}
               />
               <MethodRow
-                title="Wallet"
-                subtitle="Wallets supported by the payment gateway"
+                title={t('ui.checkout.wallet')}
+                subtitle={t('ui.checkout.supportedWallet')}
                 icon="▣"
                 selected={payment === 'WALLET'}
                 onPress={() => setPayment('WALLET')}
               />
               <MethodRow
-                title="Cash on Delivery"
-                subtitle="Pay when your order arrives"
+                title={t('ui.checkout.cashOnDelivery')}
+                subtitle={t('ui.checkout.payWhenArrives')}
                 icon="₹"
                 selected={payment === 'COD'}
                 onPress={() => setPayment('COD')}
@@ -404,12 +405,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
             </View>
 
             {isOnlinePayment && (
-              <Text style={styles.paymentNotice}>
-                Online payments open Cashfree’s secure checkout. The available
-                methods depend on your Cashfree account configuration. Selecting
-                a UPI app here chooses UPI checkout; Cashfree may show its own
-                supported UPI app choices.
-              </Text>
+              <Text style={styles.paymentNotice}>{t('ui.checkout.onlineNotice')}</Text>
             )}
 
             <Summary
@@ -419,16 +415,16 @@ export default function CheckoutScreen({ navigation, route }: Props) {
               total={total}
             />
 
-            <Button title="Continue" onPress={() => setStep('review')} />
+            <Button title={t('ui.checkout.continue')} onPress={() => setStep('review')} />
           </>
         )}
 
         {step === 'review' && (
           <>
-            <SectionTitle title="Review Order" />
+            <SectionTitle title={t('ui.checkout.reviewOrder')} />
 
             <View style={styles.reviewCard}>
-              <Text style={styles.reviewLabel}>Shipping Address</Text>
+              <Text style={styles.reviewLabel}>{t('ui.checkout.shippingAddress')}</Text>
 
               {selectedAddress ? (
                 <>
@@ -445,7 +441,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
                   </Text>
                 </>
               ) : (
-                <Text style={styles.muted}>No address selected.</Text>
+                <Text style={styles.muted}>{t('ui.checkout.noAddress')}</Text>
               )}
             </View>
 
@@ -460,11 +456,11 @@ export default function CheckoutScreen({ navigation, route }: Props) {
               title={
                 placingOrder
                   ? isOnlinePayment
-                    ? 'Processing Payment...'
-                    : 'Placing Order...'
+                    ? t('ui.checkout.processingPayment')
+                    : t('ui.checkout.placingOrder')
                   : isOnlinePayment
-                  ? `Pay ₹${total.toFixed(2)}`
-                  : 'Place Order'
+                  ? t('ui.checkout.payAmount', { amount: total.toFixed(2) })
+                  : t('ui.checkout.placeOrder')
               }
               disabled={placingOrder}
               onPress={placeOrder}
@@ -510,8 +506,9 @@ function Steps({
   current: number;
   onPress: (index: number) => void;
 }) {
+  const { t } = useTranslation();
   const styles = useStyles();
-  const labels = ['Shipping', 'Payment', 'Review'];
+  const labels = [t('ui.checkout.shippingAddress'), t('ui.checkout.payment'), t('ui.checkout.reviewOrder')];
 
   return (
     <View style={styles.steps}>
@@ -673,6 +670,7 @@ function Summary({
   shipping: number;
   total: number;
 }) {
+  const { t } = useTranslation();
   const styles = useStyles();
   const originalSubtotal = items.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
@@ -682,7 +680,7 @@ function Summary({
 
   return (
     <View style={styles.summary}>
-      <Text style={styles.summaryTitle}>Order Info</Text>
+      <Text style={styles.summaryTitle}>{t('ui.checkout.orderInfo')}</Text>
 
       {items.length > 0 ? (
         <View style={styles.orderItems}>
@@ -706,10 +704,10 @@ function Summary({
                 </View>
                 <View style={styles.orderItemDetails}>
                   <Text numberOfLines={2} style={styles.orderItemName}>
-                    {item.product.name || 'Product unavailable'}
+                    {item.product.name || t('ui.checkout.productUnavailableItem')}
                   </Text>
                   <Text style={styles.orderItemMeta}>
-                    Qty {item.quantity} · ₹{unitPrice.toFixed(2)} each
+                    {t('ui.checkout.qtyEach', { count: item.quantity, price: unitPrice.toFixed(2) })}
                   </Text>
                 </View>
                 <Text style={styles.orderItemTotal}>₹{itemTotal.toFixed(2)}</Text>
@@ -719,20 +717,20 @@ function Summary({
         </View>
       ) : (
         <Text style={[styles.muted, styles.orderItemsEmpty]}>
-          No order items available.
+          {t('ui.checkout.noItems')}
         </Text>
       )}
 
-      <Row label="Subtotal" value={`₹${subtotal.toFixed(2)}`} />
+      <Row label={t('ui.checkout.subtotal')} value={`₹${subtotal.toFixed(2)}`} />
 
       {discount > 0 ? (
-        <Row label="Discount" value={`-₹${discount.toFixed(2)}`} />
+        <Row label={t('ui.checkout.discount')} value={`-₹${discount.toFixed(2)}`} />
       ) : null}
 
-      <Row label="Shipping Cost" value={`₹${shipping.toFixed(2)}`} />
+      <Row label={t('ui.checkout.shippingCost')} value={`₹${shipping.toFixed(2)}`} />
 
       <View style={styles.total}>
-        <Text style={styles.totalLabel}>Total</Text>
+        <Text style={styles.totalLabel}>{t('ui.checkout.total')}</Text>
         <Text style={styles.totalValue}>₹{total.toFixed(2)}</Text>
       </View>
     </View>

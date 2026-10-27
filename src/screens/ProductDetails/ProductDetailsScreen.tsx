@@ -1,6 +1,7 @@
 import { useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
 import React, { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Image,
   Pressable,
@@ -70,6 +71,7 @@ const HeartIcon = ({
 );
 
 const ProductDetailsScreen = () => {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const styles = useStyles(insets.bottom);
   const navigation = useNavigation<any>();
@@ -122,14 +124,14 @@ const ProductDetailsScreen = () => {
     if (!productUrl) return;
     const shortDescription = product.description?.trim().slice(0, 180);
     const message = [
-      'Check out this product on QuickCart!',
+      t('ui.product.shareMessage', { brand: 'QuickCart' }),
       '',
       product.name,
-      shortDescription || 'Discover this product on QuickCart.',
+      shortDescription || t('ui.product.shareFallback', { brand: 'QuickCart' }),
       productUrl,
     ].join('\n');
     await Share.share({ message, url: productUrl, title: product.name });
-  }, [product]);
+  }, [product, t]);
 
   const sellingPrice = product?.discountPrice ?? product?.price ?? 0;
   const hasDiscount =
@@ -138,7 +140,7 @@ const ProductDetailsScreen = () => {
 
   const description =
     product?.description?.trim() ||
-    'This product is designed with quality materials and made for comfortable everyday use.';
+    t('ui.product.defaultDescription');
 
   const shouldCollapse = description.length > 220;
   const visibleDescription =
@@ -183,16 +185,16 @@ const ProductDetailsScreen = () => {
         <View style={styles.unavailableState}>
           <Text style={styles.description}>
             {productLoading
-              ? 'Loading product…'
+              ? t('ui.product.loading')
               : productError || !validProductId || product?.isActive === false
-                ? 'This product is unavailable.'
-                : 'This product could not be found.'}
+                ? t('ui.product.unavailable')
+                : t('ui.product.notFound')}
           </Text>
           <Pressable
             onPress={() => navigation.goBack()}
             style={styles.backButton}
             accessibilityRole="button"
-            accessibilityLabel="Go back"
+            accessibilityLabel={t('ui.common.back')}
             hitSlop={4}
           >
             <BackArrowIcon width={24} height={24} />
@@ -209,7 +211,7 @@ const ProductDetailsScreen = () => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('ui.common.back')}
           hitSlop={4}
         >
           <BackArrowIcon width={24} height={24} />
@@ -245,7 +247,7 @@ const ProductDetailsScreen = () => {
             </ScrollView>
           ) : (
             <View style={styles.imageFallback}>
-              <Text style={styles.fallbackText}>No image</Text>
+              <Text style={styles.fallbackText}>{t('ui.common.noImage')}</Text>
             </View>
           )}
 
@@ -260,8 +262,8 @@ const ProductDetailsScreen = () => {
               accessibilityRole="button"
               accessibilityLabel={
                 isWishlisted
-                  ? `Remove ${product.name} from wishlist`
-                  : `Add ${product.name} to wishlist`
+                  ? t('ui.common.removeFromWishlist', { name: product.name })
+                  : t('ui.product.addToWishlist', { name: product.name })
               }
             >
               <HeartIcon color={styles.heartIcon.color} filled={isWishlisted} />
@@ -288,7 +290,7 @@ const ProductDetailsScreen = () => {
             style={styles.shareButton}
             onPress={shareProduct}
             accessibilityRole="button"
-            accessibilityLabel={`Share ${product.name}`}
+            accessibilityLabel={t('ui.product.shareProduct', { name: product.name })}
             hitSlop={4}
           >
             <ShareNodesIcon width={22} height={22} />
@@ -297,8 +299,8 @@ const ProductDetailsScreen = () => {
 
         <View style={styles.sheet}>
           <View style={styles.badges}>
-            <Text style={styles.topRated}>Top Rated</Text>
-            <Text style={styles.freeShipping}>Free Shipping</Text>
+            <Text style={styles.topRated}>{t('ui.product.topRated')}</Text>
+            <Text style={styles.freeShipping}>{t('ui.product.freeShipping')}</Text>
           </View>
 
           <View style={styles.titleRow}>
@@ -319,7 +321,7 @@ const ProductDetailsScreen = () => {
               {product.rating !== undefined
                 ? `${product.rating.toFixed(1)}${
                     product.reviews !== undefined
-                      ? ` (${product.reviews.toLocaleString()} reviews)`
+                      ? ` (${t('ui.product.reviews', { count: product.reviews })})`
                       : ''
                   }`
                 : '4.5'}
@@ -333,12 +335,12 @@ const ProductDetailsScreen = () => {
                 style={styles.readMore}
                 onPress={() => setExpanded(value => !value)}
               >
-                {expanded ? ' Read less' : ' Read more'}
+                {expanded ? ` ${t('ui.product.readLess')}` : ` ${t('ui.product.readMore')}`}
               </Text>
             ) : null}
           </Text>
 
-          <Text style={styles.quantityLabel}>Quantity</Text>
+          <Text style={styles.quantityLabel}>{t('ui.product.quantity')}</Text>
           <View style={styles.quantityControl}>
             <Pressable
               style={styles.quantityButton}
@@ -375,22 +377,6 @@ const ProductDetailsScreen = () => {
         </View>
       </ScrollView>
 
-      {false && showAddedMessage ? (
-        <View style={styles.addedMessage}>
-          <View style={styles.successIcon}>
-            <Text style={styles.successCheck}>✓</Text>
-          </View>
-          <Text style={styles.addedText}>
-            The product has been added to your cart
-          </Text>
-          <Pressable
-            onPress={() => navigation.navigate('MainTabs', { screen: 'Cart' })}
-          >
-            <Text style={styles.viewCart}>View Cart</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
       <CartAddedToast
         visible={showAddedMessage}
         onViewCart={() => navigation.navigate('MainTabs', { screen: 'Cart' })}
@@ -398,7 +384,7 @@ const ProductDetailsScreen = () => {
 
       <View style={styles.bottomBar}>
         <Pressable style={styles.buyButton} onPress={handleBuyNow}>
-          <Text style={styles.buyText}>Buy Now</Text>
+          <Text style={styles.buyText}>{t('ui.product.buyNow')}</Text>
         </Pressable>
         <CartQuantityControl
           productId={product._id}

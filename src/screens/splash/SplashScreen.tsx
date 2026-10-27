@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -10,6 +11,7 @@ import { AuthStackParamList } from '../../navigation/AuthNavigator';
 type Props = NativeStackScreenProps<AuthStackParamList, 'Splash'>;
 
 const SplashScreen = ({ navigation }: Props) => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const styles = SplashScreenStyles(theme.colors);
   useEffect(() => {
@@ -24,7 +26,7 @@ const SplashScreen = ({ navigation }: Props) => {
     <SafeAreaView style={styles.container}>
       <Text style={styles.logo}>QuickCart</Text>
 
-      <Text style={styles.tagline}>Everything you need, delivered fast.</Text>
+      <Text style={styles.tagline}>{t('ui.splash.tagline')}</Text>
     </SafeAreaView>
   );
 };

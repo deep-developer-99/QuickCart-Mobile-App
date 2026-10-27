@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -27,6 +28,7 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'OTP'>;
 type TextInputRef = React.ElementRef<typeof TextInput>;
 
 const OTPScreen = ({ route }: Props) => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const styles = OTPScreenStyles(theme.colors);
   const { phone } = route.params;
@@ -76,14 +78,14 @@ const OTPScreen = ({ route }: Props) => {
         );
 
         Alert.alert(
-          'Login Successful',
-          'You have been successfully logged in.',
+          t('ui.auth.loginSuccessful'),
+          t('ui.auth.loginSuccessfulMessage'),
         );
       } else {
-        Alert.alert('Login Failed', 'Authentication token was not received.');
+        Alert.alert(t('ui.auth.loginFailed'), t('ui.auth.tokenMissing'));
       }
-    } catch (error) {
-      Alert.alert('OTP Verification Failed', JSON.stringify(error));
+    } catch {
+      Alert.alert(t('ui.auth.otpFailed'), t('ui.auth.otpError'));
     }
   };
   const handleResend = () => {
@@ -101,10 +103,10 @@ const OTPScreen = ({ route }: Props) => {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.title}>Verify your number</Text>
+          <Text style={styles.title}>{t('ui.auth.verifyNumber')}</Text>
 
           <Text style={styles.description}>
-            Enter the 6-digit OTP sent to your mobile number.
+            {t('ui.auth.enterOtpDescription')}
           </Text>
 
           <View style={styles.otpContainer}>
@@ -135,12 +137,12 @@ const OTPScreen = ({ route }: Props) => {
             disabled={otp.join('').length !== 6 || isLoading}
           >
             <Text style={styles.verifyButtonText}>
-              {isLoading ? 'Verifying...' : 'Verify OTP'}
+              {isLoading ? t('ui.auth.verifyingOtp') : t('ui.auth.verifyOtp')}
             </Text>
           </Pressable>
 
           <Pressable onPress={handleResend} disabled={isLoading}>
-            <Text style={styles.resendText}>Didn't receive the OTP? Resend</Text>
+            <Text style={styles.resendText}>{t('ui.auth.resendPrompt')}</Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

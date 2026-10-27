@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Pressable,
@@ -88,6 +89,7 @@ export default function OpenStreetMapPicker({
   currentLocationLabel = '📍 Use Current Location',
   currentLocationLoading = false,
 }: Props) {
+  const { t } = useTranslation();
   const webViewRef = useRef<WebView>(null);
   const lastInjected = useRef('');
   const lastReported = useRef<LocationCoordinates | null>(null);
@@ -210,20 +212,20 @@ export default function OpenStreetMapPicker({
         startInLoadingState={false}
         setSupportMultipleWindows={false}
         style={styles.webView}
-        accessibilityLabel="OpenStreetMap location picker"
+        accessibilityLabel={t('ui.common.openMapPicker')}
       />
       {!mapReady ? (
         <View pointerEvents="none" style={styles.loadingOverlay}>
           <ActivityIndicator color="#087F8C" />
-          <Text style={styles.message}>Loading map…</Text>
+          <Text style={styles.message}>{t('ui.common.loadingMap')}</Text>
         </View>
       ) : null}
       {errorMessage && !tilesLoaded ? (
         <View pointerEvents="box-none" style={styles.statusOverlay}>
           <View style={styles.errorCard}>
-            <Text style={styles.message}>{errorMessage}</Text>
+            <Text style={styles.message}>{t('ui.common.mapError')}</Text>
             <Pressable style={styles.retry} onPress={retry}>
-              <Text style={styles.retryText}>Retry map</Text>
+              <Text style={styles.retryText}>{t('ui.common.retryMap')}</Text>
             </Pressable>
           </View>
         </View>
@@ -235,7 +237,7 @@ export default function OpenStreetMapPicker({
           disabled={currentLocationLoading}
         >
           <Text style={styles.locationText}>
-            {currentLocationLoading ? 'Locating…' : currentLocationLabel}
+            {currentLocationLoading ? t('ui.common.locating') : currentLocationLabel}
           </Text>
         </Pressable>
       ) : null}

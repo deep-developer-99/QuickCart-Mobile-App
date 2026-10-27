@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
   ActivityIndicator,
@@ -71,6 +72,7 @@ const getProductCategory = (product: Product) => {
 };
 
 const CategoriesScreen = () => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const styles = useStyles();
   const navigation = useNavigation<any>();
@@ -198,7 +200,7 @@ const CategoriesScreen = () => {
             <TextInput
               value={searchText}
               onChangeText={setSearchText}
-              placeholder="Search"
+              placeholder={t('ui.categories.searchPlaceholder')}
               placeholderTextColor={theme.colors.grey150}
               style={styles.searchInput}
               autoFocus
@@ -208,25 +210,25 @@ const CategoriesScreen = () => {
             </Pressable>
           </View>
 
-          <Text style={styles.recentTitle}>RECENT SEARCH</Text>
+          <Text style={styles.recentTitle}>{t('ui.categories.recentSearches')}</Text>
           {[
-            'Smart watch',
-            'Laptop',
-            'Women bag',
-            'Headphones',
-            'Shoes',
-            'Eye glasses',
-          ].map(item => (
+            { label: t('ui.categories.suggestionWatch'), query: 'Smart watch' },
+            { label: t('ui.categories.suggestionLaptop'), query: 'Laptop' },
+            { label: t('ui.categories.suggestionBag'), query: 'Women bag' },
+            { label: t('ui.categories.suggestionHeadphones'), query: 'Headphones' },
+            { label: t('ui.categories.suggestionShoes'), query: 'Shoes' },
+            { label: t('ui.categories.suggestionGlasses'), query: 'Eye glasses' },
+          ].map(({ label, query }) => (
             <Pressable
-              key={item}
+              key={query}
               style={styles.recentRow}
               onPress={() => {
-                setSearchText(item);
+                setSearchText(query);
                 setSearchOpen(false);
                 setSelectedCategory(null);
               }}
             >
-              <Text style={styles.recentText}>{item}</Text>
+              <Text style={styles.recentText}>{label}</Text>
               <Text style={styles.recentArrow}>↖</Text>
             </Pressable>
           ))}
@@ -251,7 +253,7 @@ const CategoriesScreen = () => {
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <View style={styles.container}>
           <Header
-            title="Categories"
+            title={t('tabs.categories')}
             onBack={() => {
               if (navigation.canGoBack()) {
                 navigation.goBack();
@@ -336,14 +338,14 @@ const CategoriesScreen = () => {
           </View>
         ) : productsError ? (
           <View style={styles.center}>
-            <Text style={styles.emptyTitle}>Unable to load products</Text>
-            <Text style={styles.emptyText}>Please try again in a moment.</Text>
+            <Text style={styles.emptyTitle}>{t('ui.categories.loadErrorTitle')}</Text>
+            <Text style={styles.emptyText}>{t('ui.categories.loadErrorDescription')}</Text>
           </View>
         ) : visibleProducts.length === 0 ? (
           <View style={styles.center}>
-            <Text style={styles.emptyTitle}>No products found</Text>
+            <Text style={styles.emptyTitle}>{t('ui.categories.emptyTitle')}</Text>
             <Text style={styles.emptyText}>
-              Try another category or search.
+              {t('ui.categories.emptyDescription')}
             </Text>
           </View>
         ) : (
@@ -485,12 +487,13 @@ const FilterModal = ({
   onClose: () => void;
   onApply: () => void;
 }) => {
+  const { t } = useTranslation();
   const styles = useStyles();
   const options: Array<{ key: SortOption; label: string }> = [
-    { key: 'priceLow', label: 'Price (Low to High)' },
-    { key: 'priceHigh', label: 'Price (High to Low)' },
-    { key: 'az', label: 'A-Z' },
-    { key: 'za', label: 'Z-A' },
+    { key: 'priceLow', label: t('ui.categories.sortPriceLow') },
+    { key: 'priceHigh', label: t('ui.categories.sortPriceHigh') },
+    { key: 'az', label: t('ui.categories.sortAZ') },
+    { key: 'za', label: t('ui.categories.sortZA') },
   ];
 
   return (
@@ -504,7 +507,7 @@ const FilterModal = ({
         <Pressable style={styles.modalDismiss} onPress={onClose} />
         <View style={styles.filterSheet}>
           <View style={styles.sheetHandle} />
-          <Text style={styles.filterTitle}>Filter</Text>
+          <Text style={styles.filterTitle}>{t('ui.categories.filterTitle')}</Text>
 
           {options.map(option => {
             const checked = value === option.key;
@@ -525,7 +528,7 @@ const FilterModal = ({
           })}
 
           <Pressable style={styles.applyButton} onPress={onApply}>
-            <Text style={styles.applyText}>Apply</Text>
+            <Text style={styles.applyText}>{t('ui.categories.apply')}</Text>
           </Pressable>
         </View>
       </View>

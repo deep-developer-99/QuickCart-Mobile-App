@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   useNavigation,
@@ -133,6 +134,7 @@ const EmptyCartIllustration = () => (
 
 const EmptyCart = () => {
   const styles = useStyles();
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
 
   return (
@@ -141,18 +143,17 @@ const EmptyCart = () => {
         <EmptyCartIllustration />
       </View>
 
-      <Text style={styles.title}>Your cart is empty</Text>
+      <Text style={styles.title}>{t('ui.cart.emptyTitle')}</Text>
 
       <Text style={styles.description}>
-        Looks like you have not added anything in your cart. Go ahead and
-        explore top categories.
+        {t('ui.cart.emptyDescription')}
       </Text>
 
       <Pressable
         style={styles.button}
         onPress={() => navigation.navigate('Categories')}
       >
-        <Text style={styles.buttonText}>Explore Categories</Text>
+        <Text style={styles.buttonText}>{t('ui.cart.exploreCategories')}</Text>
       </Pressable>
     </View>
   );

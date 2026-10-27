@@ -91,7 +91,8 @@ const HomeScreen = () => {
   const [removeFromWishlist] = useRemoveFromWishlistMutation();
   const insets = useSafeAreaInsets();
   const user = useSelector((state: RootState) => state.auth.user);
-  const [currentLocation, setCurrentLocation] = useState('Current location');
+  const [currentLocation, setCurrentLocation] = useState<string | null>(null);
+  const [locationUnavailable, setLocationUnavailable] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [showCartToast, setShowCartToast] = useState(false);
   const hasRequestedInitialLocation = useRef(false);
@@ -106,8 +107,8 @@ const HomeScreen = () => {
       if (!hasPermission) {
         setIsLocating(false);
         Alert.alert(
-          'Location permission required',
-          'Allow location access in your device settings to detect your current location.',
+          t('home.permissionTitle'),
+          t('home.permissionMessage'),
         );
         return;
       }
@@ -118,10 +119,11 @@ const HomeScreen = () => {
           coordinates.latitude,
           coordinates.longitude,
         );
-        setCurrentLocation(label || 'Current location');
+        setLocationUnavailable(false);
+        setCurrentLocation(label || null);
       } catch (error) {
         console.warn('Reverse geocoding failed:', error);
-        setCurrentLocation('Address unavailable — tap to retry');
+        setLocationUnavailable(true);
       } finally {
         setIsLocating(false);
       }
@@ -129,11 +131,11 @@ const HomeScreen = () => {
       setIsLocating(false);
       console.error('Location permission request failed:', error);
       Alert.alert(
-        'Location error',
-        'Could not access your location. Please try again.',
+        t('home.locationError'),
+        t('home.locationErrorMessage'),
       );
     }
-  }, [isLocating]);
+  }, [isLocating, t]);
 
   useEffect(() => {
     if (hasRequestedInitialLocation.current) return;
@@ -355,14 +357,18 @@ const HomeScreen = () => {
             onPress={detectCurrentLocation}
             disabled={isLocating}
             accessibilityRole="button"
-            accessibilityLabel="Detect current delivery location"
+            accessibilityLabel={t('home.detectLocation')}
             hitSlop={8}
           >
             <Text style={styles.locationPin}>📍</Text>
             <View style={styles.locationCopy}>
               <Text style={styles.locationText}>{t('home.deliverTo')}</Text>
               <Text style={styles.locationStrong} numberOfLines={1}>
-                {isLocating ? 'Detecting location…' : currentLocation}
+                {isLocating
+                  ? t('home.detectingLocation')
+                  : locationUnavailable
+                    ? t('home.locationUnavailable')
+                    : currentLocation || t('home.currentLocation')}
               </Text>
             </View>
             {isLocating ? (

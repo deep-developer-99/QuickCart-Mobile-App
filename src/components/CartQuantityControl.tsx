@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -27,6 +28,7 @@ const CartQuantityControl = ({
   onAdded,
 }: CartQuantityControlProps) => {
   const { theme, mode } = useTheme();
+  const { t } = useTranslation();
   const styles = useStyles();
   const [addToCart, { isLoading: adding }] = useAddToCartMutation();
   const [updateCartItem, { isLoading: updating }] =
@@ -79,12 +81,14 @@ const CartQuantityControl = ({
         onPressIn={event => event.stopPropagation()}
         disabled={isBusy}
         accessibilityRole="button"
-        accessibilityLabel="Add product to cart"
+        accessibilityLabel={t('ui.common.addProductToCart')}
       >
         {adding ? (
           <ActivityIndicator size="small" color={theme.colors.white} />
         ) : (
-          <Text style={styles.addText}>{compact ? 'Add' : 'Add To Cart'}</Text>
+          <Text style={styles.addText}>
+            {compact ? t('ui.common.add') : t('ui.common.addToCart')}
+          </Text>
         )}
       </Pressable>
     );
@@ -98,7 +102,7 @@ const CartQuantityControl = ({
         onPressIn={event => event.stopPropagation()}
         disabled={isBusy}
         accessibilityRole="button"
-        accessibilityLabel="Decrease cart quantity"
+        accessibilityLabel={t('ui.common.decreaseCartQuantity')}
       >
         <Text style={styles.quantitySymbol}>−</Text>
       </Pressable>
@@ -115,7 +119,7 @@ const CartQuantityControl = ({
         onPressIn={event => event.stopPropagation()}
         disabled={isBusy || quantity >= maximumQuantity}
         accessibilityRole="button"
-        accessibilityLabel="Increase cart quantity"
+        accessibilityLabel={t('ui.common.increaseCartQuantity')}
       >
         <Text
           style={[

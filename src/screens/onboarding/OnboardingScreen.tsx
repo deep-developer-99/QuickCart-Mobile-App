@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   FlatList,
   NativeScrollEvent,
@@ -22,8 +23,6 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'Onboarding'>;
 
 type OnboardingItem = {
   id: string;
-  title: string;
-  description: string;
   Illustration: React.ComponentType<{
     width?: number | string;
     height?: number | string;
@@ -33,28 +32,20 @@ type OnboardingItem = {
 const onboardingData: OnboardingItem[] = [
   {
     id: '1',
-    title: 'Explore a wide range of products',
-    description:
-      'Explore a wide range of products at your fingertips. QuickCart offers an extensive collection to suit your needs.',
     Illustration: ShoppingIllustration,
   },
   {
     id: '2',
-    title: 'Unlock exclusive offers and discounts',
-    description:
-      'Get access to limited-time deals and special promotions available only to our valued customers.',
     Illustration: OffersIllustration,
   },
   {
     id: '3',
-    title: 'Safe and secure payments',
-    description:
-      'QuickCart employs industry-leading encryption and trusted payment gateways to safeguard your financial information.',
     Illustration: PaymentsIllustration,
   },
 ];
 
 const OnboardingScreen = ({ navigation }: Props) => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const { width, height } = useWindowDimensions();
   const styles = OnboardingScreenStyles(theme.colors, width, height);
@@ -116,7 +107,7 @@ const OnboardingScreen = ({ navigation }: Props) => {
             ) : (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Go to previous onboarding page"
+                accessibilityLabel={t('ui.onboarding.previous')}
                 onPress={goBack}
                 hitSlop={12}
                 style={styles.backButton}
@@ -131,7 +122,7 @@ const OnboardingScreen = ({ navigation }: Props) => {
                 hitSlop={10}
                 style={styles.skipButton}
               >
-                <Text style={styles.skipText}>Skip for now</Text>
+                <Text style={styles.skipText}>{t('ui.onboarding.skip')}</Text>
               </Pressable>
             )}
           </View>
@@ -141,8 +132,8 @@ const OnboardingScreen = ({ navigation }: Props) => {
         </View>
 
         <View style={styles.copy}>
-          <Text style={styles.title}>{item.title}</Text>
-          <Text style={styles.description}>{item.description}</Text>
+          <Text style={styles.title}>{t(`ui.onboarding.title${index + 1}`)}</Text>
+          <Text style={styles.description}>{t(`ui.onboarding.description${index + 1}`)}</Text>
         </View>
       </View>
     );
@@ -175,14 +166,14 @@ const OnboardingScreen = ({ navigation }: Props) => {
               onPress={finishOnboarding}
               accessibilityRole="button"
             >
-              <Text style={styles.loginButtonText}>Login</Text>
+              <Text style={styles.loginButtonText}>{t('ui.onboarding.login')}</Text>
             </Pressable>
             <Pressable
               style={styles.button}
               onPress={finishOnboarding}
               accessibilityRole="button"
             >
-              <Text style={styles.buttonText}>Get Started</Text>
+              <Text style={styles.buttonText}>{t('ui.onboarding.getStarted')}</Text>
               <Text style={styles.buttonArrow}>→</Text>
             </Pressable>
           </View>
@@ -192,7 +183,7 @@ const OnboardingScreen = ({ navigation }: Props) => {
             onPress={goToNext}
             accessibilityRole="button"
           >
-            <Text style={styles.buttonText}>Next</Text>
+            <Text style={styles.buttonText}>{t('ui.onboarding.next')}</Text>
           </Pressable>
         )}
 

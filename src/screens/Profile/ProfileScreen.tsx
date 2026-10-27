@@ -241,7 +241,7 @@ const ProfileScreen = () => {
   };
 
   const handleComingSoon = (title: string) => {
-    Alert.alert(title, `${title} will be available soon.`);
+    Alert.alert(title, t('ui.profile.soon', { feature: title }));
   };
 
   return (
@@ -261,10 +261,10 @@ const ProfileScreen = () => {
 
           <View style={styles.userInfo}>
             <Text style={styles.name} numberOfLines={1}>
-              {user?.name || 'QuickCart User'}
+              {user?.name || t('ui.profile.customer', { brand: 'QuickCart' })}
             </Text>
             <Text style={styles.email} numberOfLines={1}>
-              {user?.email || 'No email available'}
+              {user?.email || t('ui.profile.noEmail')}
             </Text>
           </View>
         </View>
@@ -313,17 +313,17 @@ const ProfileScreen = () => {
             <MenuRow
               icon={<PrivacyIcon color={theme.colors.grey150} />}
               label={t('profile.privacy')}
-              onPress={() => handleComingSoon('Privacy Policy')}
+              onPress={() => handleComingSoon(t('ui.profile.privacy'))}
             />
             <MenuRow
               icon={<TermsIcon color={theme.colors.grey150} />}
               label={t('profile.terms')}
-              onPress={() => handleComingSoon('Terms & Conditions')}
+              onPress={() => handleComingSoon(t('ui.profile.terms'))}
             />
             <MenuRow
               icon={<FaqIcon color={theme.colors.grey150} />}
               label={t('profile.faqs')}
-              onPress={() => handleComingSoon('FAQs')}
+              onPress={() => handleComingSoon(t('profile.faqs'))}
               showDivider={false}
             />
           </View>

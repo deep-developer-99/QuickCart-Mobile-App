@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../theme';
 import type { NotificationData } from '../services/pushNotifications';
@@ -43,6 +44,7 @@ const InAppNotification = ({
   onPress,
   onDismiss,
 }: Props) => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -172,7 +174,7 @@ const InAppNotification = ({
           dismiss();
         }}
         accessibilityRole="button"
-        accessibilityLabel={`Open notification: ${title}`}
+        accessibilityLabel={t('ui.common.openNotification', { title })}
       >
         <View style={styles.iconCircle}>
           <Text style={styles.icon}>🔔</Text>
@@ -196,7 +198,7 @@ const InAppNotification = ({
         onPress={() => dismiss()}
         hitSlop={8}
         accessibilityRole="button"
-        accessibilityLabel="Dismiss notification"
+        accessibilityLabel={t('ui.common.dismissNotification')}
       >
         <Text style={styles.closeText}>×</Text>
       </Pressable>

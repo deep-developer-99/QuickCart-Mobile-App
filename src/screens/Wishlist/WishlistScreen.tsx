@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +14,7 @@ import EmptyWishlist from './EmptyWishlist';
 import WishlistProducts from './WishlistProducts';
 
 const WishlistScreen = () => {
+  const { t } = useTranslation();
   const styles = useStyles();
   const navigation = useNavigation<any>();
   const {
@@ -33,7 +35,7 @@ const WishlistScreen = () => {
         <WishlistHeader navigation={navigation} styles={styles} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" />
-          <Text style={styles.loadingText}>Loading wishlist...</Text>
+          <Text style={styles.loadingText}>{t('ui.wishlist.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -44,12 +46,12 @@ const WishlistScreen = () => {
       <SafeAreaView style={styles.container} edges={['top']}>
         <WishlistHeader navigation={navigation} styles={styles} />
         <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Unable to load wishlist</Text>
+          <Text style={styles.errorTitle}>{t('ui.wishlist.loadError')}</Text>
           <Text style={styles.errorText}>
-            Please check your connection and try again.
+            {t('ui.wishlist.loadErrorDescription')}
           </Text>
           <Text style={styles.retryText} onPress={() => refetch()}>
-            Try Again
+            {t('common.tryAgain')}
           </Text>
         </View>
       </SafeAreaView>
@@ -80,19 +82,22 @@ const WishlistHeader = ({
 }: {
   navigation: any;
   styles: ReturnType<typeof createStyles>;
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <View style={styles.header}>
     <Pressable
       style={styles.backButton}
       onPress={() => navigation.canGoBack() && navigation.goBack()}
       hitSlop={10}
-      accessibilityLabel="Go back"
+      accessibilityLabel={t('ui.common.back')}
     >
       <Text style={styles.backIcon}>←</Text>
     </Pressable>
-    <Text style={styles.headerTitle}>Wishlist</Text>
+    <Text style={styles.headerTitle}>{t('ui.wishlist.title')}</Text>
   </View>
-);
+  );
+};
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({

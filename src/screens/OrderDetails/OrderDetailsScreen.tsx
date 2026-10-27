@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Image,
   Pressable,
@@ -32,14 +33,19 @@ const STEPS: OrderStatus[] = [
   'Delivered',
 ];
 
-const formatDate = (date?: string) =>
+const formatDate = (date?: string, locale?: string) =>
   date
-    ? new Date(date).toLocaleDateString('en-IN', {
+    ? new Date(date).toLocaleDateString(locale, {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
       })
     : '—';
+
+const statusLabel = (status: string, t: (key: string) => string) => {
+  const key: Record<string, string> = { placed: 'ui.status.placed', accepted: 'ui.status.accepted', 'out for delivery': 'ui.status.outForDelivery', delivered: 'ui.status.delivered', completed: 'ui.status.delivered' };
+  return key[status.trim().toLowerCase()] ? t(key[status.trim().toLowerCase()]) : status;
+};
 
 const getItemImage = (item: MyOrder['items'][number]) => {
   if (item.image) return item.image;
@@ -48,8 +54,8 @@ const getItemImage = (item: MyOrder['items'][number]) => {
     : undefined;
 };
 
-const addressText = (address: unknown) => {
-  if (!address) return 'Delivery address will be available soon';
+const addressText = (address: unknown, fallback: string) => {
+  if (!address) return fallback;
   if (typeof address === 'string') return address;
   if (typeof address !== 'object') return String(address);
   const value = address as Record<string, unknown>;
@@ -63,11 +69,12 @@ const addressText = (address: unknown) => {
       value.pincode,
     ]
       .filter(Boolean)
-      .join(', ') || 'Delivery address will be available soon'
+      .join(', ') || fallback
   );
 };
 
 const OrderDetailsScreen = () => {
+  const { t, i18n } = useTranslation();
   const styles = useStyles();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -100,10 +107,10 @@ const OrderDetailsScreen = () => {
         : undefined;
     const errorMessage =
       status === 401 || status === 403
-        ? 'Please sign in again to view this order.'
+        ? t('ui.orderDetails.signInRequired')
         : status === 404 || (!isError && !isLoading)
-          ? 'This order is no longer available.'
-          : 'We couldn’t load this order. Check your connection and try again.';
+          ? t('ui.orderDetails.unavailable')
+          : t('ui.orderDetails.loadError');
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.header}>
@@ -113,12 +120,12 @@ const OrderDetailsScreen = () => {
           >
             <Text style={styles.backArrow}>‹</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>Order details</Text>
+          <Text style={styles.headerTitle}>{t('ui.orderDetails.title')}</Text>
         </View>
         <Text style={styles.muted}>{errorMessage}</Text>
         {isError && status !== 401 && status !== 403 ? (
           <Pressable style={styles.retryButton} onPress={() => refetch()}>
-            <Text style={styles.retryText}>Try again</Text>
+            <Text style={styles.retryText}>{t('ui.orderDetails.tryAgain')}</Text>
           </Pressable>
         ) : null}
       </SafeAreaView>
@@ -139,7 +146,7 @@ const OrderDetailsScreen = () => {
         >
           <Text style={styles.backArrow}>‹</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>Order details</Text>
+        <Text style={styles.headerTitle}>{t('ui.orderDetails.title')}</Text>
       </View>
 
       <ScrollView
@@ -152,15 +159,15 @@ const OrderDetailsScreen = () => {
         <View style={styles.hero}>
           <View>
             <Text style={styles.eyebrow}>
-              ORDER #{order._id.slice(-8).toUpperCase()}
+              {t('ui.orderDetails.orderNumber', { id: order._id.slice(-8).toUpperCase() })}
             </Text>
             <Text style={styles.heroTitle}>
               {order.status === 'Delivered'
-                ? 'Order delivered'
-                : 'Your order is on its way'}
+                ? t('ui.orderDetails.delivered')
+                : t('ui.orderDetails.onTheWay')}
             </Text>
             <Text style={styles.muted}>
-              Placed on {formatDate(order.createdAt)}
+              {t('ui.orderDetails.placedOn', { date: formatDate(order.createdAt, i18n.language) })}
             </Text>
           </View>
           <View
@@ -169,7 +176,7 @@ const OrderDetailsScreen = () => {
               order.status === 'Delivered' ? styles.delivered : styles.ongoing,
             ]}
           >
-            <Text style={styles.statusText}>{order.status}</Text>
+            <Text style={styles.statusText}>{statusLabel(order.status, t)}</Text>
           </View>
         </View>
 
@@ -219,10 +226,10 @@ const OrderDetailsScreen = () => {
                     )
                     .join(', ')
                 : '';
-              const deliveryAddress = addressText(order.address);
+              const deliveryAddress = addressText(order.address, t('ui.orderDetails.deliveryAddressSoon'));
               return shopAddress || vendorCoordinates ? (
                 <DummyLiveOrderTracking
-                  shopName={vendor?.shopName || 'QuickCart shop'}
+                  shopName={vendor?.shopName || t('ui.tracking.shop')}
                   shopAddress={shopAddress}
                   shopCoordinates={vendorCoordinates}
                   deliveryAddress={deliveryAddress}
@@ -231,10 +238,9 @@ const OrderDetailsScreen = () => {
                 />
               ) : (
                 <View style={styles.card}>
-                  <Text style={styles.sectionTitle}>Live order tracking</Text>
+                  <Text style={styles.sectionTitle}>{t('ui.tracking.title')}</Text>
                   <Text style={styles.muted}>
-                    The shop address is not available for this order yet, so the
-                    map cannot be displayed.
+                    {t('ui.tracking.mapUnavailable')}
                   </Text>
                 </View>
               );
@@ -242,7 +248,7 @@ const OrderDetailsScreen = () => {
           : null}
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Order status</Text>
+          <Text style={styles.sectionTitle}>{t('ui.orderDetails.status')}</Text>
           <View style={styles.timeline}>
             {STEPS.map((step, index) => {
               const completed = index <= currentStep;
@@ -265,10 +271,10 @@ const OrderDetailsScreen = () => {
                       completed && styles.activeStepLabel,
                     ]}
                   >
-                    {step}
+                    {statusLabel(step, t)}
                   </Text>
                   {index === currentStep ? (
-                    <Text style={styles.stepHint}>Current status</Text>
+                    <Text style={styles.stepHint}>{t('ui.orderDetails.currentStatus')}</Text>
                   ) : null}
                 </View>
               );
@@ -277,7 +283,7 @@ const OrderDetailsScreen = () => {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Items ({order.items.length})</Text>
+          <Text style={styles.sectionTitle}>{t('ui.orderDetails.items', { count: order.items.length })}</Text>
           {order.items.map((item, index) => {
             const image = getItemImage(item);
             const price = item.discountedPrice ?? item.price;
@@ -301,7 +307,7 @@ const OrderDetailsScreen = () => {
                   <Text style={styles.itemName} numberOfLines={2}>
                     {item.name}
                   </Text>
-                  <Text style={styles.itemMeta}>Qty {item.quantity}</Text>
+                  <Text style={styles.itemMeta}>{t('ui.orderDetails.quantity', { count: item.quantity })}</Text>
                 </View>
                 <Text style={styles.itemPrice}>
                   ₹{(price * item.quantity).toFixed(2)}
@@ -312,34 +318,34 @@ const OrderDetailsScreen = () => {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Delivery details</Text>
+          <Text style={styles.sectionTitle}>{t('ui.orderDetails.deliveryDetails')}</Text>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Address</Text>
-            <Text style={styles.detailValue}>{addressText(order.address)}</Text>
+            <Text style={styles.detailLabel}>{t('ui.orderDetails.address')}</Text>
+            <Text style={styles.detailValue}>{addressText(order.address, t('ui.orderDetails.deliveryAddressSoon'))}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Payment</Text>
+            <Text style={styles.detailLabel}>{t('ui.orderDetails.payment')}</Text>
             <Text style={styles.detailValue}>
               {order.paymentMethod === 'COD'
-                ? 'Cash on delivery'
-                : 'Online payment'}
+                ? t('ui.orderDetails.cashOnDelivery')
+                : t('ui.orderDetails.onlinePayment')}
             </Text>
           </View>
         </View>
 
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Item total</Text>
+            <Text style={styles.summaryLabel}>{t('ui.orderDetails.itemTotal')}</Text>
             <Text style={styles.summaryValue}>
               ₹{order.totalAmount.toFixed(2)}
             </Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Delivery fee</Text>
-            <Text style={styles.free}>FREE</Text>
+            <Text style={styles.summaryLabel}>{t('ui.orderDetails.deliveryFee')}</Text>
+            <Text style={styles.free}>{t('ui.common.free')}</Text>
           </View>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total paid</Text>
+            <Text style={styles.totalLabel}>{t('ui.orderDetails.totalPaid')}</Text>
             <Text style={styles.totalValue}>
               ₹{order.totalAmount.toFixed(2)}
             </Text>
