@@ -594,6 +594,7 @@ const HomeScreen = () => {
                         cartItem={cartItemByProductId.get(product._id)}
                         disabled={cartLoading}
                         compact
+                        darkModeCompactAddButton
                         onAdded={showAddedToast}
                       />
                     </View>

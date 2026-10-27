@@ -15,6 +15,7 @@ type CartQuantityControlProps = {
   stock?: number;
   cartItem?: CartItem;
   compact?: boolean;
+  darkModeCompactAddButton?: boolean;
   disabled?: boolean;
   onAdded?: () => void;
 };
@@ -24,6 +25,7 @@ const CartQuantityControl = ({
   stock,
   cartItem,
   compact = false,
+  darkModeCompactAddButton = false,
   disabled = false,
   onAdded,
 }: CartQuantityControlProps) => {
@@ -76,6 +78,10 @@ const CartQuantityControl = ({
           compact && styles.compactAddButton,
           !compact && styles.fullAddButton,
           !compact && mode === 'dark' && styles.fullAddButtonDark,
+          compact &&
+            darkModeCompactAddButton &&
+            mode === 'dark' &&
+            styles.compactAddButtonDark,
         ]}
         onPress={handleAdd}
         onPressIn={event => event.stopPropagation()}
@@ -151,6 +157,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>['theme']['colors']) =>
       borderRadius: radius.sm,
       paddingHorizontal: spacing.lg,
     },
+    compactAddButtonDark: { backgroundColor: colors.cyan },
     fullAddButton: { minHeight: 61, borderRadius: radius.md, flex: 1 },
     fullAddButtonDark: { backgroundColor: colors.cyan },
     addText: { ...typography.body2Medium, color: colors.white },

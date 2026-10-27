@@ -19,7 +19,6 @@ import {
 } from '@react-navigation/native';
 import {
   SafeAreaView,
-  useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -72,8 +71,7 @@ const HeartIcon = ({
 
 const ProductDetailsScreen = () => {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
-  const styles = useStyles(insets.bottom);
+  const styles = useStyles();
   const navigation = useNavigation<any>();
   const { width } = useWindowDimensions();
   const route = useRoute<ProductDetailsRouteProp>();
@@ -181,7 +179,7 @@ const ProductDetailsScreen = () => {
 
   if (!product || product.isActive === false) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.unavailableState}>
           <Text style={styles.description}>
             {productLoading
@@ -210,6 +208,7 @@ const ProductDetailsScreen = () => {
         />
       </View>
       <ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
@@ -395,11 +394,11 @@ type ThemeMode = 'light' | 'dark';
 const createStyles = (
   colors: ThemeColors,
   mode: ThemeMode,
-  bottomInset: number,
 ) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    scrollContent: { paddingBottom: 112 + bottomInset },
+    scrollView: { flex: 1 },
+    scrollContent: { flexGrow: 1, paddingBottom: 16 },
     header: {
       height: 56,
       paddingHorizontal: 16,
@@ -413,12 +412,8 @@ const createStyles = (
       borderRadius: 24,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: '#FFFFFF',
-      shadowColor: '#000000',
-      shadowOpacity: 0.12,
-      shadowRadius: 6,
-      shadowOffset: { width: 0, height: 2 },
-      elevation: 3,
+      backgroundColor: 'transparent',
+      elevation: 0,
     },
     imageSection: {
       height: 290,
@@ -496,7 +491,7 @@ const createStyles = (
       backgroundColor: colors.surface,
       paddingHorizontal: 16,
       paddingTop: 22,
-      minHeight: 520,
+      flexGrow: 1,
     },
     badges: { flexDirection: 'row', gap: 8, marginBottom: 9 },
     topRated: {
@@ -637,14 +632,10 @@ const createStyles = (
       color: colors.cyan,
     },
     bottomBar: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
       backgroundColor: colors.surface,
       paddingHorizontal: 16,
       paddingTop: 10,
-      paddingBottom: 12 + bottomInset,
+      paddingBottom: 12,
       flexDirection: 'row',
       gap: 8,
       borderTopWidth: 1,
@@ -686,11 +677,11 @@ const createStyles = (
     },
   });
 
-const useStyles = (bottomInset: number) => {
+const useStyles = () => {
   const { theme, mode } = useTheme();
   return React.useMemo(
-    () => createStyles(theme.colors, mode, bottomInset),
-    [theme.colors, mode, bottomInset],
+    () => createStyles(theme.colors, mode),
+    [theme.colors, mode],
   );
 };
 
