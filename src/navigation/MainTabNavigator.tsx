@@ -26,7 +26,7 @@ import {
 
 export type MainTabParamList = {
   Home: undefined;
-  Categories: undefined;
+  Categories: { categoryId?: string } | undefined;
   Cart: undefined;
   Wishlist: undefined;
   Profile: undefined;
@@ -100,6 +100,7 @@ const MainTabNavigator = () => {
 
   return (
     <Tab.Navigator
+      backBehavior="history"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.colors.cyan,

@@ -1,8 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import {
   ActivityIndicator,
+  BackHandler,
   Image,
   Modal,
   Pressable,
@@ -143,6 +148,32 @@ const CategoriesScreen = () => {
     [],
   );
 
+  useFocusEffect(
+    React.useCallback(() => {
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          if (searchOpen) {
+            setSearchOpen(false);
+            return true;
+          }
+
+          if (selectedCategory) {
+            setSelectedCategory(null);
+            setSearchText('');
+            setSort(null);
+            return true;
+          }
+
+          // Let React Navigation handle back when All Categories is active.
+          return false;
+        },
+      );
+
+      return () => subscription.remove();
+    }, [searchOpen, selectedCategory]),
+  );
+
   const products = useMemo<Product[]>(() => {
     if (!productResponse?.data) return [];
     return Array.isArray(productResponse.data) ? productResponse.data : [];
@@ -255,11 +286,7 @@ const CategoriesScreen = () => {
           <Header
             title={t('tabs.categories')}
             onBack={() => {
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate('Home');
-              }
+              if (navigation.canGoBack()) navigation.goBack();
             }}
           />
           {categoriesLoading ? (

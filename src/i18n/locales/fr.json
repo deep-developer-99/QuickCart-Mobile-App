@@ -346,7 +346,7 @@
       "unableToPlaceOrder": "Impossible de passer la commande.",
       "loading": "Chargement de la commande…",
       "successTitle": "Votre commande a bien été passée",
-      "successMessage": "Merci de nous avoir choisis ! Continuez vos achats et découvrez nos nombreux produits.",
+      "successMessage": "Merci de nous avoir choisis ! N’hésitez pas à poursuivre vos achats et à découvrir notre large gamme de produits. Bon shopping !",
       "continueShopping": "Continuer les achats",
       "title": "Commande",
       "shippingAddress": "Adresse de livraison",
@@ -378,7 +378,8 @@
       "subtotal": "Sous-total",
       "discount": "Remise",
       "shippingCost": "Frais de livraison",
-      "total": "Total"
+      "total": "Total",
+      "successIllustrationAlt": "Illustration de confirmation de commande"
     },
     "payment": {
       "title": "Mode de paiement",

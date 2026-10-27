@@ -346,7 +346,7 @@
       "unableToPlaceOrder": "Unable to place order.",
       "loading": "Loading checkout…",
       "successTitle": "Your order has been placed successfully",
-      "successMessage": "Thank you for choosing us! Continue shopping and explore our wide range of products.",
+      "successMessage": "Thank you for choosing us! Feel free to continue shopping and explore our wide range of products. Happy Shopping!",
       "continueShopping": "Continue Shopping",
       "title": "Checkout",
       "shippingAddress": "Shipping Address",
@@ -378,7 +378,8 @@
       "subtotal": "Subtotal",
       "discount": "Discount",
       "shippingCost": "Shipping Cost",
-      "total": "Total"
+      "total": "Total",
+      "successIllustrationAlt": "Order placed successfully illustration"
     },
     "payment": {
       "title": "Payment Method",

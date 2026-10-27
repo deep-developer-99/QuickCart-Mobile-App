@@ -35,6 +35,7 @@ import {
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
+import OrderSuccessIllustration from '../../assets/checkout/order-success.svg';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Checkout'>;
 
@@ -266,11 +267,22 @@ export default function CheckoutScreen({ navigation, route }: Props) {
   if (step === 'success') {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <Header title={t('ui.checkout.title')} onBack={() => navigation.goBack()} />
-
-        <View style={styles.success}>
-          <View style={styles.successBox}>
-            <Text style={styles.successMark}>✓</Text>
+        <ScrollView
+          contentContainerStyle={styles.success}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          <View style={styles.successIllustrationContainer}>
+            <View style={styles.successArtwork}>
+              <OrderSuccessIllustration
+                width="100%"
+                height="100%"
+                style={styles.successIllustration}
+                accessible
+                accessibilityRole="image"
+                accessibilityLabel={t('ui.checkout.successIllustrationAlt')}
+              />
+            </View>
           </View>
 
           <Text style={styles.successTitle}>
@@ -281,13 +293,18 @@ export default function CheckoutScreen({ navigation, route }: Props) {
             {t('ui.checkout.successMessage')}
           </Text>
 
-          <Button
-            title={t('ui.checkout.continueShopping')}
+          <Pressable
+            style={styles.successButton}
             onPress={() =>
               navigation.replace('MainTabs', { screen: 'Categories' })
             }
-          />
-        </View>
+            accessibilityRole="button"
+          >
+            <Text style={styles.successButtonText}>
+              {t('ui.checkout.continueShopping')}
+            </Text>
+          </Pressable>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -768,7 +785,7 @@ function Button({
   );
 }
 
-const createStyles = (colors: ThemeColors) =>
+const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -1294,50 +1311,70 @@ const createStyles = (colors: ThemeColors) =>
     },
 
     success: {
-      flex: 1,
-      padding: 16,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-
-    successBox: {
+      flexGrow: 1,
       width: '100%',
-      height: 300,
-      borderRadius: 28,
-      backgroundColor: colors.cyan50,
+      maxWidth: 460,
+      alignSelf: 'center',
+      paddingHorizontal: 16,
+      paddingTop: 20,
+      paddingBottom: 16,
       alignItems: 'center',
       justifyContent: 'center',
     },
 
-    successMark: {
-      width: 100,
-      height: 100,
-      borderRadius: 50,
-      backgroundColor: colors.cyan,
-      color: colors.white,
-      fontSize: 66,
-      fontWeight: '700',
-      textAlign: 'center',
-      textAlignVertical: 'center',
-      overflow: 'hidden',
+    successIllustrationContainer: {
+      width: '100%',
+      maxWidth: 420,
+      maxHeight: 408,
+      aspectRatio: 0.8,
+      borderRadius: 28,
+      backgroundColor: mode === 'dark' ? colors.surface : colors.cyan50,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    successIllustration: {
+      width: '100%',
+      height: '100%',
+    },
+
+    successArtwork: {
+      width: '66%',
+      aspectRatio: 1,
     },
 
     successTitle: {
       fontSize: 24,
       lineHeight: 30,
-      fontWeight: '700',
+      fontFamily: 'PlusJakartaSans-Bold',
       color: colors.text,
       textAlign: 'center',
-      marginTop: 26,
+      marginTop: 24,
     },
 
     successText: {
       fontSize: 13,
       lineHeight: 21,
-      color: colors.grey150,
+      fontFamily: 'PlusJakartaSans-Regular',
+      color: colors.secondaryText,
       textAlign: 'center',
-      marginTop: 12,
-      paddingHorizontal: 8,
+      marginTop: 14,
+    },
+
+    successButton: {
+      width: '100%',
+      minHeight: 60,
+      borderRadius: 12,
+      backgroundColor: mode === 'dark' ? colors.cyan : colors.black,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 24,
+    },
+
+    successButtonText: {
+      color: colors.white,
+      fontSize: 14,
+      fontFamily: 'PlusJakartaSans-SemiBold',
     },
 
     center: {
@@ -1348,6 +1385,9 @@ const createStyles = (colors: ThemeColors) =>
   });
 
 const useStyles = () => {
-  const { theme } = useTheme();
-  return React.useMemo(() => createStyles(theme.colors), [theme.colors]);
+  const { theme, mode } = useTheme();
+  return React.useMemo(
+    () => createStyles(theme.colors, mode),
+    [theme.colors, mode],
+  );
 };
