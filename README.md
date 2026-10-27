@@ -95,3 +95,17 @@ To learn more about React Native, take a look at the following resources:
 - [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
 - [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
 - [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+
+## Android release APK signing
+
+Release APK builds require a release or upload keystore. Check the signing identity used for any existing store release before creating a key: a new key will not update installations signed with another identity. The committed `android/app/debug.keystore` is only for debug builds and must not be used for release.
+
+If no established release key exists and a new identity is intended, create it interactively with `keytool`. It will prompt for passwords rather than taking them as command-line arguments:
+
+```powershell
+keytool -genkeypair -v -storetype PKCS12 -keystore android/app/quickcart-release.keystore -alias quickcart-release -keyalg RSA -keysize 2048 -validity 10000
+```
+
+Supply the four `QUICKCART_RELEASE_*` values through the build environment, Gradle `-P` properties, or the ignored local file `android/release-signing.properties`. The local file uses these property names: `QUICKCART_RELEASE_STORE_FILE`, `QUICKCART_RELEASE_STORE_PASSWORD`, `QUICKCART_RELEASE_KEY_ALIAS`, and `QUICKCART_RELEASE_KEY_PASSWORD`. The keystore path is resolved relative to `android/app`; for the command above, use `quickcart-release.keystore`.
+
+Then build from `android` with `./gradlew assembleRelease` (or `gradlew.bat assembleRelease` on Windows). The signed artifact is `android/app/build/outputs/apk/release/app-release.apk`. Release builds fail if signing values are missing, while debug builds continue to use the existing debug key.

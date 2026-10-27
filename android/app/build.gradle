@@ -62,16 +62,31 @@ def enableProguardInReleaseBuilds = false
 
 // Release APKs must use the real upload/release keystore supplied by CI or the
 // release operator. Never sign a production artifact with the debug key.
-def releaseStoreFile = System.getenv("QUICKCART_RELEASE_STORE_FILE") ?: project.findProperty("QUICKCART_RELEASE_STORE_FILE")
-def releaseStorePassword = System.getenv("QUICKCART_RELEASE_STORE_PASSWORD") ?: project.findProperty("QUICKCART_RELEASE_STORE_PASSWORD")
-def releaseKeyAlias = System.getenv("QUICKCART_RELEASE_KEY_ALIAS") ?: project.findProperty("QUICKCART_RELEASE_KEY_ALIAS")
-def releaseKeyPassword = System.getenv("QUICKCART_RELEASE_KEY_PASSWORD") ?: project.findProperty("QUICKCART_RELEASE_KEY_PASSWORD")
+def releaseSigningPropertiesFile = rootProject.file("release-signing.properties")
+def releaseSigningProperties = new Properties()
+if (releaseSigningPropertiesFile.isFile()) {
+    releaseSigningPropertiesFile.withInputStream { releaseSigningProperties.load(it) }
+}
+def releaseProperty = { String name ->
+    System.getenv(name) ?: project.findProperty(name)?.toString() ?: releaseSigningProperties.getProperty(name)
+}
+def releaseStoreFile = releaseProperty("QUICKCART_RELEASE_STORE_FILE")
+def releaseStorePassword = releaseProperty("QUICKCART_RELEASE_STORE_PASSWORD")
+def releaseKeyAlias = releaseProperty("QUICKCART_RELEASE_KEY_ALIAS")
+def releaseKeyPassword = releaseProperty("QUICKCART_RELEASE_KEY_PASSWORD")
 def releaseSigningConfigured = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { value ->
     value != null && !value.toString().trim().isEmpty()
 }
 
+def releaseTaskRequested = gradle.startParameter.taskNames.any { taskName ->
+    taskName.toLowerCase().contains("release")
+}
+
 if (!releaseSigningConfigured) {
-    logger.warn("QuickCart release signing is not configured. Release outputs will be unsigned until QUICKCART_RELEASE_* signing values are supplied.")
+    if (releaseTaskRequested) {
+        throw new GradleException("Release signing is not configured. Set all QUICKCART_RELEASE_* values using environment variables, Gradle properties, or android/release-signing.properties. Refusing to produce an unsigned release APK.")
+    }
+    logger.lifecycle("QuickCart release signing is not configured; debug builds remain available. Release tasks require signing credentials.")
 }
 
 /**
