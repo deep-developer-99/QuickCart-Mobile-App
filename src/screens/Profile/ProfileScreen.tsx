@@ -261,7 +261,7 @@ const ProfileScreen = () => {
 
           <View style={styles.userInfo}>
             <Text style={styles.name} numberOfLines={1}>
-              {user?.name || 'QuickMart User'}
+              {user?.name || 'QuickCart User'}
             </Text>
             <Text style={styles.email} numberOfLines={1}>
               {user?.email || 'No email available'}

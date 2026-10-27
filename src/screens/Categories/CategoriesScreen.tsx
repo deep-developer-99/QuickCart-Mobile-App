@@ -187,7 +187,7 @@ const CategoriesScreen = () => {
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <View style={styles.container}>
           <View style={styles.searchHeader}>
-            <Text style={styles.logoText}>QuickMart</Text>
+            <Text style={styles.logoText}>QuickCart</Text>
             <Pressable onPress={() => setSearchOpen(false)}>
               <Text style={styles.closeText}>×</Text>
             </Pressable>
@@ -313,7 +313,14 @@ const CategoriesScreen = () => {
           }}
           right={
             <View style={styles.headerActions}>
-              <Pressable onPress={() => navigation.navigate('Search', { categoryId: selectedCategory._id })} hitSlop={8}>
+              <Pressable
+                onPress={() =>
+                  navigation.navigate('Search', {
+                    categoryId: selectedCategory._id,
+                  })
+                }
+                hitSlop={8}
+              >
                 <Text style={styles.headerIcon}>⌕</Text>
               </Pressable>
               <Pressable onPress={openFilter} hitSlop={8}>

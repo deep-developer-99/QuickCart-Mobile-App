@@ -24,7 +24,7 @@ export const lightColors = {
 } as const;
 
 export const darkColors = {
-  // QuickMart Figma Dark Theme
+  // QuickCart Figma Dark Theme
   cyan: '#21D4B4',
   cyan50: '#212322',
   black: '#1C1B1B',

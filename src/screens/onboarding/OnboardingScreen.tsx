@@ -35,7 +35,7 @@ const onboardingData: OnboardingItem[] = [
     id: '1',
     title: 'Explore a wide range of products',
     description:
-      'Explore a wide range of products at your fingertips. QuickMart offers an extensive collection to suit your needs.',
+      'Explore a wide range of products at your fingertips. QuickCart offers an extensive collection to suit your needs.',
     Illustration: ShoppingIllustration,
   },
   {
@@ -49,7 +49,7 @@ const onboardingData: OnboardingItem[] = [
     id: '3',
     title: 'Safe and secure payments',
     description:
-      'QuickMart employs industry-leading encryption and trusted payment gateways to safeguard your financial information.',
+      'QuickCart employs industry-leading encryption and trusted payment gateways to safeguard your financial information.',
     Illustration: PaymentsIllustration,
   },
 ];
@@ -111,7 +111,7 @@ const OnboardingScreen = ({ navigation }: Props) => {
                 <View style={styles.brandMark}>
                   <Text style={styles.brandMarkText}>Q</Text>
                 </View>
-                <Text style={styles.brandText}>QuickMart</Text>
+                <Text style={styles.brandText}>QuickCart</Text>
               </View>
             ) : (
               <Pressable
