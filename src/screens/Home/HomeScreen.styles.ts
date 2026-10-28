@@ -11,21 +11,6 @@ export const HomeScreenStyles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   logoRow: { flexDirection: 'row', alignItems: 'center' },
-  logoMark: {
-    width: 30,
-    height: 30,
-    borderRadius: radius.pill,
-    backgroundColor: colors.cyan,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.xs,
-  },
-  logoMarkText: {
-    fontFamily: 'PlusJakartaSans-Bold',
-    fontSize: 18,
-    color: colors.white,
-    lineHeight: 20,
-  },
   logoText: { ...typography.heading3Bold, color: colors.black, fontSize: 18 },
   headerActions: {
     flexDirection: 'row',

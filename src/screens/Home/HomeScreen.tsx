@@ -37,6 +37,7 @@ import type { Banner } from '../../api/quickCartApi';
 import { useGetCartQuery } from '../../api/quickCartApi';
 import CartAddedToast from '../../components/CartAddedToast';
 import CartQuantityControl from '../../components/CartQuantityControl';
+import QuickCartWordmark from '../../components/QuickCartWordmark';
 import type { CartProduct } from '../../store/slices/cartSlice';
 import type { RootState } from '../../store/store';
 import { radius, spacing, typography, useTheme } from '../../theme';
@@ -324,12 +325,12 @@ const HomeScreen = () => {
       >
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <View style={styles.logoRow}>
-              <View style={styles.logoMark}>
-                <Text style={styles.logoMarkText}>Q</Text>
-              </View>
-              <Text style={styles.logoText}>uickCart</Text>
-            </View>
+            <QuickCartWordmark
+              style={styles.logoRow}
+              textStyle={styles.logoText}
+              markSize={30}
+              gap={spacing.xs}
+            />
 
             <View style={styles.headerActions}>
               <Pressable
@@ -634,20 +635,6 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
     justifyContent: 'space-between' as const,
   },
   logoRow: { flexDirection: 'row' as const, alignItems: 'center' as const },
-  logoMark: {
-    width: 30,
-    height: 30,
-    borderRadius: radius.pill,
-    backgroundColor: colors.cyan,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    marginRight: spacing.xs,
-  },
-  logoMarkText: {
-    fontFamily: 'PlusJakartaSans-Bold',
-    fontSize: 18,
-    color: colors.white,
-  },
   logoText: { ...typography.heading3Bold, color: colors.text, fontSize: 18 },
   headerActions: {
     flexDirection: 'row' as const,

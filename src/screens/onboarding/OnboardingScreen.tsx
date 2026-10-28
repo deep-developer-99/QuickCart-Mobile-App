@@ -15,6 +15,7 @@ import { OnboardingScreenStyles } from './OnboardingScreen.styles';
 import { AuthStackParamList } from '../../navigation/AuthNavigator';
 import { useTheme } from '../../theme';
 import BackButton from '../../components/common/BackButton';
+import QuickCartWordmark from '../../components/QuickCartWordmark';
 
 import ShoppingIllustration from '../../assets/onboarding/shopping.svg';
 import OffersIllustration from '../../assets/onboarding/offers.svg';
@@ -99,12 +100,12 @@ const OnboardingScreen = ({ navigation }: Props) => {
         <View style={styles.illustrationCard}>
           <View style={styles.topBar}>
             {index === 0 ? (
-              <View style={styles.brand}>
-                <View style={styles.brandMark}>
-                  <Text style={styles.brandMarkText}>Q</Text>
-                </View>
-                <Text style={styles.brandText}>QuickCart</Text>
-              </View>
+              <QuickCartWordmark
+                style={styles.brand}
+                textStyle={styles.brandText}
+                markSize={30}
+                gap={2}
+              />
             ) : (
               <BackButton
                 onPress={goBack}

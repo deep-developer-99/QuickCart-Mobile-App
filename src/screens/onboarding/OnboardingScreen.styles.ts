@@ -40,21 +40,6 @@ export const OnboardingScreenStyles = (
       flexDirection: 'row',
       alignItems: 'center',
     },
-    brandMark: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      backgroundColor: colors.cyan,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: 2,
-    },
-    brandMarkText: {
-      color: colors.background,
-      fontFamily: 'PlusJakartaSans-Bold',
-      fontSize: 22,
-      lineHeight: 27,
-    },
     brandText: {
       color: colors.text,
       fontFamily: 'PlusJakartaSans-Bold',

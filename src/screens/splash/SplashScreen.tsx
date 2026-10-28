@@ -8,6 +8,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SplashScreenStyles } from './SplashScreen.styles';
 import { useTheme } from '../../theme';
 import { AuthStackParamList } from '../../navigation/AuthNavigator';
+import QuickCartWordmark from '../../components/QuickCartWordmark';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Splash'>;
 
@@ -18,7 +19,13 @@ export const SplashScreenContent = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.logo}>QuickCart</Text>
+      <QuickCartWordmark
+        textStyle={styles.logo}
+        markSize={30}
+        badgeSize={46}
+        badgeColor={theme.colors.white}
+        gap={8}
+      />
 
       <Text style={styles.tagline}>{t('ui.splash.tagline')}</Text>
     </SafeAreaView>

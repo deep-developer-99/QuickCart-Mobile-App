@@ -28,6 +28,7 @@ import {
 import CartAddedToast from '../../components/CartAddedToast';
 import BackButton from '../../components/common/BackButton';
 import CartQuantityControl from '../../components/CartQuantityControl';
+import QuickCartWordmark from '../../components/QuickCartWordmark';
 import type { CartProduct } from '../../store/slices/cartSlice';
 import { radius, spacing, typography, useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
@@ -220,7 +221,11 @@ const CategoriesScreen = () => {
       <SafeAreaView edges={['top']} style={styles.safeArea}>
         <View style={styles.container}>
           <View style={styles.searchHeader}>
-            <Text style={styles.logoText}>QuickCart</Text>
+            <QuickCartWordmark
+              textStyle={styles.logoText}
+              markSize={28}
+              gap={3}
+            />
             <Pressable onPress={() => setSearchOpen(false)}>
               <Text style={styles.closeText}>×</Text>
             </Pressable>

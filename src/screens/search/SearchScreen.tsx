@@ -25,6 +25,7 @@ import {
   type ProductResponse,
 } from '../../api/quickCartApi';
 import { radius, spacing, typography, useTheme } from '../../theme';
+import QuickCartWordmark from '../../components/QuickCartWordmark';
 import type { ThemeColors } from '../../theme';
 
 type Product = ProductResponse['data'][number];
@@ -256,12 +257,12 @@ const SearchScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <View style={styles.logoRow}>
-          <View style={styles.logoMark}>
-            <Text style={styles.logoMarkText}>Q</Text>
-          </View>
-          <Text style={styles.logoText}>uickCart</Text>
-        </View>
+        <QuickCartWordmark
+          style={styles.logoRow}
+          textStyle={styles.logoText}
+          markSize={30}
+          gap={4}
+        />
 
         <Pressable
           onPress={handleClose}
@@ -569,20 +570,6 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: 'space-between',
     },
     logoRow: { flexDirection: 'row', alignItems: 'center' },
-    logoMark: {
-      width: 30,
-      height: 30,
-      borderRadius: radius.pill,
-      backgroundColor: colors.cyan,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: 4,
-    },
-    logoMarkText: {
-      fontFamily: 'PlusJakartaSans-Bold',
-      fontSize: 17,
-      color: colors.white,
-    },
     logoText: {
       fontFamily: 'PlusJakartaSans-Bold',
       fontSize: 18,
