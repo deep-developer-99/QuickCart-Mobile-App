@@ -115,6 +115,10 @@ const ProductDetailsScreen = () => {
     if (list.length > 0) return list;
     return product?.image ? [product.image] : [];
   }, [product?.images, product?.image]);
+  const imageSectionHeight =
+    images.length > 0
+      ? Math.min(width * 0.8, 290)
+      : Math.min(width * 0.45, 180);
 
   const shareProduct = useCallback(async () => {
     if (!product) return;
@@ -180,6 +184,13 @@ const ProductDetailsScreen = () => {
   if (!product || product.isActive === false) {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <View style={styles.header}>
+          <BackButton
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            hitSlop={4}
+          />
+        </View>
         <View style={styles.unavailableState}>
           <Text style={styles.description}>
             {productLoading
@@ -188,11 +199,6 @@ const ProductDetailsScreen = () => {
                 ? t('ui.product.unavailable')
                 : t('ui.product.notFound')}
           </Text>
-          <BackButton
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-            hitSlop={4}
-          />
         </View>
       </SafeAreaView>
     );
@@ -212,7 +218,7 @@ const ProductDetailsScreen = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.imageSection}>
+        <View style={[styles.imageSection, { height: imageSectionHeight }]}>
           {images.length > 0 ? (
             <ScrollView
               horizontal
@@ -231,8 +237,11 @@ const ProductDetailsScreen = () => {
                 <Image
                   key={`${uri}-${index}`}
                   source={{ uri }}
-                  style={[styles.productImage, { width }]}
-                  resizeMode="cover"
+                  style={[
+                    styles.productImage,
+                    { width, height: imageSectionHeight },
+                  ]}
+                  resizeMode="contain"
                 />
               ))}
             </ScrollView>
@@ -416,11 +425,10 @@ const createStyles = (
       elevation: 0,
     },
     imageSection: {
-      height: 290,
       backgroundColor: colors.cyan50,
       position: 'relative',
     },
-    productImage: { height: 290 },
+    productImage: { backgroundColor: colors.cyan50 },
     imageFallback: {
       flex: 1,
       alignItems: 'center',
