@@ -1,8 +1,9 @@
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -20,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import EmptyCart from './EmptyCart';
+import { getVoucherInputScrollDelta } from './voucherKeyboard';
 import BackButton from '../../components/common/BackButton';
 import TrashIcon from '../../assets/icons/trash.svg';
 import {
@@ -55,6 +57,67 @@ const CartScreen = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [voucherVisible, setVoucherVisible] = useState(false);
   const [voucherCode, setVoucherCode] = useState('');
+  const voucherScrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const voucherInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
+  const voucherScrollOffsetRef = useRef(0);
+  const voucherPreKeyboardOffsetRef = useRef(0);
+  const voucherKeyboardVisibleRef = useRef(false);
+
+  const scrollVoucherInputIntoView = useCallback(() => {
+    const input = voucherInputRef.current;
+    const scrollView = voucherScrollRef.current;
+    if (!input || !scrollView) return;
+
+    input.measureInWindow((_inputX, inputY, _inputWidth, inputHeight) => {
+      scrollView.measureInWindow(
+        (_scrollX, scrollY, _scrollWidth, scrollHeight) => {
+          const delta = getVoucherInputScrollDelta(
+            inputY,
+            inputHeight,
+            scrollY,
+            scrollHeight,
+            spacing.sm,
+          );
+
+          if (Math.abs(delta) > 1) {
+            scrollView.scrollTo({
+              y: Math.max(0, voucherScrollOffsetRef.current + delta),
+              animated: true,
+            });
+          }
+        },
+      );
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!voucherVisible) return;
+
+    const keyboardSubscription = Keyboard.addListener('keyboardDidShow', () => {
+      if (!voucherKeyboardVisibleRef.current) {
+        voucherPreKeyboardOffsetRef.current = voucherScrollOffsetRef.current;
+      }
+      voucherKeyboardVisibleRef.current = true;
+      requestAnimationFrame(scrollVoucherInputIntoView);
+    });
+    const keyboardHideSubscription = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        voucherKeyboardVisibleRef.current = false;
+        requestAnimationFrame(() => {
+          voucherScrollRef.current?.scrollTo({
+            y: voucherPreKeyboardOffsetRef.current,
+            animated: false,
+          });
+        });
+      },
+    );
+
+    return () => {
+      keyboardSubscription.remove();
+      keyboardHideSubscription.remove();
+    };
+  }, [scrollVoucherInputIntoView, voucherVisible]);
 
   useEffect(() => {
     setSelectedIds(items.map(item => item.product?._id).filter(Boolean));
@@ -345,32 +408,47 @@ const CartScreen = () => {
           />
 
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalKeyboardContainer}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={0}
           >
             <View style={styles.voucherSheet}>
-              <View style={styles.sheetHandle} />
-
-              <Text style={styles.sheetTitle}>{t('cart.voucher')}</Text>
-
-              <TextInput
-                value={voucherCode}
-                onChangeText={setVoucherCode}
-                placeholder={t('ui.cart.voucherPlaceholder')}
-                placeholderTextColor={theme.colors.grey150}
-                autoCapitalize="characters"
-                style={styles.voucherInput}
-              />
-
-              <Pressable
-                style={styles.applyButton}
-                onPress={() => {
-                  // Voucher validation API will be connected here.
-                  setVoucherVisible(false);
+              <ScrollView
+                ref={voucherScrollRef}
+                onScroll={event => {
+                  voucherScrollOffsetRef.current =
+                    event.nativeEvent.contentOffset.y;
                 }}
+                scrollEventThrottle={16}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.voucherScrollContent}
               >
-                <Text style={styles.applyText}>{t('cart.apply')}</Text>
-              </Pressable>
+                <View style={styles.sheetHandle} />
+
+                <Text style={styles.sheetTitle}>{t('cart.voucher')}</Text>
+
+                <TextInput
+                  ref={voucherInputRef}
+                  value={voucherCode}
+                  onChangeText={setVoucherCode}
+                  onFocus={() => requestAnimationFrame(scrollVoucherInputIntoView)}
+                  placeholder={t('ui.cart.voucherPlaceholder')}
+                  placeholderTextColor={theme.colors.grey150}
+                  autoCapitalize="characters"
+                  style={styles.voucherInput}
+                />
+
+                <Pressable
+                  style={styles.applyButton}
+                  onPress={() => {
+                    // Voucher validation API will be connected here.
+                    setVoucherVisible(false);
+                  }}
+                >
+                  <Text style={styles.applyText}>{t('cart.apply')}</Text>
+                </Pressable>
+              </ScrollView>
             </View>
           </KeyboardAvoidingView>
         </View>
@@ -625,10 +703,18 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
       backgroundColor: 'rgba(0,0,0,0.48)',
       justifyContent: 'flex-end',
     },
+    modalKeyboardContainer: {
+      flex: 1,
+      width: '100%',
+      justifyContent: 'flex-end',
+    },
     voucherSheet: {
       backgroundColor: colors.surface,
       borderTopLeftRadius: 24,
       borderTopRightRadius: 24,
+      maxHeight: '90%',
+    },
+    voucherScrollContent: {
       paddingHorizontal: spacing.md,
       paddingTop: 8,
       paddingBottom: 34,
