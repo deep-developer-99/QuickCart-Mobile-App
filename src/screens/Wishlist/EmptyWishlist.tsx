@@ -1,9 +1,9 @@
+import { AppText as Text } from '../../components/AppText';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Pressable,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from 'react-native';

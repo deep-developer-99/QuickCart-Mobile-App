@@ -1,3 +1,4 @@
+import { AppText as Text } from '../../components/AppText';
 import React from 'react';
 import {
   Alert,
@@ -6,7 +7,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';

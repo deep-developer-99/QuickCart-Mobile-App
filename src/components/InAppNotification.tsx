@@ -1,10 +1,10 @@
+import { AppText as Text } from './AppText';
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
   Animated,
   PanResponder,
   Pressable,
   StyleSheet,
-  Text,
   useWindowDimensions,
   View,
 } from 'react-native';

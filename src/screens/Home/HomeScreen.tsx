@@ -1,3 +1,4 @@
+import { AppText as Text } from '../../components/AppText';
 import React, {
   useCallback,
   useEffect,
@@ -13,7 +14,6 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  Text,
   View,
   useWindowDimensions,
 } from 'react-native';

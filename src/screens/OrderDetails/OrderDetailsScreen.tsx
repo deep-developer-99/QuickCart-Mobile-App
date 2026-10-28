@@ -1,3 +1,4 @@
+import { AppText as Text } from '../../components/AppText';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -5,7 +6,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';

@@ -1,3 +1,4 @@
+import { AppText as Text } from '../../components/AppText';
 import { useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -8,7 +9,6 @@ import {
   ScrollView,
   Share,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from 'react-native';

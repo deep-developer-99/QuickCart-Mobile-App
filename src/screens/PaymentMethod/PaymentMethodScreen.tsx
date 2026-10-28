@@ -1,3 +1,4 @@
+import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -7,8 +8,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

@@ -1,8 +1,10 @@
+import { fontFamilies } from './globalFont';
+
 export const typography = {
   // Heading 1
 
   heading1Bold: {
-    fontFamily: 'PlusJakartaSans-Bold',
+    fontFamily: fontFamilies.bold,
     fontSize: 32,
     lineHeight: 38,
     fontWeight: '700' as const,
@@ -10,7 +12,7 @@ export const typography = {
   },
 
   heading1SemiBold: {
-    fontFamily: 'PlusJakartaSans-SemiBold',
+    fontFamily: fontFamilies.semiBold,
     fontSize: 32,
     lineHeight: 38,
     fontWeight: '600' as const,
@@ -18,7 +20,7 @@ export const typography = {
   },
 
   heading1Regular: {
-    fontFamily: 'PlusJakartaSans-Regular',
+    fontFamily: fontFamilies.regular,
     fontSize: 32,
     lineHeight: 38,
     fontWeight: '400' as const,
@@ -28,7 +30,7 @@ export const typography = {
   // Heading 2
 
   heading2Bold: {
-    fontFamily: 'PlusJakartaSans-Bold',
+    fontFamily: fontFamilies.bold,
     fontSize: 24,
     lineHeight: 29,
     fontWeight: '700' as const,
@@ -36,7 +38,7 @@ export const typography = {
   },
 
   heading2SemiBold: {
-    fontFamily: 'PlusJakartaSans-SemiBold',
+    fontFamily: fontFamilies.semiBold,
     fontSize: 24,
     lineHeight: 29,
     fontWeight: '600' as const,
@@ -44,7 +46,7 @@ export const typography = {
   },
 
   heading2Regular: {
-    fontFamily: 'PlusJakartaSans-Regular',
+    fontFamily: fontFamilies.regular,
     fontSize: 24,
     lineHeight: 29,
     fontWeight: '400' as const,
@@ -54,7 +56,7 @@ export const typography = {
   // Heading 3
 
   heading3Bold: {
-    fontFamily: 'PlusJakartaSans-Bold',
+    fontFamily: fontFamilies.bold,
     fontSize: 18,
     lineHeight: 22,
     fontWeight: '700' as const,
@@ -62,7 +64,7 @@ export const typography = {
   },
 
   heading3SemiBold: {
-    fontFamily: 'PlusJakartaSans-SemiBold',
+    fontFamily: fontFamilies.semiBold,
     fontSize: 18,
     lineHeight: 22,
     fontWeight: '600' as const,
@@ -70,7 +72,7 @@ export const typography = {
   },
 
   heading3Regular: {
-    fontFamily: 'PlusJakartaSans-Regular',
+    fontFamily: fontFamilies.regular,
     fontSize: 18,
     lineHeight: 22,
     fontWeight: '400' as const,
@@ -80,14 +82,14 @@ export const typography = {
   // Buttons
 
   button1: {
-    fontFamily: 'PlusJakartaSans-SemiBold',
+    fontFamily: fontFamilies.semiBold,
     fontSize: 16,
     fontWeight: '600' as const,
     letterSpacing: 0,
   },
 
   button2: {
-    fontFamily: 'PlusJakartaSans-SemiBold',
+    fontFamily: fontFamilies.semiBold,
     fontSize: 14,
     fontWeight: '600' as const,
     letterSpacing: 0,
@@ -96,7 +98,7 @@ export const typography = {
   // Body
 
   body1Medium: {
-    fontFamily: 'PlusJakartaSans-Medium',
+    fontFamily: fontFamilies.medium,
     fontSize: 16,
     lineHeight: 26,
     fontWeight: '500' as const,
@@ -104,7 +106,7 @@ export const typography = {
   },
 
   body1Regular: {
-    fontFamily: 'PlusJakartaSans-Regular',
+    fontFamily: fontFamilies.regular,
     fontSize: 16,
     lineHeight: 26,
     fontWeight: '400' as const,
@@ -112,7 +114,7 @@ export const typography = {
   },
 
   body2Medium: {
-    fontFamily: 'PlusJakartaSans-Medium',
+    fontFamily: fontFamilies.medium,
     fontSize: 14,
     lineHeight: 22,
     fontWeight: '500' as const,
@@ -120,7 +122,7 @@ export const typography = {
   },
 
   body2Regular: {
-    fontFamily: 'PlusJakartaSans-Regular',
+    fontFamily: fontFamilies.regular,
     fontSize: 14,
     lineHeight: 22,
     fontWeight: '400' as const,
@@ -130,14 +132,14 @@ export const typography = {
   // Caption
 
   captionSemiBold: {
-    fontFamily: 'PlusJakartaSans-SemiBold',
+    fontFamily: fontFamilies.semiBold,
     fontSize: 12,
     fontWeight: '600' as const,
     letterSpacing: 0.06,
   },
 
   captionRegular: {
-    fontFamily: 'PlusJakartaSans-Regular',
+    fontFamily: fontFamilies.regular,
     fontSize: 12,
     fontWeight: '400' as const,
     letterSpacing: 0.06,
@@ -146,14 +148,14 @@ export const typography = {
   // Overline
 
   overlineSemiBold: {
-    fontFamily: 'PlusJakartaSans-SemiBold',
+    fontFamily: fontFamilies.semiBold,
     fontSize: 10,
     fontWeight: '600' as const,
     letterSpacing: 0.1,
   },
 
   overlineRegular: {
-    fontFamily: 'PlusJakartaSans-Regular',
+    fontFamily: fontFamilies.regular,
     fontSize: 10,
     fontWeight: '400' as const,
     letterSpacing: 0.1,

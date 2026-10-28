@@ -1,3 +1,4 @@
+import { AppText as Text } from '../../components/AppText';
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -5,7 +6,6 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
-  Text,
   View,
   useWindowDimensions,
 } from 'react-native';

@@ -3,8 +3,6 @@ import { Alert, StatusBar } from 'react-native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import './src/theme/globalFont';
-
 import RootNavigator from './src/navigation/RootNavigator';
 import { store } from './src/store/store';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';

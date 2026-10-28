@@ -1,3 +1,4 @@
+import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -8,8 +9,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
 import {

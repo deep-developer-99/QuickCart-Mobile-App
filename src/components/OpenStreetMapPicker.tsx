@@ -1,10 +1,10 @@
+import { AppText as Text } from './AppText';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';

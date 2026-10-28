@@ -1,3 +1,4 @@
+import { AppText as Text, AppTextInput as TextInput } from '../../../components/AppText';
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import {
@@ -5,8 +6,6 @@ import {
   Alert,
   Platform,
   Pressable,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';

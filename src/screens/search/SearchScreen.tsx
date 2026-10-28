@@ -1,3 +1,4 @@
+import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import React, { useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -10,8 +11,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

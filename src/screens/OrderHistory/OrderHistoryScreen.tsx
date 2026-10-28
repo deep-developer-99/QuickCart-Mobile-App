@@ -1,3 +1,4 @@
+import { AppText as Text } from '../../components/AppText';
 import { useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
 import React, { useMemo, useState } from 'react';
@@ -8,7 +9,6 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
