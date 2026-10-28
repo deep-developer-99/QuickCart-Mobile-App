@@ -14,6 +14,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "911620422080-qoo38lhvh22pcljr7cnj4ut9auqedhfo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.quickcartmobile",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "911620422080-uvp08t19e8titv3a1vh2ssqotbsrcnod.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.quickcartmobile",
+            "certificate_hash": "147be77e7a144bf70882fc0d6a8e974fced9f35a"
+          }
+        },
+        {
           "client_id": "911620422080-dt0af3rvjtut1919sv8om5cv4vf4bh4c.apps.googleusercontent.com",
           "client_type": 3
         }

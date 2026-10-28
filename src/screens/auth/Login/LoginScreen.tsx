@@ -25,6 +25,7 @@ import {
 } from '@react-native-google-signin/google-signin';
 import { signInWithGoogle as getGoogleIdToken } from '../../../services/googleSignIn';
 import { saveToken } from '../../../services/secureStorage';
+import { getSafeAuthErrorDetails } from '../../../services/apiDiagnostics';
 import { setCredentials } from '../../../store/slices/authSlice';
 import type { AppDispatch } from '../../../store/store';
 
@@ -63,12 +64,19 @@ const LoginScreen = ({ navigation }: Props) => {
 
     setIsGoogleSignInLoading(true);
     let failureStage:
-      | 'google_identity'
+      | 'google_play_services'
+      | 'google_session_reset'
+      | 'google_account_selection'
+      | 'google_id_token'
+      | 'firebase_authentication'
+      | 'firebase_id_token'
       | 'backend_exchange'
-      | 'token_persistence' = 'google_identity';
+      | 'token_persistence' = 'google_play_services';
 
     try {
-      const firebaseIdToken = await getGoogleIdToken();
+      const firebaseIdToken = await getGoogleIdToken(stage => {
+        failureStage = stage;
+      });
 
       if (!firebaseIdToken) {
         return;
@@ -121,12 +129,14 @@ const LoginScreen = ({ navigation }: Props) => {
         error && typeof error === 'object' && 'code' in error
           ? (error as { code?: unknown }).code
           : undefined;
+      const safeError = getSafeAuthErrorDetails(
+        errorCode,
+        error instanceof Error ? error.message : undefined,
+      );
       console.warn('[AUTH] Google sign-in failed', {
         stage: failureStage,
         errorType: error instanceof Error ? 'Error' : 'NonError',
-        ...(typeof errorCode === 'string' && /^[A-Z][A-Z0-9_]{0,47}$/.test(errorCode)
-          ? { errorCode }
-          : {}),
+        ...safeError,
       });
       Alert.alert(t('auth.loginFailed'), t('auth.googleLoginFailed'));
     } finally {

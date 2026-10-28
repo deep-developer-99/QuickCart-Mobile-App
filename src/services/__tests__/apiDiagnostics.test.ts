@@ -1,6 +1,7 @@
 import {
   formatApiDiagnostic,
   getApiErrorDiagnostics,
+  getSafeAuthErrorDetails,
   safeApiPath,
 } from '../apiDiagnostics';
 
@@ -55,5 +56,30 @@ describe('API diagnostics', () => {
     expect(output).toContain('[API] request.failed');
     expect(output).toContain('"authPresent":true');
     expect(output).not.toContain('private@example.com');
+  });
+
+  it('reports safe Google and Firebase failure stages without raw messages', () => {
+    expect(
+      getSafeAuthErrorDetails(
+        '10',
+        'DEVELOPER_ERROR: https://private.example?token=secret',
+      ),
+    ).toEqual({
+      errorCode: 'GOOGLE_STATUS_10',
+      safeErrorMessage: 'Google rejected the Android app OAuth configuration.',
+    });
+    expect(
+      getSafeAuthErrorDetails(
+        'auth/invalid-credential',
+        'Credential for private@example.com was invalid',
+      ),
+    ).toEqual({
+      errorCode: 'auth/invalid-credential',
+      safeErrorMessage: 'Firebase rejected the Google credential.',
+    });
+    expect(getSafeAuthErrorDetails('secret-token-value', 'private detail')).toEqual({
+      errorCode: 'SIGN_IN_FAILED',
+      safeErrorMessage: 'Google sign-in failed during this step.',
+    });
   });
 });
