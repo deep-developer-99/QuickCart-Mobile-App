@@ -1,6 +1,17 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import {
+  createApi,
+  fetchBaseQuery,
+  type BaseQueryFn,
+  type FetchArgs,
+  type FetchBaseQueryError,
+} from '@reduxjs/toolkit/query/react';
 
 import { getToken } from '../services/secureStorage';
+import {
+  getApiErrorDiagnostics,
+  logApiDiagnostic,
+  safeApiPath,
+} from '../services/apiDiagnostics';
 
 interface VerifyOtpResponse {
   success: boolean;
@@ -181,23 +192,79 @@ interface MeResponse {
   };
 }
 
+const API_BASE_URL = 'https://quickcart-bxod.onrender.com/api';
+
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: API_BASE_URL,
+
+  prepareHeaders: async headers => {
+    const token = await getToken();
+
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    return headers;
+  },
+});
+
+const diagnosticBaseQuery: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extraOptions) => {
+  const method = typeof args === 'string' ? 'GET' : args.method ?? 'GET';
+  const path = safeApiPath(typeof args === 'string' ? args : args.url);
+  const startedAt = Date.now();
+  const requestInfo = {
+    operation: api.endpoint,
+    method,
+    path,
+    baseUrlConfigured: Boolean(API_BASE_URL),
+  };
+
+  logApiDiagnostic('info', 'request.start', requestInfo);
+
+  try {
+    const result = await rawBaseQuery(args, api, extraOptions);
+    const authPresent = Boolean(
+      result.meta?.request.headers.get('authorization'),
+    );
+
+    if (result.error) {
+      logApiDiagnostic('warn', 'request.failed', {
+        ...requestInfo,
+        ...getApiErrorDiagnostics(result.error),
+        authPresent,
+        durationMs: Date.now() - startedAt,
+      });
+      return result;
+    }
+
+    logApiDiagnostic('info', 'request.complete', {
+      ...requestInfo,
+      httpStatus: result.meta?.response?.status,
+      authPresent,
+      durationMs: Date.now() - startedAt,
+    });
+    return result;
+  } catch (error) {
+    logApiDiagnostic('warn', 'request.failed', {
+      ...requestInfo,
+      errorCategory: 'client_setup_error',
+      errorType: error instanceof Error ? 'Error' : 'NonError',
+      authPresent: null,
+      durationMs: Date.now() - startedAt,
+    });
+    throw error;
+  }
+};
+
 export const quickCartApi = createApi({
   reducerPath: 'quickCartApi',
   tagTypes: ['Categories', 'Products', 'Banners', 'Me', 'Cart', 'Wishlist'],
 
-  baseQuery: fetchBaseQuery({
-    baseUrl: 'https://quickcart-bxod.onrender.com/api',
-
-    prepareHeaders: async headers => {
-      const token = await getToken();
-
-      if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
-      }
-
-      return headers;
-    },
-  }),
+  baseQuery: diagnosticBaseQuery,
 
   endpoints: builder => ({
     // Get categories

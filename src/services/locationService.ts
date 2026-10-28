@@ -1,6 +1,11 @@
 import { PermissionsAndroid, Platform } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import { getToken } from './secureStorage';
+import {
+  getApiErrorDiagnostics,
+  logApiDiagnostic,
+  safeApiPath,
+} from './apiDiagnostics';
 
 const API_BASE_URL = 'https://quickcart-bxod.onrender.com/api';
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/reverse';
@@ -108,9 +113,27 @@ export const forwardGeocodeAddress = async (
     try {
       token = await getToken();
     } catch {
+      logApiDiagnostic('warn', 'request.skipped', {
+        operation: 'location.forward',
+        method: 'POST',
+        path: '/location/forward',
+        baseUrlConfigured: Boolean(API_BASE_URL),
+        errorCategory: 'credential_lookup_failed',
+        authPresent: null,
+      });
       throw new ForwardGeocodeError('PROVIDER_ERROR');
     }
-    if (!token) throw new ForwardGeocodeError('PROVIDER_ERROR');
+    if (!token) {
+      logApiDiagnostic('warn', 'request.skipped', {
+        operation: 'location.forward',
+        method: 'POST',
+        path: '/location/forward',
+        baseUrlConfigured: Boolean(API_BASE_URL),
+        errorCategory: 'authentication_required',
+        authPresent: false,
+      });
+      throw new ForwardGeocodeError('PROVIDER_ERROR');
+    }
 
     let response: Response;
     try {
@@ -126,6 +149,7 @@ export const forwardGeocodeAddress = async (
           body: JSON.stringify({ address: normalizedAddress }),
         },
         12000,
+        'location.forward',
       );
     } catch (error) {
       if (error instanceof Error && error.message.includes('timed out')) {
@@ -191,10 +215,36 @@ const fetchWithTimeout = async (
   input: RequestInfo,
   init: RequestInit,
   timeoutMs: number,
+  operation: string,
 ): Promise<Response> => {
   let timeout: ReturnType<typeof setTimeout> | null = null;
+  const requestUrl =
+    typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+  const requestPath = (() => {
+    try {
+      return safeApiPath(new URL(requestUrl).pathname);
+    } catch {
+      return '/';
+    }
+  })();
+  const requestInfo = {
+    operation,
+    method: init.method ?? 'GET',
+    path: requestPath,
+    ...(requestUrl.startsWith(API_BASE_URL)
+      ? { baseUrlConfigured: Boolean(API_BASE_URL) }
+      : {}),
+    authPresent: new Headers(init.headers).has('authorization'),
+  };
+  const startedAt = Date.now();
+  logApiDiagnostic('info', 'request.start', requestInfo);
+
   try {
-    return await Promise.race([
+    const response = await Promise.race([
       fetch(input, init),
       new Promise<Response>((_, reject) => {
         timeout = setTimeout(
@@ -203,6 +253,27 @@ const fetchWithTimeout = async (
         );
       }),
     ]);
+    logApiDiagnostic('info', 'request.complete', {
+      ...requestInfo,
+      httpStatus: response.status,
+      success: response.ok,
+      durationMs: Date.now() - startedAt,
+    });
+    return response;
+  } catch (error) {
+    const details = getApiErrorDiagnostics({
+      status:
+        error instanceof Error && /timed out/i.test(error.message)
+          ? 'TIMEOUT_ERROR'
+          : 'FETCH_ERROR',
+      error: error instanceof Error ? error.message : '',
+    });
+    logApiDiagnostic('warn', 'request.failed', {
+      ...requestInfo,
+      ...details,
+      durationMs: Date.now() - startedAt,
+    });
+    throw error;
   } finally {
     if (timeout) clearTimeout(timeout);
   }
@@ -361,9 +432,11 @@ const fetchReverseGeocodeResult = async (
   });
 
   // Try the backend first when the user has a token.
+  let backendRequestAttempted = false;
   try {
     const token = await getToken();
     if (token) {
+      backendRequestAttempted = true;
       const backendResponse = await fetchWithTimeout(
         `${API_BASE_URL}/location/reverse?lat=${encodeURIComponent(
           String(latitude),
@@ -376,6 +449,7 @@ const fetchReverseGeocodeResult = async (
           },
         },
         10000,
+        'location.reverse',
       );
 
       if (backendResponse.ok) {
@@ -394,11 +468,29 @@ const fetchReverseGeocodeResult = async (
           `QuickCart reverse-geocoding endpoint returned ${backendResponse.status}; trying address provider fallback.`,
         );
       }
+    } else {
+      logApiDiagnostic('info', 'request.skipped', {
+        operation: 'location.reverse',
+        method: 'GET',
+        path: '/location/reverse',
+        baseUrlConfigured: Boolean(API_BASE_URL),
+        errorCategory: 'authentication_required',
+        authPresent: false,
+      });
     }
-  } catch (error) {
+  } catch {
+    if (!backendRequestAttempted) {
+      logApiDiagnostic('warn', 'request.skipped', {
+        operation: 'location.reverse',
+        method: 'GET',
+        path: '/location/reverse',
+        baseUrlConfigured: Boolean(API_BASE_URL),
+        errorCategory: 'credential_lookup_failed',
+        authPresent: null,
+      });
+    }
     console.warn(
       'QuickCart reverse-geocoding endpoint unavailable; using fallback.',
-      error,
     );
   }
 
@@ -411,7 +503,7 @@ const fetchReverseGeocodeResult = async (
       'Accept-Language': 'en',
       'User-Agent': 'QuickCartMobile/1.0 (location lookup)',
     },
-  }, 10000);
+  }, 10000, 'nominatim.reverse');
 
   if (!response.ok) {
     throw new Error(
@@ -480,7 +572,7 @@ export const searchLocationSuggestions = async (
       'Accept-Language': 'en',
       'User-Agent': 'QuickCartMobile/1.0 (location search)',
     },
-  }, 10000);
+  }, 10000, 'nominatim.search');
   if (!response.ok) throw new Error(`Location search failed (${response.status}).`);
 
   const results = ((await response.json()) as NominatimResult[])

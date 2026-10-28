@@ -62,6 +62,10 @@ const LoginScreen = ({ navigation }: Props) => {
     }
 
     setIsGoogleSignInLoading(true);
+    let failureStage:
+      | 'google_identity'
+      | 'backend_exchange'
+      | 'token_persistence' = 'google_identity';
 
     try {
       const firebaseIdToken = await getGoogleIdToken();
@@ -74,6 +78,7 @@ const LoginScreen = ({ navigation }: Props) => {
         throw new Error('Google Sign-In did not return an ID token');
       }
 
+      failureStage = 'backend_exchange';
       const response = await googleLogin({
         idToken: firebaseIdToken,
       }).unwrap();
@@ -95,6 +100,7 @@ const LoginScreen = ({ navigation }: Props) => {
         throw new Error('Google authentication did not return valid credentials');
       }
 
+      failureStage = 'token_persistence';
       await saveToken(backendToken.trim());
 
       dispatch(
@@ -111,6 +117,17 @@ const LoginScreen = ({ navigation }: Props) => {
         return;
       }
 
+      const errorCode =
+        error && typeof error === 'object' && 'code' in error
+          ? (error as { code?: unknown }).code
+          : undefined;
+      console.warn('[AUTH] Google sign-in failed', {
+        stage: failureStage,
+        errorType: error instanceof Error ? 'Error' : 'NonError',
+        ...(typeof errorCode === 'string' && /^[A-Z][A-Z0-9_]{0,47}$/.test(errorCode)
+          ? { errorCode }
+          : {}),
+      });
       Alert.alert(t('auth.loginFailed'), t('auth.googleLoginFailed'));
     } finally {
       setIsGoogleSignInLoading(false);
