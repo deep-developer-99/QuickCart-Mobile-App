@@ -31,8 +31,63 @@ describe('app typography components', () => {
     );
     expect(style).toMatchObject({
       fontFamily: fontFamilies.semiBold,
-      fontWeight: '600',
+      fontWeight: 'normal',
       fontSize: 18,
+    });
+  });
+
+  it.each([
+    ['400', fontFamilies.regular],
+    ['500', fontFamilies.medium],
+    ['600', fontFamilies.semiBold],
+    ['700', fontFamilies.bold],
+  ] as const)(
+    'renders the %s face using its registered static family name',
+    async (fontWeight, fontFamily) => {
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      await ReactTestRenderer.act(() => {
+        renderer = ReactTestRenderer.create(
+          <AppText
+            style={[
+              { fontSize: 16 },
+              false && { color: 'red' },
+              { fontWeight },
+            ]}
+          >
+            Plus Jakarta Sans {fontWeight}
+          </AppText>,
+        );
+      });
+
+      const style = StyleSheet.flatten(
+        renderer!.root.findByType(NativeText).props.style,
+      );
+      expect(style).toMatchObject({
+        fontFamily,
+        fontWeight: 'normal',
+        fontSize: 16,
+      });
+    },
+  );
+
+  it('keeps a registered static face from requesting a second native weight variant', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(
+        <AppText
+          style={{ fontFamily: fontFamilies.bold, fontWeight: '700' }}
+        >
+          Plus Jakarta Sans Bold
+        </AppText>,
+      );
+    });
+
+    const style = StyleSheet.flatten(
+      renderer!.root.findByType(NativeText).props.style,
+    );
+    expect(style).toMatchObject({
+      fontFamily: fontFamilies.bold,
+      fontWeight: 'normal',
     });
   });
 
@@ -73,7 +128,7 @@ describe('app typography components', () => {
     expect(input.props.placeholder).toBe('Search products');
     expect(style).toMatchObject({
       fontFamily: fontFamilies.medium,
-      fontWeight: '500',
+      fontWeight: 'normal',
       color: 'navy',
     });
   });

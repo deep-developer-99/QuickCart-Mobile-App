@@ -29,18 +29,30 @@ const fontForWeight = (fontWeight: FontWeight | undefined): string => {
   }
 };
 
+const bundledFontFamilies = new Set<string>(Object.values(fontFamilies));
+
 const withDefaultFont = (
   style: TextProps['style'] | TextInputProps['style'],
 ) => {
   const flattenedStyle = StyleSheet.flatten(style) as TextStyle | undefined;
 
-  // An explicit font family wins. Otherwise use the matching bundled face for
-  // fontWeight so platform font synthesis cannot silently replace the weight.
-  const fontFamily = flattenedStyle?.fontFamily
-    ? undefined
-    : fontForWeight(flattenedStyle?.fontWeight);
+  // The bundled faces are separate static TTF files named after their
+  // PostScript names. Android's asset font manager treats fontWeight as a
+  // request for a variant suffix (for example, `_bold`) on fontFamily. Passing
+  // both `PlusJakartaSans-Bold` and `fontWeight: '700'` therefore looks for a
+  // missing `PlusJakartaSans-Bold_bold.ttf` and falls back to the system face.
+  // Resolve the face once and let the selected static file carry its weight.
+  const explicitFamily = flattenedStyle?.fontFamily;
+  if (explicitFamily && bundledFontFamilies.has(explicitFamily)) {
+    return [style, { fontWeight: 'normal' as const }];
+  }
 
-  return fontFamily ? [{ fontFamily }, style] : style;
+  if (explicitFamily) return style;
+
+  return [style, {
+    fontFamily: fontForWeight(flattenedStyle?.fontWeight),
+    fontWeight: 'normal' as const,
+  }];
 };
 
 export const AppText = forwardRef<
