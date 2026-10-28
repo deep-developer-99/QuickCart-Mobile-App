@@ -17,6 +17,9 @@ type QuickCartWordmarkProps = {
   gap?: number;
   badgeColor?: string;
   badgeSize?: number;
+  tagline?: string;
+  taglineStyle?: StyleProp<TextStyle>;
+  accessibilityLabel?: string;
 };
 
 /** The QuickCart wordmark with the supplied Q symbol and original wordmark text. */
@@ -27,11 +30,21 @@ const QuickCartWordmark = ({
   gap = 4,
   badgeColor,
   badgeSize = markSize + 12,
+  tagline,
+  taglineStyle,
+  accessibilityLabel,
 }: QuickCartWordmarkProps) => (
   <View
     accessible
-    accessibilityLabel="QuickCart"
-    style={[styles.wordmark, { gap }, style]}
+    accessibilityLabel={
+      accessibilityLabel ?? (tagline ? `QuickCart. ${tagline}` : 'QuickCart')
+    }
+    style={[
+      styles.wordmark,
+      tagline ? styles.wordmarkWithTagline : undefined,
+      { gap },
+      style,
+    ]}
   >
     {badgeColor ? (
       <View
@@ -45,14 +58,41 @@ const QuickCartWordmark = ({
           },
         ]}
       >
-        <QuickCartMark width={(markSize * 31) / 32} height={markSize} />
+        <QuickCartMark
+          width={(markSize * 31) / 32}
+          height={markSize}
+          style={tagline ? styles.markWithTagline : undefined}
+        />
       </View>
     ) : (
-      <QuickCartMark width={(markSize * 31) / 32} height={markSize} />
+      <QuickCartMark
+        width={(markSize * 31) / 32}
+        height={markSize}
+        style={tagline ? styles.markWithTagline : undefined}
+      />
     )}
-    <AppText accessible={false} numberOfLines={1} style={textStyle}>
-      uickCart
-    </AppText>
+    <View style={styles.textColumn}>
+      <AppText
+        accessible={false}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        numberOfLines={1}
+        style={textStyle}
+      >
+        uickCart
+      </AppText>
+      {tagline ? (
+        <AppText
+          accessible={false}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+          numberOfLines={1}
+          style={[styles.tagline, taglineStyle]}
+        >
+          {tagline}
+        </AppText>
+      ) : null}
+    </View>
   </View>
 );
 
@@ -61,11 +101,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexShrink: 1,
+    maxWidth: '100%',
+  },
+  wordmarkWithTagline: {
+    alignItems: 'flex-start',
+  },
+  markWithTagline: {
+    marginTop: 0,
+  },
+  textColumn: {
+    flexShrink: 1,
   },
   badge: {
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+  },
+  tagline: {
+    marginTop: 2,
   },
 });
 
