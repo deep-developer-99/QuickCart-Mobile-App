@@ -1,4 +1,5 @@
 import { AppText as Text } from '../../components/AppText';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {
   useCallback,
   useEffect,
@@ -11,6 +12,7 @@ import {
   Alert,
   Image,
   Linking,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -47,6 +49,10 @@ import {
   requestLocationPermission,
   reverseGeocodeCoordinates,
 } from '../../services/locationService';
+import {
+  hasPushNotificationPermission,
+  requestPushNotificationPermission,
+} from '../../services/pushNotifications';
 
 interface Category {
   _id: string;
@@ -81,6 +87,9 @@ const productEmoji = (name: string) => {
   return '🛍️';
 };
 
+const NOTIFICATION_PROMPT_SEEN_KEY =
+  'quickcart.notificationPermissionPromptSeen';
+
 const getBannerImage = (banner: Banner) =>
   banner.image?.trim() || banner.imageUrl?.trim() || null;
 
@@ -93,6 +102,12 @@ const HomeScreen = () => {
   const insets = useSafeAreaInsets();
   const user = useSelector((state: RootState) => state.auth.user);
   const [currentLocation, setCurrentLocation] = useState<string | null>(null);
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [
+    requestingNotificationPermission,
+    setRequestingNotificationPermission,
+  ] = useState(false);
+  const notificationPromptDismissed = useRef(false);
   const [locationUnavailable, setLocationUnavailable] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [showCartToast, setShowCartToast] = useState(false);
@@ -107,10 +122,7 @@ const HomeScreen = () => {
       const hasPermission = await requestLocationPermission();
       if (!hasPermission) {
         setIsLocating(false);
-        Alert.alert(
-          t('home.permissionTitle'),
-          t('home.permissionMessage'),
-        );
+        Alert.alert(t('home.permissionTitle'), t('home.permissionMessage'));
         return;
       }
 
@@ -131,12 +143,48 @@ const HomeScreen = () => {
     } catch (error) {
       setIsLocating(false);
       console.error('Location permission request failed:', error);
-      Alert.alert(
-        t('home.locationError'),
-        t('home.locationErrorMessage'),
-      );
+      Alert.alert(t('home.locationError'), t('home.locationErrorMessage'));
     }
   }, [isLocating, t]);
+
+  useEffect(() => {
+    let active = true;
+
+    const checkNotificationPermission = async () => {
+      try {
+        const promptSeen = await AsyncStorage.getItem(
+          NOTIFICATION_PROMPT_SEEN_KEY,
+        );
+
+        if (
+          !active ||
+          promptSeen === 'true' ||
+          notificationPromptDismissed.current
+        ) {
+          return;
+        }
+
+        const permissionGranted = await hasPushNotificationPermission();
+
+        if (!active) return;
+
+        if (permissionGranted) {
+          await AsyncStorage.setItem(NOTIFICATION_PROMPT_SEEN_KEY, 'true');
+          return;
+        }
+
+        setShowNotificationPrompt(true);
+      } catch (error) {
+        console.warn('Failed to check notification permission:', error);
+      }
+    };
+
+    checkNotificationPermission();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (hasRequestedInitialLocation.current) return;
@@ -309,6 +357,40 @@ const HomeScreen = () => {
     }, [refreshHome]),
   );
 
+  const handleAllowNotifications = async () => {
+    if (requestingNotificationPermission) return;
+
+    setRequestingNotificationPermission(true);
+
+    try {
+      await requestPushNotificationPermission();
+
+      // Do not repeatedly interrupt the user after they respond to the system prompt.
+      await AsyncStorage.setItem(NOTIFICATION_PROMPT_SEEN_KEY, 'true');
+      notificationPromptDismissed.current = true;
+      setShowNotificationPrompt(false);
+    } catch (error) {
+      console.warn('Failed to request notification permission:', error);
+      Alert.alert(
+        'Notification Permission',
+        'Unable to request notification permission. Please try again.',
+      );
+    } finally {
+      setRequestingNotificationPermission(false);
+    }
+  };
+
+  const handleLaterNotifications = async () => {
+    notificationPromptDismissed.current = true;
+    setShowNotificationPrompt(false);
+
+    try {
+      await AsyncStorage.setItem(NOTIFICATION_PROMPT_SEEN_KEY, 'true');
+    } catch (error) {
+      console.warn('Failed to save notification prompt choice:', error);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
@@ -368,8 +450,8 @@ const HomeScreen = () => {
                 {isLocating
                   ? t('home.detectingLocation')
                   : locationUnavailable
-                    ? t('home.locationUnavailable')
-                    : currentLocation || t('home.currentLocation')}
+                  ? t('home.locationUnavailable')
+                  : currentLocation || t('home.currentLocation')}
               </Text>
             </View>
             {isLocating ? (
@@ -388,7 +470,10 @@ const HomeScreen = () => {
               { width: bannerWidth, height: bannerHeight },
             ]}
           >
-            <ActivityIndicator size="small" color={styles.loadingIndicator.color} />
+            <ActivityIndicator
+              size="small"
+              color={styles.loadingIndicator.color}
+            />
           </View>
         ) : banners.length > 0 ? (
           <View
@@ -470,7 +555,10 @@ const HomeScreen = () => {
 
           {categoriesLoading ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="small" color={styles.loadingIndicator.color} />
+              <ActivityIndicator
+                size="small"
+                color={styles.loadingIndicator.color}
+              />
             </View>
           ) : (
             <ScrollView
@@ -520,7 +608,10 @@ const HomeScreen = () => {
 
           {productsLoading ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="small" color={styles.loadingIndicator.color} />
+              <ActivityIndicator
+                size="small"
+                color={styles.loadingIndicator.color}
+              />
             </View>
           ) : (
             <View style={styles.productGrid}>
@@ -620,6 +711,56 @@ const HomeScreen = () => {
         visible={showCartToast}
         onViewCart={() => navigation.navigate('MainTabs', { screen: 'Cart' })}
       />
+
+      <Modal
+        visible={showNotificationPrompt}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={handleLaterNotifications}
+      >
+        <View style={styles.notificationModalBackdrop}>
+          <View style={styles.notificationModalCard}>
+            <View style={styles.notificationBellCircle}>
+              <Text style={styles.notificationBell}>🔔</Text>
+            </View>
+
+            <Text style={styles.notificationModalTitle}>
+              Stay Updated with QuickCart
+            </Text>
+
+            <Text style={styles.notificationModalMessage}>
+              Get updates about your orders, delivery status, and special
+              offers. Enable notifications so you never miss an important
+              update.
+            </Text>
+
+            <Pressable
+              style={styles.notificationAllowButton}
+              onPress={handleAllowNotifications}
+              disabled={requestingNotificationPermission}
+              accessibilityRole="button"
+            >
+              {requestingNotificationPermission ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.notificationAllowText}>
+                  Allow Notifications
+                </Text>
+              )}
+            </Pressable>
+
+            <Pressable
+              style={styles.notificationLaterButton}
+              onPress={handleLaterNotifications}
+              disabled={requestingNotificationPermission}
+              accessibilityRole="button"
+            >
+              <Text style={styles.notificationLaterText}>Maybe Later</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -862,6 +1003,70 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
     bottom: 0,
     height: 3,
     backgroundColor: colors.cyan,
+  },
+  notificationModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: spacing.xl,
+  },
+  notificationModalCard: {
+    width: '100%' as const,
+    maxWidth: 380,
+    borderRadius: radius.xl,
+    backgroundColor: colors.surface,
+    padding: spacing.xl,
+    alignItems: 'center' as const,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  notificationBellCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.pill,
+    backgroundColor: colors.cyan50,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginBottom: spacing.lg,
+  },
+  notificationBell: {
+    fontSize: 28,
+  },
+  notificationModalTitle: {
+    ...typography.heading3Bold,
+    color: colors.text,
+    textAlign: 'center' as const,
+    marginBottom: spacing.sm,
+  },
+  notificationModalMessage: {
+    ...typography.body2Regular,
+    color: colors.secondaryText,
+    textAlign: 'center' as const,
+    lineHeight: 22,
+    marginBottom: spacing.xl,
+  },
+  notificationAllowButton: {
+    width: '100%' as const,
+    minHeight: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.cyan,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingHorizontal: spacing.lg,
+  },
+  notificationAllowText: {
+    ...typography.body2Medium,
+    color: colors.white,
+  },
+  notificationLaterButton: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.xs,
+  },
+  notificationLaterText: {
+    ...typography.body2Medium,
+    color: colors.secondaryText,
   },
 });
 

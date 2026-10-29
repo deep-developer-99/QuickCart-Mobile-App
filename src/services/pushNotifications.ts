@@ -1,4 +1,4 @@
-import { Linking, Platform } from 'react-native';
+import { Linking, PermissionsAndroid, Platform } from 'react-native';
 import {
   AuthorizationStatus,
   getInitialNotification,
@@ -294,9 +294,65 @@ export const openNotificationSettings = async () => {
   }
 };
 
+export const hasPushNotificationPermission = async (): Promise<boolean> => {
+  if (Platform.OS === 'android') {
+    // Android 12 and earlier do not require this runtime permission.
+    if (Platform.Version < 33) {
+      return true;
+    }
+
+    return PermissionsAndroid.check(
+      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+    );
+  }
+
+  if (Platform.OS === 'ios') {
+    const status = await hasPermission(getMessaging());
+
+    return (
+      status === AuthorizationStatus.AUTHORIZED ||
+      status === AuthorizationStatus.PROVISIONAL
+    );
+  }
+
+  return true;
+};
+
+export const requestPushNotificationPermission = async (): Promise<boolean> => {
+  const messaging = getMessaging();
+  let granted = true;
+
+  if (Platform.OS === 'android') {
+    if (Platform.Version >= 33) {
+      const result = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+      );
+
+      granted = result === PermissionsAndroid.RESULTS.GRANTED;
+    }
+  } else if (Platform.OS === 'ios') {
+    await registerDeviceForRemoteMessages(messaging);
+
+    const status = await requestPermission(messaging);
+
+    granted =
+      status === AuthorizationStatus.AUTHORIZED ||
+      status === AuthorizationStatus.PROVISIONAL;
+  }
+
+  if (granted) {
+    try {
+      await registerCurrentDeviceToken();
+    } catch (error) {
+      console.warn('FCM token registration failed:', error);
+    }
+  }
+
+  return granted;
+};
+
 export const configurePushNotifications = async (
   onForegroundMessage: (message: ForegroundMessage) => void,
-  onPermissionDenied?: () => void,
   isActive: () => boolean = () => true,
 ) => {
   listenerCleanup?.();
@@ -313,15 +369,18 @@ export const configurePushNotifications = async (
   }
 
   let permissionStatus: number = AuthorizationStatus.AUTHORIZED;
+
   try {
-    if (
-      (Platform.OS === 'android' && Platform.Version >= 33) ||
-      Platform.OS === 'ios'
-    ) {
+    if (Platform.OS === 'android' && Platform.Version >= 33) {
+      const granted = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+      );
+
+      permissionStatus = granted
+        ? AuthorizationStatus.AUTHORIZED
+        : AuthorizationStatus.DENIED;
+    } else if (Platform.OS === 'ios') {
       permissionStatus = await hasPermission(messaging);
-      if (permissionStatus === AuthorizationStatus.NOT_DETERMINED) {
-        permissionStatus = await requestPermission(messaging);
-      }
     }
   } catch (error) {
     permissionStatus = AuthorizationStatus.DENIED;
@@ -332,7 +391,6 @@ export const configurePushNotifications = async (
     permissionStatus === AuthorizationStatus.AUTHORIZED ||
     permissionStatus === AuthorizationStatus.PROVISIONAL;
   if (version !== configureVersion || !isActive()) return () => undefined;
-  if (!permissionGranted) onPermissionDenied?.();
   if (permissionGranted && isCustomer(store.getState().auth.user?.role)) {
     try {
       await registerCurrentDeviceToken(isActive);

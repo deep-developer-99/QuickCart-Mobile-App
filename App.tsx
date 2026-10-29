@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Alert, StatusBar } from 'react-native';
+import { StatusBar } from 'react-native';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -12,7 +12,6 @@ import type { RootState } from './src/store/store';
 import {
   configurePushNotifications,
   handleNotificationOpen,
-  openNotificationSettings,
   type NotificationData,
 } from './src/services/pushNotifications';
 import InAppNotification from './src/components/InAppNotification';
@@ -35,8 +34,6 @@ const PushNotificationManager = ({
   const notificationKeyRef = React.useRef<{ key: string; at: number } | null>(
     null,
   );
-  const permissionNoticeShown = React.useRef(false);
-
   React.useEffect(() => {
     if (
       !navigationReady ||
@@ -69,18 +66,7 @@ const PushNotificationManager = ({
         notificationKeyRef.current = { key, at: now };
         setNotificationKey(key);
         setForegroundNotification(notification);
-      },
-      () => {
-        if (!active || permissionNoticeShown.current) return;
-        permissionNoticeShown.current = true;
-        Alert.alert(
-          'Notifications are off',
-          'You can enable QuickCart notifications later from your device settings.',
-          [
-            { text: 'Not now', style: 'cancel' },
-            { text: 'Open Settings', onPress: openNotificationSettings },
-          ],
-        );
+        setForegroundNotification(notification);
       },
       () => active,
     )
