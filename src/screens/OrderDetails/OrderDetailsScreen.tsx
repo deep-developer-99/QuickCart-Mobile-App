@@ -1,13 +1,7 @@
 import { AppText as Text } from '../../components/AppText';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ActivityIndicator } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -44,8 +38,16 @@ const formatDate = (date?: string, locale?: string) =>
     : '—';
 
 const statusLabel = (status: string, t: (key: string) => string) => {
-  const key: Record<string, string> = { placed: 'ui.status.placed', accepted: 'ui.status.accepted', 'out for delivery': 'ui.status.outForDelivery', delivered: 'ui.status.delivered', completed: 'ui.status.delivered' };
-  return key[status.trim().toLowerCase()] ? t(key[status.trim().toLowerCase()]) : status;
+  const key: Record<string, string> = {
+    placed: 'ui.status.placed',
+    accepted: 'ui.status.accepted',
+    'out for delivery': 'ui.status.outForDelivery',
+    delivered: 'ui.status.delivered',
+    completed: 'ui.status.delivered',
+  };
+  return key[status.trim().toLowerCase()]
+    ? t(key[status.trim().toLowerCase()])
+    : status;
 };
 
 const getItemImage = (item: MyOrder['items'][number]) => {
@@ -53,6 +55,20 @@ const getItemImage = (item: MyOrder['items'][number]) => {
   return item.product && typeof item.product === 'object'
     ? item.product.image
     : undefined;
+};
+
+const getOrderItemProductId = (
+  item: MyOrder['items'][number],
+): string | undefined => {
+  if (typeof item.product === 'string') {
+    return item.product;
+  }
+
+  if (item.product && typeof item.product === 'object') {
+    return item.product._id;
+  }
+
+  return undefined;
 };
 
 const addressText = (address: unknown, fallback: string) => {
@@ -110,8 +126,8 @@ const OrderDetailsScreen = () => {
       status === 401 || status === 403
         ? t('ui.orderDetails.signInRequired')
         : status === 404 || (!isError && !isLoading)
-          ? t('ui.orderDetails.unavailable')
-          : t('ui.orderDetails.loadError');
+        ? t('ui.orderDetails.unavailable')
+        : t('ui.orderDetails.loadError');
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.header}>
@@ -124,7 +140,9 @@ const OrderDetailsScreen = () => {
         <Text style={styles.muted}>{errorMessage}</Text>
         {isError && status !== 401 && status !== 403 ? (
           <Pressable style={styles.retryButton} onPress={() => refetch()}>
-            <Text style={styles.retryText}>{t('ui.orderDetails.tryAgain')}</Text>
+            <Text style={styles.retryText}>
+              {t('ui.orderDetails.tryAgain')}
+            </Text>
           </Pressable>
         ) : null}
       </SafeAreaView>
@@ -156,7 +174,9 @@ const OrderDetailsScreen = () => {
         <View style={styles.hero}>
           <View>
             <Text style={styles.eyebrow}>
-              {t('ui.orderDetails.orderNumber', { id: order._id.slice(-8).toUpperCase() })}
+              {t('ui.orderDetails.orderNumber', {
+                id: order._id.slice(-8).toUpperCase(),
+              })}
             </Text>
             <Text style={styles.heroTitle}>
               {order.status === 'Delivered'
@@ -164,7 +184,9 @@ const OrderDetailsScreen = () => {
                 : t('ui.orderDetails.onTheWay')}
             </Text>
             <Text style={styles.muted}>
-              {t('ui.orderDetails.placedOn', { date: formatDate(order.createdAt, i18n.language) })}
+              {t('ui.orderDetails.placedOn', {
+                date: formatDate(order.createdAt, i18n.language),
+              })}
             </Text>
           </View>
           <View
@@ -173,7 +195,9 @@ const OrderDetailsScreen = () => {
               order.status === 'Delivered' ? styles.delivered : styles.ongoing,
             ]}
           >
-            <Text style={styles.statusText}>{statusLabel(order.status, t)}</Text>
+            <Text style={styles.statusText}>
+              {statusLabel(order.status, t)}
+            </Text>
           </View>
         </View>
 
@@ -194,7 +218,10 @@ const OrderDetailsScreen = () => {
                 delivery &&
                 typeof delivery.latitude === 'number' &&
                 typeof delivery.longitude === 'number'
-                  ? { latitude: delivery.latitude, longitude: delivery.longitude }
+                  ? {
+                      latitude: delivery.latitude,
+                      longitude: delivery.longitude,
+                    }
                   : undefined;
               const vendorCoordinates =
                 vendor &&
@@ -203,12 +230,7 @@ const OrderDetailsScreen = () => {
                   ? { latitude: vendor.latitude, longitude: vendor.longitude }
                   : undefined;
               const shopAddress = vendor
-                ? [
-                    vendor.address,
-                    vendor.city,
-                    vendor.state,
-                    vendor.pincode,
-                  ]
+                ? [vendor.address, vendor.city, vendor.state, vendor.pincode]
                     .filter(
                       (part): part is string =>
                         typeof part === 'string' && Boolean(part.trim()),
@@ -223,7 +245,10 @@ const OrderDetailsScreen = () => {
                     )
                     .join(', ')
                 : '';
-              const deliveryAddress = addressText(order.address, t('ui.orderDetails.deliveryAddressSoon'));
+              const deliveryAddress = addressText(
+                order.address,
+                t('ui.orderDetails.deliveryAddressSoon'),
+              );
               return shopAddress || vendorCoordinates ? (
                 <DummyLiveOrderTracking
                   shopName={vendor?.shopName || t('ui.tracking.shop')}
@@ -235,7 +260,9 @@ const OrderDetailsScreen = () => {
                 />
               ) : (
                 <View style={styles.card}>
-                  <Text style={styles.sectionTitle}>{t('ui.tracking.title')}</Text>
+                  <Text style={styles.sectionTitle}>
+                    {t('ui.tracking.title')}
+                  </Text>
                   <Text style={styles.muted}>
                     {t('ui.tracking.mapUnavailable')}
                   </Text>
@@ -271,7 +298,9 @@ const OrderDetailsScreen = () => {
                     {statusLabel(step, t)}
                   </Text>
                   {index === currentStep ? (
-                    <Text style={styles.stepHint}>{t('ui.orderDetails.currentStatus')}</Text>
+                    <Text style={styles.stepHint}>
+                      {t('ui.orderDetails.currentStatus')}
+                    </Text>
                   ) : null}
                 </View>
               );
@@ -280,14 +309,33 @@ const OrderDetailsScreen = () => {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t('ui.orderDetails.items', { count: order.items.length })}</Text>
+          <Text style={styles.sectionTitle}>
+            {t('ui.orderDetails.items', { count: order.items.length })}
+          </Text>
+
           {order.items.map((item, index) => {
             const image = getItemImage(item);
+            const productId = getOrderItemProductId(item);
             const price = item.discountedPrice ?? item.price;
+
             return (
-              <View
-                style={[styles.item, index > 0 && styles.itemDivider]}
+              <Pressable
                 key={`${order._id}-${index}`}
+                disabled={!productId}
+                onPress={() => {
+                  if (!productId) return;
+
+                  navigation.navigate('ProductDetails', {
+                    productId,
+                  });
+                }}
+                style={({ pressed }) => [
+                  styles.item,
+                  index > 0 && styles.itemDivider,
+                  pressed && productId ? { opacity: 0.7 } : undefined,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={`View ${item.name} product details`}
               >
                 <View style={styles.imageBox}>
                   {image ? (
@@ -300,28 +348,42 @@ const OrderDetailsScreen = () => {
                     <Text style={styles.imageFallback}>QC</Text>
                   )}
                 </View>
+
                 <View style={styles.itemCopy}>
                   <Text style={styles.itemName} numberOfLines={2}>
                     {item.name}
                   </Text>
-                  <Text style={styles.itemMeta}>{t('ui.orderDetails.quantity', { count: item.quantity })}</Text>
+                  <Text style={styles.itemMeta}>
+                    {t('ui.orderDetails.quantity', { count: item.quantity })}
+                  </Text>
                 </View>
                 <Text style={styles.itemPrice}>
                   ₹{(price * item.quantity).toFixed(2)}
                 </Text>
-              </View>
+              </Pressable>
             );
           })}
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t('ui.orderDetails.deliveryDetails')}</Text>
+          <Text style={styles.sectionTitle}>
+            {t('ui.orderDetails.deliveryDetails')}
+          </Text>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('ui.orderDetails.address')}</Text>
-            <Text style={styles.detailValue}>{addressText(order.address, t('ui.orderDetails.deliveryAddressSoon'))}</Text>
+            <Text style={styles.detailLabel}>
+              {t('ui.orderDetails.address')}
+            </Text>
+            <Text style={styles.detailValue}>
+              {addressText(
+                order.address,
+                t('ui.orderDetails.deliveryAddressSoon'),
+              )}
+            </Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('ui.orderDetails.payment')}</Text>
+            <Text style={styles.detailLabel}>
+              {t('ui.orderDetails.payment')}
+            </Text>
             <Text style={styles.detailValue}>
               {order.paymentMethod === 'COD'
                 ? t('ui.orderDetails.cashOnDelivery')
@@ -332,17 +394,23 @@ const OrderDetailsScreen = () => {
 
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{t('ui.orderDetails.itemTotal')}</Text>
+            <Text style={styles.summaryLabel}>
+              {t('ui.orderDetails.itemTotal')}
+            </Text>
             <Text style={styles.summaryValue}>
               ₹{order.totalAmount.toFixed(2)}
             </Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{t('ui.orderDetails.deliveryFee')}</Text>
+            <Text style={styles.summaryLabel}>
+              {t('ui.orderDetails.deliveryFee')}
+            </Text>
             <Text style={styles.free}>{t('ui.common.free')}</Text>
           </View>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>{t('ui.orderDetails.totalPaid')}</Text>
+            <Text style={styles.totalLabel}>
+              {t('ui.orderDetails.totalPaid')}
+            </Text>
             <Text style={styles.totalValue}>
               ₹{order.totalAmount.toFixed(2)}
             </Text>
@@ -469,6 +537,7 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
+
     image: { width: '100%', height: '100%' },
     imageFallback: { ...typography.captionSemiBold, color: colors.cyan },
     itemCopy: { flex: 1, paddingHorizontal: spacing.md },

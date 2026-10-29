@@ -17,9 +17,7 @@ import {
   useRoute,
   type RouteProp,
 } from '@react-navigation/native';
-import {
-  SafeAreaView,
-} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
@@ -33,7 +31,10 @@ import {
 import CartAddedToast from '../../components/CartAddedToast';
 import BackButton from '../../components/common/BackButton';
 import CartQuantityControl from '../../components/CartQuantityControl';
-import { createProductUrl, isValidProductId } from '../../services/productLinks';
+import {
+  createProductUrl,
+  isValidProductId,
+} from '../../services/productLinks';
 import ShareNodesIcon from '../../assets/icons/share-nodes.svg';
 
 type ProductDetailsRouteProp = RouteProp<RootStackParamList, 'ProductDetails'>;
@@ -82,7 +83,9 @@ const ProductDetailsScreen = () => {
   const { data: wishlistResponse } = useGetWishlistQuery();
   const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery();
   const hasProduct = 'product' in route.params;
-  const productId = hasProduct ? route.params.product._id : route.params.productId;
+  const productId = hasProduct
+    ? route.params.product._id
+    : route.params.productId;
   const validProductId = isValidProductId(productId);
   const {
     data: fetchedProductResponse,
@@ -93,9 +96,9 @@ const ProductDetailsScreen = () => {
   });
   const product = hasProduct
     ? (route.params.product as DetailProduct)
-    : (fetchedProductResponse?.success
-        ? (fetchedProductResponse.data as DetailProduct)
-        : undefined);
+    : fetchedProductResponse?.success
+    ? (fetchedProductResponse.data as DetailProduct)
+    : undefined;
   const [quantity, setQuantity] = useState(1);
   const [expanded, setExpanded] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
@@ -141,8 +144,7 @@ const ProductDetailsScreen = () => {
     product.discountPrice < (product?.price ?? 0);
 
   const description =
-    product?.description?.trim() ||
-    t('ui.product.defaultDescription');
+    product?.description?.trim() || t('ui.product.defaultDescription');
 
   const shouldCollapse = description.length > 220;
   const visibleDescription =
@@ -196,8 +198,8 @@ const ProductDetailsScreen = () => {
             {productLoading
               ? t('ui.product.loading')
               : productError || !validProductId || product?.isActive === false
-                ? t('ui.product.unavailable')
-                : t('ui.product.notFound')}
+              ? t('ui.product.unavailable')
+              : t('ui.product.notFound')}
           </Text>
         </View>
       </SafeAreaView>
@@ -266,7 +268,10 @@ const ProductDetailsScreen = () => {
                   : t('ui.product.addToWishlist', { name: product.name })
               }
             >
-              <HeartIcon color={styles.heartIcon.color} filled={isWishlisted} />
+              <HeartIcon
+                color={isWishlisted ? '#FF3B5C' : styles.heartIcon.color}
+                filled={isWishlisted}
+              />
             </Pressable>
           </View>
 
@@ -290,7 +295,9 @@ const ProductDetailsScreen = () => {
             style={styles.shareButton}
             onPress={shareProduct}
             accessibilityRole="button"
-            accessibilityLabel={t('ui.product.shareProduct', { name: product.name })}
+            accessibilityLabel={t('ui.product.shareProduct', {
+              name: product.name,
+            })}
             hitSlop={4}
           >
             <ShareNodesIcon width={22} height={22} />
@@ -298,11 +305,6 @@ const ProductDetailsScreen = () => {
         </View>
 
         <View style={styles.sheet}>
-          <View style={styles.badges}>
-            <Text style={styles.topRated}>{t('ui.product.topRated')}</Text>
-            <Text style={styles.freeShipping}>{t('ui.product.freeShipping')}</Text>
-          </View>
-
           <View style={styles.titleRow}>
             <Text style={styles.title}>{product.name}</Text>
             <View style={styles.priceBlock}>
@@ -321,7 +323,9 @@ const ProductDetailsScreen = () => {
               {product.rating !== undefined
                 ? `${product.rating.toFixed(1)}${
                     product.reviews !== undefined
-                      ? ` (${t('ui.product.reviews', { count: product.reviews })})`
+                      ? ` (${t('ui.product.reviews', {
+                          count: product.reviews,
+                        })})`
                       : ''
                   }`
                 : '4.5'}
@@ -335,7 +339,9 @@ const ProductDetailsScreen = () => {
                 style={styles.readMore}
                 onPress={() => setExpanded(value => !value)}
               >
-                {expanded ? ` ${t('ui.product.readLess')}` : ` ${t('ui.product.readMore')}`}
+                {expanded
+                  ? ` ${t('ui.product.readLess')}`
+                  : ` ${t('ui.product.readMore')}`}
               </Text>
             ) : null}
           </Text>
@@ -400,10 +406,7 @@ const ProductDetailsScreen = () => {
 
 type ThemeMode = 'light' | 'dark';
 
-const createStyles = (
-  colors: ThemeColors,
-  mode: ThemeMode,
-) =>
+const createStyles = (colors: ThemeColors, mode: ThemeMode) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     scrollView: { flex: 1 },
@@ -460,7 +463,13 @@ const createStyles = (
       borderWidth: 1,
       borderColor: colors.grey50,
     },
-    unavailableState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 20 },
+    unavailableState: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 24,
+      gap: 20,
+    },
     heartCircle: {
       width: 40,
       height: 40,
@@ -500,25 +509,6 @@ const createStyles = (
       paddingHorizontal: 16,
       paddingTop: 22,
       flexGrow: 1,
-    },
-    badges: { flexDirection: 'row', gap: 8, marginBottom: 9 },
-    topRated: {
-      backgroundColor: '#168CE2',
-      color: colors.white,
-      paddingHorizontal: 7,
-      paddingVertical: 5,
-      borderRadius: 7,
-      fontSize: 10,
-      fontFamily: 'PlusJakartaSans-Medium',
-    },
-    freeShipping: {
-      backgroundColor: '#08D38D',
-      color: colors.white,
-      paddingHorizontal: 7,
-      paddingVertical: 5,
-      borderRadius: 7,
-      fontSize: 10,
-      fontFamily: 'PlusJakartaSans-Medium',
     },
     titleRow: {
       flexDirection: 'row',
