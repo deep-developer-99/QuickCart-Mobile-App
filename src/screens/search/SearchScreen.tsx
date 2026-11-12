@@ -567,7 +567,7 @@ const createStyles = (colors: ThemeColors) =>
       paddingHorizontal: spacing.lg,
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      position: 'relative',
     },
     logoRow: { flexDirection: 'row', alignItems: 'center' },
     logoText: {
@@ -576,8 +576,12 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.text,
     },
     closeButton: {
-      width: 30,
-      height: 30,
+      position: 'absolute',
+      top: 11,
+      right: spacing.lg,
+      zIndex: 1,
+      width: 40,
+      height: 40,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -618,6 +622,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     searchInput: {
       flex: 1,
+      minWidth: 0,
       paddingVertical: 0,
       fontFamily: 'PlusJakartaSans-Regular',
       fontSize: 13,
