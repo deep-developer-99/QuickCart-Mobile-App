@@ -47,6 +47,7 @@ export interface ProductResponse {
     price: number;
     discountPrice?: number;
     stock: number;
+    variants?: ProductVariant[];
     rating?: number;
     reviews?: number;
     category?: string | { _id: string; name: string };
@@ -126,6 +127,7 @@ export interface CartProduct {
   price: number;
   discountPrice?: number;
   stock: number;
+  variants?: ProductVariant[];
   category?:
     | {
         _id: string;
@@ -142,8 +144,18 @@ export interface CartProduct {
   isActive?: boolean;
 }
 
+export interface ProductVariant {
+  _id: string;
+  quantity: number;
+  unit: string;
+  price: number;
+  stock: number;
+  isActive: boolean;
+}
+
 export interface CartItem {
   product: CartProduct;
+  variantId?: string;
   quantity: number;
 }
 
@@ -341,7 +353,7 @@ export const quickCartApi = createApi({
     // Add product to cart
     addToCart: builder.mutation<
       CartMutationResponse,
-      { productId: string; quantity: number }
+      { productId: string; quantity: number; variantId?: string }
     >({
       query: body => ({
         url: '/cart',
@@ -354,22 +366,24 @@ export const quickCartApi = createApi({
     // Update cart item quantity
     updateCartItem: builder.mutation<
       CartMutationResponse,
-      { productId: string; quantity: number }
+      { productId: string; quantity: number; variantId?: string }
     >({
-      query: ({ productId, quantity }) => ({
-        url: `/cart/${productId}`,
+      query: ({ productId, quantity, variantId }) => ({
+        url: `/cart/${productId}${variantId ? `?variantId=${encodeURIComponent(variantId)}` : ''}`,
         method: 'PUT',
-        body: { quantity },
+        body: { quantity, variantId },
       }),
       invalidatesTags: ['Cart'],
     }),
 
     // Remove product from cart
-    removeCartItem: builder.mutation<CartMutationResponse, string>({
-      query: productId => ({
-        url: `/cart/${productId}`,
+    removeCartItem: builder.mutation<CartMutationResponse, string | { productId: string; variantId?: string }>({
+      query: input => {
+        const { productId, variantId } = typeof input === 'string' ? { productId: input } : input;
+        return ({
+        url: `/cart/${productId}${variantId ? `?variantId=${encodeURIComponent(variantId)}` : ''}`,
         method: 'DELETE',
-      }),
+      }); },
       invalidatesTags: ['Cart'],
     }),
 

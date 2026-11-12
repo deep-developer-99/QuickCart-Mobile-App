@@ -54,6 +54,7 @@ export type RootStackParamList = {
         mode: 'cart' | 'buyNow';
         product?: CartProduct;
         quantity?: number;
+        variantId?: string;
       }
     | undefined;
   ShippingAddress: undefined;

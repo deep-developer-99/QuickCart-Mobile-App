@@ -14,6 +14,7 @@ export interface CreateCashfreeSessionRequest {
   paymentMethod: CashfreePaymentMethod;
   productId?: string;
   quantity?: number;
+  variantId?: string;
 }
 
 export interface CashfreeSessionResponse {

@@ -27,6 +27,9 @@ export interface OrderItem {
   price: number;
   discountedPrice?: number;
   quantity: number;
+  variantId?: string;
+  variantQuantity?: number;
+  variantUnit?: string;
 }
 
 export interface OrderAddress {
@@ -82,6 +85,7 @@ export interface CreateOrderRequest {
 
 export interface CreateBuyNowOrderRequest {
   productId: string;
+  variantId?: string;
   quantity: number;
   addressId: string;
   paymentMethod: 'COD';

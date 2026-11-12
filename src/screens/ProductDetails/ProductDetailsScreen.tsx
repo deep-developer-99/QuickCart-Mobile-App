@@ -51,6 +51,7 @@ type DetailProduct = {
   rating?: number;
   reviews?: number;
   isActive?: boolean;
+  variants?: import('../../api/quickCartApi').ProductVariant[];
 };
 
 const HeartIcon = ({
@@ -100,6 +101,8 @@ const ProductDetailsScreen = () => {
     ? (fetchedProductResponse.data as DetailProduct)
     : undefined;
   const [quantity, setQuantity] = useState(1);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>();
+  const selectedVariant = product?.variants?.filter(item => item.isActive).find(item => item._id === selectedVariantId) ?? product?.variants?.find(item => item.isActive && item.stock > 0);
   const [expanded, setExpanded] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [showAddedMessage, setShowAddedMessage] = useState(false);
@@ -138,9 +141,9 @@ const ProductDetailsScreen = () => {
     await Share.share({ message, url: productUrl, title: product.name });
   }, [product, t]);
 
-  const sellingPrice = product?.discountPrice ?? product?.price ?? 0;
+  const sellingPrice = selectedVariant?.price ?? product?.discountPrice ?? product?.price ?? 0;
   const hasDiscount =
-    product?.discountPrice !== undefined &&
+    !selectedVariant && product?.discountPrice !== undefined &&
     product.discountPrice < (product?.price ?? 0);
 
   const description =
@@ -158,11 +161,12 @@ const ProductDetailsScreen = () => {
       mode: 'buyNow',
       product,
       quantity,
+      ...(selectedVariant ? { variantId: selectedVariant._id } : {}),
     });
   };
 
   const cartItem = cartResponse?.data?.items?.find(
-    item => item.product?._id === product?._id,
+    item => item.product?._id === product?._id && (item.variantId ?? '') === (selectedVariant?._id ?? ''),
   );
 
   const showCartToast = useCallback(() => {
@@ -347,6 +351,7 @@ const ProductDetailsScreen = () => {
           </Text>
 
           <Text style={styles.quantityLabel}>{t('ui.product.quantity')}</Text>
+          {product.variants?.filter(item => item.isActive).map(variant => <Pressable key={variant._id} onPress={() => setSelectedVariantId(variant._id)} disabled={variant.stock <= 0} style={{ padding: 10, marginTop: 5, borderWidth: 1, borderColor: variant._id === selectedVariant?._id ? '#21D4B4' : '#C0C0C0', borderRadius: 8, opacity: variant.stock <= 0 ? 0.45 : 1 }}><Text style={{ color: '#1C1B1B' }}>{variant.quantity} {variant.unit} · ₹{variant.price} · {variant.stock > 0 ? `${variant.stock} available` : 'Out of stock'}</Text></Pressable>)}
           <View style={styles.quantityControl}>
             <Pressable
               style={styles.quantityButton}
@@ -366,14 +371,14 @@ const ProductDetailsScreen = () => {
             <Pressable
               style={styles.quantityButton}
               onPress={() =>
-                setQuantity(value => Math.min(product.stock || 1, value + 1))
+                setQuantity(value => Math.min(selectedVariant?.stock || product.stock || 1, value + 1))
               }
-              disabled={quantity >= (product.stock || 1)}
+              disabled={quantity >= (selectedVariant?.stock || product.stock || 1)}
             >
               <Text
                 style={[
                   styles.quantityButtonText,
-                  quantity >= (product.stock || 1) && styles.disabledText,
+                  quantity >= (selectedVariant?.stock || product.stock || 1) && styles.disabledText,
                 ]}
               >
                 +
@@ -395,6 +400,9 @@ const ProductDetailsScreen = () => {
         <CartQuantityControl
           productId={product._id}
           stock={product.stock}
+          variants={product.variants}
+          cartItems={cartResponse?.data?.items}
+          selectedVariantId={selectedVariant?._id}
           cartItem={cartItem}
           disabled={cartLoading}
           onAdded={showCartToast}

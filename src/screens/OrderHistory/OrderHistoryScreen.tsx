@@ -268,6 +268,7 @@ const OrderHistoryScreen = () => {
                 <Text style={styles.productName} numberOfLines={2}>
                   {item.name}
                 </Text>
+                {item.variantQuantity != null && item.variantUnit ? <Text>{item.variantQuantity} {item.variantUnit}</Text> : null}
 
                 <Text style={styles.price}>₹{price.toFixed(2)}</Text>
 

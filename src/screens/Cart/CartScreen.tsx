@@ -34,6 +34,7 @@ import { radius, spacing, typography, useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
 
 const EMPTY_CART_ITEMS: CartItem[] = [];
+const cartKey = (item: CartItem) => `${item.product?._id ?? ''}:${item.variantId ?? ''}`;
 
 const CartScreen = () => {
   const { theme } = useTheme();
@@ -120,11 +121,11 @@ const CartScreen = () => {
   }, [scrollVoucherInputIntoView, voucherVisible]);
 
   useEffect(() => {
-    setSelectedIds(items.map(item => item.product?._id).filter(Boolean));
+    setSelectedIds(items.map(cartKey));
   }, [items]);
 
   const selectedItems = useMemo(
-    () => items.filter(item => selectedIds.includes(item.product?._id ?? '')),
+    () => items.filter(item => selectedIds.includes(cartKey(item))),
     [items, selectedIds],
   );
 
@@ -133,7 +134,7 @@ const CartScreen = () => {
       selectedItems.reduce(
         (total, item) =>
           total +
-          (item.product?.discountPrice ?? item.product?.price ?? 0) *
+          (item.product?.variants?.find(variant => variant._id === item.variantId)?.price ?? item.product?.discountPrice ?? item.product?.price ?? 0) *
             item.quantity,
         0,
       ),
@@ -159,27 +160,29 @@ const CartScreen = () => {
 
     try {
       if (nextQuantity <= 0) {
-        await removeCartItem(productId).unwrap();
+        await removeCartItem({ productId, ...(item.variantId ? { variantId: item.variantId } : {}) }).unwrap();
         return;
       }
 
-      if (item.product?.stock && nextQuantity > item.product.stock) {
+      const variant = item.product?.variants?.find(entry => entry._id === item.variantId);
+      if ((variant?.stock ?? item.product?.stock) && nextQuantity > (variant?.stock ?? item.product?.stock ?? 0)) {
         return;
       }
 
       await updateCartItem({
         productId,
         quantity: nextQuantity,
+        ...(item.variantId ? { variantId: item.variantId } : {}),
       }).unwrap();
     } catch (error) {
       console.error('Cart quantity update failed:', error);
     }
   };
 
-  const removeItem = async (productId: string) => {
+  const removeItem = async (productId: string, variantId?: string) => {
     try {
-      await removeCartItem(productId).unwrap();
-      setSelectedIds(current => current.filter(id => id !== productId));
+      await removeCartItem({ productId, ...(variantId ? { variantId } : {}) }).unwrap();
+      setSelectedIds(current => current.filter(id => id !== `${productId}:${variantId ?? ''}`));
     } catch (error) {
       console.error('Remove cart item failed:', error);
     }
@@ -258,11 +261,12 @@ const CartScreen = () => {
               if (!product) return null;
 
               const productId = product._id;
-              const currentPrice = product.discountPrice ?? product.price;
-              const selected = selectedIds.includes(productId);
+              const variant = product.variants?.find(entry => entry._id === item.variantId);
+              const currentPrice = variant?.price ?? product.discountPrice ?? product.price;
+              const selected = selectedIds.includes(cartKey(item));
 
               return (
-                <View key={productId} style={styles.cartItem}>
+                <View key={cartKey(item)} style={styles.cartItem}>
                   <Pressable
                     style={styles.imageBox}
                     onPress={() =>
@@ -293,6 +297,7 @@ const CartScreen = () => {
                         <Text style={styles.productName} numberOfLines={2}>
                           {product.name}
                         </Text>
+                        {variant && <Text style={styles.productName}>{variant.quantity} {variant.unit}</Text>}
                       </Pressable>
 
                       <Pressable
@@ -300,7 +305,7 @@ const CartScreen = () => {
                           styles.checkbox,
                           selected && styles.checkboxSelected,
                         ]}
-                        onPress={() => toggleSelection(productId)}
+                        onPress={() => toggleSelection(cartKey(item))}
                       >
                         {selected ? (
                           <Text style={styles.checkmark}>✓</Text>
@@ -344,7 +349,7 @@ const CartScreen = () => {
 
                       <Pressable
                         style={styles.deleteButton}
-                        onPress={() => removeItem(productId)}
+                        onPress={() => removeItem(productId, item.variantId)}
                         accessibilityRole="button"
                         accessibilityLabel={t('ui.common.removeFromCart', { name: product.name })}
                       >

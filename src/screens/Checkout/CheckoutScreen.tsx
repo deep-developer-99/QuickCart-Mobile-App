@@ -56,6 +56,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
   const checkoutMode = route.params?.mode ?? 'cart';
   const buyNowProduct = route.params?.product;
   const buyNowQuantity = route.params?.quantity ?? 1;
+  const buyNowVariantId = route.params?.variantId;
   const isBuyNow = checkoutMode === 'buyNow';
 
   const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery(
@@ -79,6 +80,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
       ? [
           {
             product: buyNowProduct,
+            ...(buyNowVariantId ? { variantId: buyNowVariantId } : {}),
             quantity: buyNowQuantity,
           } as CartItem,
         ]
@@ -100,7 +102,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
   const [addressModalOpen, setAddressModalOpen] = useState(false);
 
   const subtotal = items.reduce((sum, item) => {
-    const price = item.product.discountPrice ?? item.product.price;
+    const price = item.product.variants?.find(variant => variant._id === item.variantId)?.price ?? item.product.discountPrice ?? item.product.price;
     return sum + price * item.quantity;
   }, 0);
 
@@ -151,6 +153,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
             ? {
                 productId: buyNowProduct!._id,
                 quantity: buyNowQuantity,
+                ...(buyNowVariantId ? { variantId: buyNowVariantId } : {}),
               }
             : {}),
         }).unwrap();
@@ -213,6 +216,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
         await createBuyNowOrder({
           productId: buyNowProduct._id,
           quantity: buyNowQuantity,
+          ...(buyNowVariantId ? { variantId: buyNowVariantId } : {}),
           addressId,
           paymentMethod: 'COD',
         }).unwrap();
@@ -689,7 +693,7 @@ function Summary({
   const { t } = useTranslation();
   const styles = useStyles();
   const originalSubtotal = items.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
+    (sum, item) => sum + (item.product.variants?.find(variant => variant._id === item.variantId)?.price ?? item.product.price) * item.quantity,
     0,
   );
   const discount = Math.max(0, originalSubtotal - subtotal);
@@ -701,12 +705,13 @@ function Summary({
       {items.length > 0 ? (
         <View style={styles.orderItems}>
           {items.map(item => {
-            const unitPrice = item.product.discountPrice ?? item.product.price;
+            const variant = item.product.variants?.find(entry => entry._id === item.variantId);
+            const unitPrice = variant?.price ?? item.product.discountPrice ?? item.product.price;
             const itemTotal = unitPrice * item.quantity;
             const imageUri = item.product.image || item.product.images?.[0];
 
             return (
-              <View key={item.product._id} style={styles.orderItem}>
+              <View key={`${item.product._id}:${item.variantId ?? ''}`} style={styles.orderItem}>
                 <View style={styles.orderItemImageBox}>
                   {imageUri ? (
                     <Image
@@ -722,6 +727,7 @@ function Summary({
                   <Text numberOfLines={2} style={styles.orderItemName}>
                     {item.product.name || t('ui.checkout.productUnavailableItem')}
                   </Text>
+                  {variant && <Text style={styles.orderItemMeta}>{variant.quantity} {variant.unit}</Text>}
                   <Text style={styles.orderItemMeta}>
                     {t('ui.checkout.qtyEach', { count: item.quantity, price: unitPrice.toFixed(2) })}
                   </Text>

@@ -197,7 +197,7 @@ const HomeScreen = () => {
   const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery();
   const cartItemByProductId = useMemo(() => {
     const items = cartResponse?.data?.items ?? [];
-    return new Map(items.map(item => [item.product?._id, item]));
+    return new Map(items.map(item => [`${item.product?._id}:${item.variantId ?? ''}`, item]));
   }, [cartResponse]);
   const showAddedToast = useCallback(() => {
     setShowCartToast(true);
@@ -670,6 +670,7 @@ const HomeScreen = () => {
                     <Text style={styles.productName} numberOfLines={1}>
                       {product.name}
                     </Text>
+                    {product.variants?.find(variant => variant.isActive && variant.stock > 0) ? <Text style={styles.productPrice}>{product.variants.find(variant => variant.isActive && variant.stock > 0)?.quantity} {product.variants.find(variant => variant.isActive && variant.stock > 0)?.unit}</Text> : null}
                     <Text style={styles.productPrice}>
                       ₹{sellingPrice.toFixed(2)}
                     </Text>
@@ -683,7 +684,9 @@ const HomeScreen = () => {
                       <CartQuantityControl
                         productId={product._id}
                         stock={product.stock}
-                        cartItem={cartItemByProductId.get(product._id)}
+                        variants={product.variants}
+                        cartItems={cartResponse?.data?.items}
+                        cartItem={cartItemByProductId.get(`${product._id}:${product.variants?.find(variant => variant.isActive && variant.stock > 0)?._id ?? ''}`)}
                         disabled={cartLoading}
                         compact
                         darkModeCompactAddButton

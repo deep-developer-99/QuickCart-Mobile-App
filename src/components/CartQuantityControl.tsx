@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   StyleSheet,
   View,
@@ -15,25 +16,32 @@ import {
   useUpdateCartItemMutation,
 } from '../api/quickCartApi';
 import { radius, spacing, typography, useTheme } from '../theme';
+import type { ProductVariant } from '../api/quickCartApi';
 
 type CartQuantityControlProps = {
   productId: string;
   stock?: number;
   cartItem?: CartItem;
+  cartItems?: CartItem[];
   compact?: boolean;
   darkModeCompactAddButton?: boolean;
   disabled?: boolean;
   onAdded?: () => void;
+  variants?: ProductVariant[];
+  selectedVariantId?: string;
 };
 
 const CartQuantityControl = ({
   productId,
   stock,
   cartItem,
+  cartItems,
   compact = false,
   darkModeCompactAddButton = false,
   disabled = false,
   onAdded,
+  variants = [],
+  selectedVariantId: requestedVariantId,
 }: CartQuantityControlProps) => {
   const { theme, mode } = useTheme();
   const { t } = useTranslation();
@@ -43,16 +51,25 @@ const CartQuantityControl = ({
     useUpdateCartItemMutation();
   const [removeCartItem, { isLoading: removing }] =
     useRemoveCartItemMutation();
+  const activeVariants = variants.filter(item => item.isActive);
+  const [selectedVariantId, setSelectedVariantId] = React.useState<string | undefined>(() => requestedVariantId ?? activeVariants.find(item => item.stock > 0)?._id);
+  const [showVariantPicker, setShowVariantPicker] = React.useState(false);
+  const selectedVariant = activeVariants.find(item => item._id === selectedVariantId) ?? activeVariants.find(item => item.stock > 0);
+  const selectedCartItem = cartItems?.find(item => item.product?._id === productId && (item.variantId ?? '') === (selectedVariant?._id ?? '')) ?? (cartItem && (cartItem.variantId ?? '') === (selectedVariant?._id ?? '') ? cartItem : undefined);
+  React.useEffect(() => {
+    if (requestedVariantId && requestedVariantId !== selectedVariantId) setSelectedVariantId(requestedVariantId);
+  }, [requestedVariantId, selectedVariantId]);
 
   const isBusy = adding || updating || removing || disabled;
-  const quantity = cartItem?.quantity ?? 0;
-  const maximumQuantity = stock || cartItem?.product?.stock || 1;
+  const quantity = selectedCartItem?.quantity ?? 0;
+  const maximumQuantity = selectedVariant?.stock || stock || cartItem?.product?.stock || 1;
 
   const handleAdd = async () => {
     if (isBusy) return;
 
     try {
-      await addToCart({ productId, quantity: 1 }).unwrap();
+      await addToCart({ productId, quantity: 1, ...(selectedVariant ? { variantId: selectedVariant._id } : {}) }).unwrap();
+      setShowVariantPicker(false);
       onAdded?.();
     } catch (error) {
       console.error('Failed to add product to cart:', error);
@@ -60,24 +77,25 @@ const CartQuantityControl = ({
   };
 
   const handleQuantityChange = async (nextQuantity: number) => {
-    if (isBusy || !cartItem) return;
+    if (isBusy || !selectedCartItem) return;
 
     try {
       if (nextQuantity <= 0) {
-        await removeCartItem(productId).unwrap();
+        await removeCartItem({ productId, ...(selectedVariant ? { variantId: selectedVariant._id } : {}) }).unwrap();
         return;
       }
 
       if (nextQuantity > maximumQuantity) return;
 
-      await updateCartItem({ productId, quantity: nextQuantity }).unwrap();
+      await updateCartItem({ productId, quantity: nextQuantity, ...(selectedVariant ? { variantId: selectedVariant._id } : {}) }).unwrap();
     } catch (error) {
       console.error('Failed to update cart quantity:', error);
     }
   };
 
-  if (!cartItem || quantity <= 0) {
+  if (!selectedCartItem || quantity <= 0) {
     return (
+      <>
       <Pressable
         style={[
           styles.addButton,
@@ -89,7 +107,7 @@ const CartQuantityControl = ({
             mode === 'dark' &&
             styles.compactAddButtonDark,
         ]}
-        onPress={handleAdd}
+        onPress={() => activeVariants.length ? setShowVariantPicker(true) : void handleAdd()}
         onPressIn={event => event.stopPropagation()}
         disabled={isBusy}
         accessibilityRole="button"
@@ -103,10 +121,21 @@ const CartQuantityControl = ({
           </Text>
         )}
       </Pressable>
+      <Modal visible={showVariantPicker} transparent animationType="fade" onRequestClose={() => setShowVariantPicker(false)}>
+        <View style={{ flex: 1, backgroundColor: '#0008', justifyContent: 'center', padding: 24 }}>
+          <View style={{ backgroundColor: theme.colors.surface, borderRadius: 16, padding: 20, gap: 10 }}>
+            <Text style={{ ...typography.body2Medium, color: theme.colors.text }}>Choose an option</Text>
+            {activeVariants.map(item => <Pressable key={item._id} disabled={item.stock <= 0} onPress={() => setSelectedVariantId(item._id)} style={{ padding: 12, borderRadius: 10, borderWidth: 1, borderColor: selectedVariant?._id === item._id ? theme.colors.cyan : theme.colors.border, opacity: item.stock <= 0 ? 0.45 : 1 }}><Text style={{ color: theme.colors.text }}>{item.quantity} {item.unit} · ₹{item.price}</Text><Text style={{ color: theme.colors.secondaryText }}>{item.stock > 0 ? `${item.stock} available` : 'Out of stock'}</Text></Pressable>)}
+            <Pressable onPress={() => void handleAdd()} disabled={!selectedVariant || isBusy} style={{ padding: 13, borderRadius: 10, backgroundColor: theme.colors.control, alignItems: 'center' }}><Text style={{ color: theme.colors.white }}>Add to Cart</Text></Pressable>
+          </View>
+        </View>
+      </Modal>
+      </>
     );
   }
 
   return (
+    <>
     <View style={[styles.quantityControl, !compact && styles.fullQuantityControl]}>
       <Pressable
         style={styles.quantityButton}
@@ -143,6 +172,16 @@ const CartQuantityControl = ({
         </Text>
       </Pressable>
     </View>
+    <Modal visible={showVariantPicker} transparent animationType="fade" onRequestClose={() => setShowVariantPicker(false)}>
+      <View style={{ flex: 1, backgroundColor: '#0008', justifyContent: 'center', padding: 24 }}>
+        <View style={{ backgroundColor: theme.colors.surface, borderRadius: 16, padding: 20, gap: 10 }}>
+          <Text style={{ ...typography.body2Medium, color: theme.colors.text }}>Choose an option</Text>
+          {activeVariants.map(item => <Pressable key={item._id} disabled={item.stock <= 0} onPress={() => setSelectedVariantId(item._id)} style={{ padding: 12, borderRadius: 10, borderWidth: 1, borderColor: selectedVariant?._id === item._id ? theme.colors.cyan : theme.colors.border, opacity: item.stock <= 0 ? 0.45 : 1 }}><Text style={{ color: theme.colors.text }}>{item.quantity} {item.unit} · ₹{item.price}</Text><Text style={{ color: theme.colors.secondaryText }}>{item.stock > 0 ? `${item.stock} available` : 'Out of stock'}</Text></Pressable>)}
+          <Pressable onPress={() => void handleAdd()} disabled={!selectedVariant || isBusy} style={{ padding: 13, borderRadius: 10, backgroundColor: theme.colors.control, alignItems: 'center' }}><Text style={{ color: theme.colors.white }}>Add to Cart</Text></Pressable>
+        </View>
+      </View>
+    </Modal>
+    </>
   );
 };
 

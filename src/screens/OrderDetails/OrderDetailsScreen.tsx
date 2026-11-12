@@ -353,6 +353,7 @@ const OrderDetailsScreen = () => {
                   <Text style={styles.itemName} numberOfLines={2}>
                     {item.name}
                   </Text>
+                  {item.variantQuantity != null && item.variantUnit ? <Text>{item.variantQuantity} {item.variantUnit}</Text> : null}
                   <Text style={styles.itemMeta}>
                     {t('ui.orderDetails.quantity', { count: item.quantity })}
                   </Text>

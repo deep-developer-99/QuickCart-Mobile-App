@@ -7,6 +7,7 @@ export interface CartProduct {
   price: number;
   discountPrice?: number;
   stock: number;
+  variants?: Array<{ _id: string; quantity: number; unit: string; price: number; stock: number; isActive: boolean }>;
 }
 
 export interface CartItem extends CartProduct {
