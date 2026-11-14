@@ -33,6 +33,7 @@ import {
   useClearCartMutation,
   useGetCartQuery,
 } from '../../api/quickCartApi';
+import { hasVariantDiscount, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
@@ -102,7 +103,7 @@ export default function CheckoutScreen({ navigation, route }: Props) {
   const [addressModalOpen, setAddressModalOpen] = useState(false);
 
   const subtotal = items.reduce((sum, item) => {
-    const price = item.product.variants?.find(variant => variant._id === item.variantId)?.price ?? item.product.discountPrice ?? item.product.price;
+    const price = variantSellingPrice(item.product.variants?.find(variant => variant._id === item.variantId));
     return sum + price * item.quantity;
   }, 0);
 
@@ -693,7 +694,7 @@ function Summary({
   const { t } = useTranslation();
   const styles = useStyles();
   const originalSubtotal = items.reduce(
-    (sum, item) => sum + (item.product.variants?.find(variant => variant._id === item.variantId)?.price ?? item.product.price) * item.quantity,
+    (sum, item) => sum + (item.product.variants?.find(variant => variant._id === item.variantId)?.price ?? 0) * item.quantity,
     0,
   );
   const discount = Math.max(0, originalSubtotal - subtotal);
@@ -706,7 +707,7 @@ function Summary({
         <View style={styles.orderItems}>
           {items.map(item => {
             const variant = item.product.variants?.find(entry => entry._id === item.variantId);
-            const unitPrice = variant?.price ?? item.product.discountPrice ?? item.product.price;
+            const unitPrice = variantSellingPrice(variant);
             const itemTotal = unitPrice * item.quantity;
             const imageUri = item.product.image || item.product.images?.[0];
 
@@ -731,6 +732,7 @@ function Summary({
                   <Text style={styles.orderItemMeta}>
                     {t('ui.checkout.qtyEach', { count: item.quantity, price: unitPrice.toFixed(2) })}
                   </Text>
+                  {variant && hasVariantDiscount(variant) && <Text style={styles.orderItemMeta}><Text style={{ textDecorationLine: 'line-through' }}>{String.fromCharCode(0x20b9)}{variant.price.toFixed(2)}</Text> ({variantDiscountPercentage(variant)}% off)</Text>}
                 </View>
                 <Text style={styles.orderItemTotal}>₹{itemTotal.toFixed(2)}</Text>
               </View>

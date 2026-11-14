@@ -25,6 +25,7 @@ import {
   useAddToWishlistMutation,
   useRemoveFromWishlistMutation,
 } from '../../api/quickCartApi';
+import { hasVariantDiscount, lowestPricedVariant, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
 import CartAddedToast from '../../components/CartAddedToast';
 import BackButton from '../../components/common/BackButton';
 import CartQuantityControl from '../../components/CartQuantityControl';
@@ -196,11 +197,11 @@ const CategoriesScreen = () => {
 
     if (sort === 'priceLow') {
       result.sort(
-        (a, b) => (a.discountPrice ?? a.price) - (b.discountPrice ?? b.price),
+        (a, b) => variantSellingPrice(lowestPricedVariant(a.variants)) - variantSellingPrice(lowestPricedVariant(b.variants)),
       );
     } else if (sort === 'priceHigh') {
       result.sort(
-        (a, b) => (b.discountPrice ?? b.price) - (a.discountPrice ?? a.price),
+        (a, b) => variantSellingPrice(lowestPricedVariant(b.variants)) - variantSellingPrice(lowestPricedVariant(a.variants)),
       );
     } else if (sort === 'az') {
       result.sort((a, b) => a.name.localeCompare(b.name));
@@ -386,7 +387,8 @@ const CategoriesScreen = () => {
             contentContainerStyle={styles.productGrid}
           >
             {visibleProducts.map(product => {
-              const price = product.discountPrice ?? product.price;
+              const cardVariant = lowestPricedVariant(product.variants);
+              const price = variantSellingPrice(cardVariant);
               const isWishlisted = wishlistIds.includes(product._id);
 
               return (
@@ -440,18 +442,17 @@ const CategoriesScreen = () => {
                   <Text style={styles.productName} numberOfLines={1}>
                     {product.name}
                   </Text>
-                  {product.variants?.find(variant => variant.isActive && variant.stock > 0) ? <Text style={styles.productPrice}>{product.variants.find(variant => variant.isActive && variant.stock > 0)?.quantity} {product.variants.find(variant => variant.isActive && variant.stock > 0)?.unit}</Text> : null}
+                  {cardVariant ? <Text style={styles.productPrice}>{cardVariant.quantity} {cardVariant.unit}</Text> : null}
                   <Text style={styles.productPrice}>₹{price.toFixed(2)}</Text>
-                  {product.discountPrice !== undefined &&
-                  product.discountPrice < product.price ? (
+                  {hasVariantDiscount(cardVariant) ? (
                     <Text style={styles.originalPrice}>
-                      ₹{product.price.toFixed(2)}
+                      ₹{cardVariant.price.toFixed(2)} ({variantDiscountPercentage(cardVariant)}% off)
                     </Text>
                   ) : null}
                   <View style={styles.cartControl}>
                     <CartQuantityControl
                       productId={product._id}
-                      stock={product.stock}
+                      stock={cardVariant?.stock}
                       variants={product.variants}
                       cartItems={cartResponse?.data?.items}
                       cartItem={cartItemByProductId.get(`${product._id}:${product.variants?.find(variant => variant.isActive && variant.stock > 0)?._id ?? ''}`)}

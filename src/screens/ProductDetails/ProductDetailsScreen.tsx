@@ -36,6 +36,7 @@ import {
   isValidProductId,
 } from '../../services/productLinks';
 import ShareNodesIcon from '../../assets/icons/share-nodes.svg';
+import { hasVariantDiscount, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
 
 type ProductDetailsRouteProp = RouteProp<RootStackParamList, 'ProductDetails'>;
 
@@ -45,9 +46,6 @@ type DetailProduct = {
   description?: string;
   image?: string;
   images?: string[];
-  price: number;
-  discountPrice?: number;
-  stock: number;
   rating?: number;
   reviews?: number;
   isActive?: boolean;
@@ -141,10 +139,8 @@ const ProductDetailsScreen = () => {
     await Share.share({ message, url: productUrl, title: product.name });
   }, [product, t]);
 
-  const sellingPrice = selectedVariant?.price ?? product?.discountPrice ?? product?.price ?? 0;
-  const hasDiscount =
-    !selectedVariant && product?.discountPrice !== undefined &&
-    product.discountPrice < (product?.price ?? 0);
+  const sellingPrice = variantSellingPrice(selectedVariant);
+  const hasDiscount = hasVariantDiscount(selectedVariant);
 
   const description =
     product?.description?.trim() || t('ui.product.defaultDescription');
@@ -314,9 +310,12 @@ const ProductDetailsScreen = () => {
             <View style={styles.priceBlock}>
               <Text style={styles.price}>₹ {sellingPrice.toFixed(2)}</Text>
               {hasDiscount ? (
-                <Text style={styles.originalPrice}>
-                  ₹ {product.price.toFixed(2)}
-                </Text>
+                <>
+                  <Text style={styles.originalPrice}>
+                  ₹ {selectedVariant?.price.toFixed(2)}
+                  </Text>
+                  <Text style={styles.originalPrice}>{Math.round((((selectedVariant?.price ?? 0) - sellingPrice) / (selectedVariant?.price || 1)) * 100)}% off</Text>
+                </>
               ) : null}
             </View>
           </View>
@@ -351,7 +350,7 @@ const ProductDetailsScreen = () => {
           </Text>
 
           <Text style={styles.quantityLabel}>{t('ui.product.quantity')}</Text>
-          {product.variants?.filter(item => item.isActive).map(variant => <Pressable key={variant._id} onPress={() => setSelectedVariantId(variant._id)} disabled={variant.stock <= 0} style={{ padding: 10, marginTop: 5, borderWidth: 1, borderColor: variant._id === selectedVariant?._id ? '#21D4B4' : '#C0C0C0', borderRadius: 8, opacity: variant.stock <= 0 ? 0.45 : 1 }}><Text style={{ color: '#1C1B1B' }}>{variant.quantity} {variant.unit} · ₹{variant.price} · {variant.stock > 0 ? `${variant.stock} available` : 'Out of stock'}</Text></Pressable>)}
+          {product.variants?.filter(item => item.isActive).map(variant => <Pressable key={variant._id} onPress={() => setSelectedVariantId(variant._id)} disabled={variant.stock <= 0} style={{ padding: 10, marginTop: 5, borderWidth: 1, borderColor: variant._id === selectedVariant?._id ? '#21D4B4' : '#C0C0C0', borderRadius: 8, opacity: variant.stock <= 0 ? 0.45 : 1 }}><Text style={{ color: '#1C1B1B' }}>{variant.quantity} {variant.unit} | {String.fromCharCode(0x20b9)}{variantSellingPrice(variant)}{hasVariantDiscount(variant) ? <Text> <Text style={{ textDecorationLine: 'line-through' }}>{String.fromCharCode(0x20b9)}{variant.price}</Text> {variantDiscountPercentage(variant)}% off</Text> : null} | {variant.stock > 0 ? `${variant.stock} available` : 'Out of stock'}</Text></Pressable>)}
           <View style={styles.quantityControl}>
             <Pressable
               style={styles.quantityButton}
@@ -371,14 +370,14 @@ const ProductDetailsScreen = () => {
             <Pressable
               style={styles.quantityButton}
               onPress={() =>
-                setQuantity(value => Math.min(selectedVariant?.stock || product.stock || 1, value + 1))
+                setQuantity(value => Math.min(selectedVariant?.stock ?? 1, value + 1))
               }
-              disabled={quantity >= (selectedVariant?.stock || product.stock || 1)}
+              disabled={quantity >= (selectedVariant?.stock ?? 1)}
             >
               <Text
                 style={[
                   styles.quantityButtonText,
-                  quantity >= (selectedVariant?.stock || product.stock || 1) && styles.disabledText,
+                  quantity >= (selectedVariant?.stock ?? 1) && styles.disabledText,
                 ]}
               >
                 +
@@ -399,7 +398,7 @@ const ProductDetailsScreen = () => {
         </Pressable>
         <CartQuantityControl
           productId={product._id}
-          stock={product.stock}
+          stock={selectedVariant?.stock}
           variants={product.variants}
           cartItems={cartResponse?.data?.items}
           selectedVariantId={selectedVariant?._id}

@@ -24,6 +24,7 @@ import {
   useRemoveFromWishlistMutation,
   type ProductResponse,
 } from '../../api/quickCartApi';
+import { hasVariantDiscount, lowestPricedVariant, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
 import { radius, spacing, typography, useTheme } from '../../theme';
 import QuickCartWordmark from '../../components/QuickCartWordmark';
 import type { ThemeColors } from '../../theme';
@@ -170,7 +171,8 @@ const SearchScreen = () => {
     const hasMaxPrice = filters.maxPrice.trim() !== '' && Number.isFinite(maxPrice);
 
     const result = productResponse.data.filter(product => {
-      const price = product.discountPrice ?? product.price;
+      const cardVariant = lowestPricedVariant(product.variants);
+              const price = variantSellingPrice(cardVariant);
       const category = typeof product.category === 'string'
         ? product.category
         : product.category?._id;
@@ -179,14 +181,14 @@ const SearchScreen = () => {
         (!filters.categoryId || category === filters.categoryId) &&
         (!hasMinPrice || price >= minPrice) &&
         (!hasMaxPrice || price <= maxPrice) &&
-        (!filters.inStock || product.stock > 0)
+        (!filters.inStock || Boolean(cardVariant))
       );
     });
 
     if (filters.sort === 'priceLow') {
-      result.sort((a, b) => (a.discountPrice ?? a.price) - (b.discountPrice ?? b.price));
+      result.sort((a, b) => variantSellingPrice(lowestPricedVariant(a.variants)) - variantSellingPrice(lowestPricedVariant(b.variants)));
     } else if (filters.sort === 'priceHigh') {
-      result.sort((a, b) => (b.discountPrice ?? b.price) - (a.discountPrice ?? a.price));
+      result.sort((a, b) => variantSellingPrice(lowestPricedVariant(b.variants)) - variantSellingPrice(lowestPricedVariant(a.variants)));
     } else if (filters.sort === 'rating') {
       result.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     }
@@ -373,7 +375,8 @@ const SearchScreen = () => {
           ) : (
             <View style={styles.productGrid}>
               {products.map(product => {
-                const sellingPrice = product.discountPrice ?? product.price;
+                const cardVariant = lowestPricedVariant(product.variants);
+                const sellingPrice = variantSellingPrice(cardVariant);
                 const isWishlisted = wishlistIds.includes(product._id);
 
                 return (
@@ -430,10 +433,9 @@ const SearchScreen = () => {
                     <Text style={styles.productPrice}>
                       ₹{sellingPrice.toFixed(2)}
                     </Text>
-                    {product.discountPrice !== undefined &&
-                    product.discountPrice < product.price ? (
+                    {hasVariantDiscount(cardVariant) ? (
                       <Text style={styles.originalPrice}>
-                        ₹{product.price.toFixed(2)}
+                        ₹{cardVariant.price.toFixed(2)} ({variantDiscountPercentage(cardVariant)}% off)
                       </Text>
                     ) : null}
                   </View>

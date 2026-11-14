@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next';
 import EmptyCart from './EmptyCart';
 import { getVoucherInputScrollDelta } from './voucherKeyboard';
 import BackButton from '../../components/common/BackButton';
+import { hasVariantDiscount, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
 import TrashIcon from '../../assets/icons/trash.svg';
 import {
   CartItem,
@@ -134,7 +135,7 @@ const CartScreen = () => {
       selectedItems.reduce(
         (total, item) =>
           total +
-          (item.product?.variants?.find(variant => variant._id === item.variantId)?.price ?? item.product?.discountPrice ?? item.product?.price ?? 0) *
+          variantSellingPrice(item.product?.variants?.find(variant => variant._id === item.variantId)) *
             item.quantity,
         0,
       ),
@@ -165,7 +166,7 @@ const CartScreen = () => {
       }
 
       const variant = item.product?.variants?.find(entry => entry._id === item.variantId);
-      if ((variant?.stock ?? item.product?.stock) && nextQuantity > (variant?.stock ?? item.product?.stock ?? 0)) {
+      if (variant && nextQuantity > variant.stock) {
         return;
       }
 
@@ -262,7 +263,7 @@ const CartScreen = () => {
 
               const productId = product._id;
               const variant = product.variants?.find(entry => entry._id === item.variantId);
-              const currentPrice = variant?.price ?? product.discountPrice ?? product.price;
+              const currentPrice = variantSellingPrice(variant);
               const selected = selectedIds.includes(cartKey(item));
 
               return (
@@ -317,12 +318,7 @@ const CartScreen = () => {
                       ₹{currentPrice.toFixed(2)}
                     </Text>
 
-                    {product.discountPrice != null &&
-                      product.discountPrice < product.price && (
-                        <Text style={styles.originalPrice}>
-                          ₹{product.price.toFixed(2)}
-                        </Text>
-                      )}
+                    {variant && hasVariantDiscount(variant) && <Text style={styles.originalPrice}>{String.fromCharCode(0x20b9)}{variant.price.toFixed(2)} ({variantDiscountPercentage(variant)}% off)</Text>}
 
                     <View style={styles.itemBottomRow}>
                       <View style={styles.quantityBox}>

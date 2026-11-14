@@ -14,6 +14,7 @@ import { useRemoveFromWishlistMutation } from '../../api/quickCartApi';
 import TrashIcon from '../../assets/icons/trash.svg';
 import { radius, spacing, typography, useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
+import { hasVariantDiscount, lowestPricedVariant, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
 
 interface WishlistProductsProps {
   products: CartProduct[];
@@ -36,7 +37,7 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
       const current = previous[item._id] ?? 1;
       const next = direction === 'increase' ? current + 1 : current - 1;
 
-      if (next < 1 || next > item.stock) {
+      if (next < 1 || next > (lowestPricedVariant(item.variants)?.stock ?? 0)) {
         return previous;
       }
 
@@ -59,9 +60,9 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
 
   const renderItem = ({ item }: { item: CartProduct }) => {
     const quantity = getQuantity(item._id);
-    const currentPrice = item.discountPrice ?? item.price;
-    const hasDiscount =
-      item.discountPrice !== undefined && item.discountPrice < item.price;
+    const variant = lowestPricedVariant(item.variants);
+    const currentPrice = variantSellingPrice(variant);
+    const hasDiscount = hasVariantDiscount(variant);
 
     return (
       <View style={styles.productRow}>
@@ -102,7 +103,7 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
           <Text style={styles.productPrice}>₹{currentPrice.toFixed(2)}</Text>
 
           {hasDiscount ? (
-            <Text style={styles.originalPrice}>₹{item.price.toFixed(2)}</Text>
+            <Text style={styles.originalPrice}>₹{variant?.price.toFixed(2)}</Text>
           ) : null}
 
           <View style={styles.bottomRow}>

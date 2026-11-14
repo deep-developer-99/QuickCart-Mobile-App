@@ -4,15 +4,15 @@ export interface CartProduct {
   _id: string;
   name: string;
   image?: string;
-  price: number;
-  discountPrice?: number;
-  stock: number;
-  variants?: Array<{ _id: string; quantity: number; unit: string; price: number; stock: number; isActive: boolean }>;
+  variants?: Array<{ _id: string; quantity: number; unit: string; price: number; discountPrice?: number; stock: number; isActive: boolean }>;
 }
 
 export interface CartItem extends CartProduct {
   quantity: number;
+  variantId?: string;
 }
+
+const selectedStock = (item: CartItem) => item.variants?.find(variant => variant._id === item.variantId && variant.isActive)?.stock ?? 0;
 
 export interface CartState {
   items: CartItem[];
@@ -32,7 +32,7 @@ const cartSlice = createSlice({
       );
 
       if (existingItem) {
-        if (existingItem.quantity < existingItem.stock) {
+        if (existingItem.quantity < selectedStock(existingItem)) {
           existingItem.quantity += 1;
         }
         return;
@@ -47,7 +47,7 @@ const cartSlice = createSlice({
     incrementCartItem: (state, action: PayloadAction<string>) => {
       const item = state.items.find(item => item._id === action.payload);
 
-      if (item && item.quantity < item.stock) {
+      if (item && item.quantity < selectedStock(item)) {
         item.quantity += 1;
       }
     },

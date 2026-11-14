@@ -17,6 +17,7 @@ import {
 } from '../api/quickCartApi';
 import { radius, spacing, typography, useTheme } from '../theme';
 import type { ProductVariant } from '../api/quickCartApi';
+import { hasVariantDiscount, variantDiscountPercentage, variantSellingPrice } from '../utils/variantPricing';
 
 type CartQuantityControlProps = {
   productId: string;
@@ -62,7 +63,7 @@ const CartQuantityControl = ({
 
   const isBusy = adding || updating || removing || disabled;
   const quantity = selectedCartItem?.quantity ?? 0;
-  const maximumQuantity = selectedVariant?.stock || stock || cartItem?.product?.stock || 1;
+  const maximumQuantity = selectedVariant?.stock ?? stock ?? 1;
 
   const handleAdd = async () => {
     if (isBusy) return;
@@ -125,7 +126,7 @@ const CartQuantityControl = ({
         <View style={{ flex: 1, backgroundColor: '#0008', justifyContent: 'center', padding: 24 }}>
           <View style={{ backgroundColor: theme.colors.surface, borderRadius: 16, padding: 20, gap: 10 }}>
             <Text style={{ ...typography.body2Medium, color: theme.colors.text }}>Choose an option</Text>
-            {activeVariants.map(item => <Pressable key={item._id} disabled={item.stock <= 0} onPress={() => setSelectedVariantId(item._id)} style={{ padding: 12, borderRadius: 10, borderWidth: 1, borderColor: selectedVariant?._id === item._id ? theme.colors.cyan : theme.colors.border, opacity: item.stock <= 0 ? 0.45 : 1 }}><Text style={{ color: theme.colors.text }}>{item.quantity} {item.unit} · ₹{item.price}</Text><Text style={{ color: theme.colors.secondaryText }}>{item.stock > 0 ? `${item.stock} available` : 'Out of stock'}</Text></Pressable>)}
+            {activeVariants.map(item => <Pressable key={item._id} disabled={item.stock <= 0} onPress={() => setSelectedVariantId(item._id)} style={{ padding: 12, borderRadius: 10, borderWidth: 1, borderColor: selectedVariant?._id === item._id ? theme.colors.cyan : theme.colors.border, opacity: item.stock <= 0 ? 0.45 : 1 }}><Text style={{ color: theme.colors.text }}>{item.quantity} {item.unit} | {String.fromCharCode(0x20b9)}{variantSellingPrice(item)}{hasVariantDiscount(item) ? <Text> <Text style={{ textDecorationLine: 'line-through' }}>{String.fromCharCode(0x20b9)}{item.price}</Text> {variantDiscountPercentage(item)}% off</Text> : null}</Text><Text style={{ color: theme.colors.secondaryText }}>{item.stock > 0 ? `${item.stock} available` : 'Out of stock'}</Text></Pressable>)}
             <Pressable onPress={() => void handleAdd()} disabled={!selectedVariant || isBusy} style={{ padding: 13, borderRadius: 10, backgroundColor: theme.colors.control, alignItems: 'center' }}><Text style={{ color: theme.colors.white }}>Add to Cart</Text></Pressable>
           </View>
         </View>
@@ -176,7 +177,7 @@ const CartQuantityControl = ({
       <View style={{ flex: 1, backgroundColor: '#0008', justifyContent: 'center', padding: 24 }}>
         <View style={{ backgroundColor: theme.colors.surface, borderRadius: 16, padding: 20, gap: 10 }}>
           <Text style={{ ...typography.body2Medium, color: theme.colors.text }}>Choose an option</Text>
-          {activeVariants.map(item => <Pressable key={item._id} disabled={item.stock <= 0} onPress={() => setSelectedVariantId(item._id)} style={{ padding: 12, borderRadius: 10, borderWidth: 1, borderColor: selectedVariant?._id === item._id ? theme.colors.cyan : theme.colors.border, opacity: item.stock <= 0 ? 0.45 : 1 }}><Text style={{ color: theme.colors.text }}>{item.quantity} {item.unit} · ₹{item.price}</Text><Text style={{ color: theme.colors.secondaryText }}>{item.stock > 0 ? `${item.stock} available` : 'Out of stock'}</Text></Pressable>)}
+          {activeVariants.map(item => <Pressable key={item._id} disabled={item.stock <= 0} onPress={() => setSelectedVariantId(item._id)} style={{ padding: 12, borderRadius: 10, borderWidth: 1, borderColor: selectedVariant?._id === item._id ? theme.colors.cyan : theme.colors.border, opacity: item.stock <= 0 ? 0.45 : 1 }}><Text style={{ color: theme.colors.text }}>{item.quantity} {item.unit} | {String.fromCharCode(0x20b9)}{variantSellingPrice(item)}{hasVariantDiscount(item) ? <Text> <Text style={{ textDecorationLine: 'line-through' }}>{String.fromCharCode(0x20b9)}{item.price}</Text> {variantDiscountPercentage(item)}% off</Text> : null}</Text><Text style={{ color: theme.colors.secondaryText }}>{item.stock > 0 ? `${item.stock} available` : 'Out of stock'}</Text></Pressable>)}
           <Pressable onPress={() => void handleAdd()} disabled={!selectedVariant || isBusy} style={{ padding: 13, borderRadius: 10, backgroundColor: theme.colors.control, alignItems: 'center' }}><Text style={{ color: theme.colors.white }}>Add to Cart</Text></Pressable>
         </View>
       </View>

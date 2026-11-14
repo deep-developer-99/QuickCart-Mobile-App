@@ -44,9 +44,6 @@ export interface ProductResponse {
     description?: string;
     image?: string;
     images?: string[];
-    price: number;
-    discountPrice?: number;
-    stock: number;
     variants?: ProductVariant[];
     rating?: number;
     reviews?: number;
@@ -124,9 +121,6 @@ export interface CartProduct {
   images?: string[];
   rating?: number;
   reviews?: number;
-  price: number;
-  discountPrice?: number;
-  stock: number;
   variants?: ProductVariant[];
   category?:
     | {
@@ -149,6 +143,7 @@ export interface ProductVariant {
   quantity: number;
   unit: string;
   price: number;
+  discountPrice?: number;
   stock: number;
   isActive: boolean;
 }
