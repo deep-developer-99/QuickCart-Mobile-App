@@ -193,11 +193,11 @@ const ProductDetailsScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 16) }]}
       >
         <View style={[styles.imageSection, { height: imageSectionHeight + insets.top }]}>
           {images.length > 0 ? (
@@ -340,20 +340,39 @@ const ProductDetailsScreen = () => {
         onViewCart={() => navigation.navigate('MainTabs', { screen: 'Cart' })}
       />
 
-      <View style={styles.bottomBar}>
-        <CartQuantityControl
-          productId={product._id}
-          productName={product.name}
-          productImage={product.image}
-          quantityScope="variant"
-          stock={selectedVariant?.stock}
-          variants={product.variants}
-          cartItems={cartResponse?.data?.items}
-          selectedVariantId={selectedVariant?._id}
-          disabled={cartLoading}
-          onAdded={showCartToast}
-        />
-      </View>
+      <SafeAreaView style={styles.bottomBar} edges={['bottom']}>
+        <View style={styles.bottomProductInfo}>
+          <Text style={styles.bottomVariantUnit} numberOfLines={1}>
+            {selectedVariant
+              ? `${selectedVariant.quantity} ${selectedVariant.unit}`
+              : product.name}
+          </Text>
+          <View style={styles.bottomPriceRow}>
+            <Text style={styles.bottomSellingPrice} numberOfLines={1}>
+              ₹{sellingPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+            </Text>
+            {hasDiscount ? (
+              <Text style={styles.bottomOriginalPrice} numberOfLines={1}>
+                MRP ₹{selectedVariant?.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+        <View style={styles.bottomCartAction}>
+          <CartQuantityControl
+            productId={product._id}
+            productName={product.name}
+            productImage={product.image}
+            quantityScope="variant"
+            stock={selectedVariant?.stock}
+            variants={product.variants}
+            cartItems={cartResponse?.data?.items}
+            selectedVariantId={selectedVariant?._id}
+            disabled={cartLoading}
+            onAdded={showCartToast}
+          />
+        </View>
+      </SafeAreaView>
     </SafeAreaView>
   );
 };
@@ -580,12 +599,40 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) =>
     bottomBar: {
       backgroundColor: colors.surface,
       paddingHorizontal: 16,
-      paddingTop: 10,
+      paddingTop: 12,
       paddingBottom: 12,
       flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
       borderTopWidth: 1,
       borderTopColor: colors.grey50,
+      gap: 12,
     },
+    bottomProductInfo: { flex: 1, minWidth: 0 },
+    bottomVariantUnit: {
+      fontFamily: 'PlusJakartaSans-Medium',
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.text,
+      marginBottom: 3,
+    },
+    bottomPriceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 7, minWidth: 0 },
+    bottomSellingPrice: {
+      flexShrink: 1,
+      fontFamily: 'PlusJakartaSans-Bold',
+      fontSize: 17,
+      lineHeight: 22,
+      color: colors.text,
+    },
+    bottomOriginalPrice: {
+      flexShrink: 1,
+      fontFamily: 'PlusJakartaSans-Regular',
+      fontSize: 11,
+      lineHeight: 16,
+      color: colors.secondaryText,
+      textDecorationLine: 'line-through',
+    },
+    bottomCartAction: { width: '39%', minWidth: 108, maxWidth: 176 },
   });
 
 const useStyles = () => {
