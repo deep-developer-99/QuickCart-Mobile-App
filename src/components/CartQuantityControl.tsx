@@ -11,7 +11,11 @@ import {
 } from '../api/quickCartApi';
 import type { ProductVariant } from '../api/quickCartApi';
 import { radius, spacing, typography, useTheme } from '../theme';
-import { getCartQuantityAction, getProductCartSummary } from '../utils/cartQuantities';
+import {
+  getCartQuantityAction,
+  getProductCartSummary,
+  getProductVariantCartSummary,
+} from '../utils/cartQuantities';
 import ProductVariantBottomSheet from './ProductVariantBottomSheet';
 
 type CartQuantityControlProps = {
@@ -20,14 +24,13 @@ type CartQuantityControlProps = {
   cartItem?: CartItem;
   cartItems?: CartItem[];
   compact?: boolean;
-  darkModeCompactAddButton?: boolean;
   disabled?: boolean;
   onAdded?: () => void;
   variants?: ProductVariant[];
   selectedVariantId?: string;
   productName?: string;
   productImage?: string;
-  chooseVariantOnAdd?: boolean;
+  quantityScope?: 'product' | 'variant';
 };
 
 const CartQuantityControl = ({
@@ -42,6 +45,7 @@ const CartQuantityControl = ({
   selectedVariantId: requestedVariantId,
   productName = 'Choose a variant',
   productImage,
+  quantityScope = 'product',
 }: CartQuantityControlProps) => {
   const { theme } = useTheme();
   const { t } = useTranslation();
@@ -53,15 +57,21 @@ const CartQuantityControl = ({
   const mutationLock = React.useRef(false);
   const activeVariants = variants.filter(item => item.isActive);
   const purchasableVariants = activeVariants.filter(item => item.stock > 0);
-  const opensVariantSheet = purchasableVariants.length > 1;
+  const actionVariantCount = quantityScope === 'variant' ? 1 : purchasableVariants.length;
+  const opensVariantSheet = actionVariantCount > 1;
   const [selectedVariantId, setSelectedVariantId] = React.useState<string | undefined>(
     () => requestedVariantId ?? purchasableVariants[0]?._id,
   );
+  const effectiveSelectedVariantId = requestedVariantId ?? selectedVariantId;
   const selectedVariant =
-    activeVariants.find(item => item._id === selectedVariantId) ??
+    activeVariants.find(item => item._id === effectiveSelectedVariantId) ??
     purchasableVariants[0];
   const currentCartItems = cartItems ?? (cartItem ? [cartItem] : []);
-  const productCart = getProductCartSummary(currentCartItems, productId);
+  const allProductCart = getProductCartSummary(currentCartItems, productId);
+  const productCart =
+    quantityScope === 'variant'
+      ? getProductVariantCartSummary(currentCartItems, productId, selectedVariant?._id)
+      : allProductCart;
   const isBusy = adding || updating || removing || disabled;
   const directEntries = productCart.items.map(item => ({
     item,
@@ -117,7 +127,7 @@ const CartQuantityControl = ({
 
   const handleDecrease = () => {
     if (isBusy) return;
-    if (getCartQuantityAction('decrease', purchasableVariants.length, productCart.distinctVariantCount) === 'openVariantSheet') {
+    if (getCartQuantityAction('decrease', actionVariantCount, productCart.distinctVariantCount) === 'openVariantSheet') {
       setShowVariantPicker(true);
     } else if (directEntry) {
       return setVariantQuantity(directEntry, directEntry.item.quantity - 1);
@@ -126,7 +136,7 @@ const CartQuantityControl = ({
 
   const handleIncrease = () => {
     if (isBusy) return;
-    if (getCartQuantityAction('increase', purchasableVariants.length, productCart.distinctVariantCount) === 'openVariantSheet') {
+    if (getCartQuantityAction('increase', actionVariantCount, productCart.distinctVariantCount) === 'openVariantSheet') {
       setShowVariantPicker(true);
     } else if (directEntry) {
       return setVariantQuantity(directEntry, directEntry.item.quantity + 1);
@@ -135,7 +145,7 @@ const CartQuantityControl = ({
     }
   };
 
-  const modal = activeVariants.length > 1 ? (
+  const modal = quantityScope === 'product' && activeVariants.length > 1 ? (
     <ProductVariantBottomSheet
       visible={showVariantPicker}
       productId={productId}
@@ -153,7 +163,7 @@ const CartQuantityControl = ({
       <>
         <Pressable
           style={[styles.addButton, compact ? styles.compactAddButton : styles.fullAddButton]}
-          onPress={() => (getCartQuantityAction('add', purchasableVariants.length, productCart.distinctVariantCount) === 'openVariantSheet' ? setShowVariantPicker(true) : addOne())}
+          onPress={() => (getCartQuantityAction('add', actionVariantCount, productCart.distinctVariantCount) === 'openVariantSheet' ? setShowVariantPicker(true) : addOne())}
           onPressIn={event => event.stopPropagation()}
           disabled={isBusy || (!opensVariantSheet && activeVariants.length > 0 && (!selectedVariant || selectedVariant.stock <= 0))}
           accessibilityRole="button"
@@ -237,7 +247,7 @@ const createStyles = (colors: ReturnType<typeof useTheme>['theme']['colors']) =>
       backgroundColor: '#168B43',
     },
     compactQuantityControl: { width: '100%' },
-    fullQuantityControl: { minHeight: 44, width: 132 },
+    fullQuantityControl: { minHeight: 61, flex: 1 },
     quantityButton: { minWidth: 40, minHeight: 36, alignItems: 'center', justifyContent: 'center' },
     compactQuantityButton: { minWidth: 22, flex: 1 },
     quantitySymbol: { fontSize: 21, color: colors.white, lineHeight: 23 },

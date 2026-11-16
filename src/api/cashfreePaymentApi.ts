@@ -10,11 +10,8 @@ export type CashfreePaymentMethod =
 
 export interface CreateCashfreeSessionRequest {
   addressId: string;
-  checkoutMode: 'cart' | 'buyNow';
+  checkoutMode: 'cart';
   paymentMethod: CashfreePaymentMethod;
-  productId?: string;
-  quantity?: number;
-  variantId?: string;
 }
 
 export interface CashfreeSessionResponse {

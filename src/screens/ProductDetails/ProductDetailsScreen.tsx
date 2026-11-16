@@ -99,7 +99,6 @@ const ProductDetailsScreen = () => {
     : fetchedProductResponse?.success
     ? (fetchedProductResponse.data as DetailProduct)
     : undefined;
-  const [quantity, setQuantity] = useState(1);
   const [selectedVariantId, setSelectedVariantId] = useState<string | undefined>();
   const selectedVariant = product?.variants?.filter(item => item.isActive).find(item => item._id === selectedVariantId) ?? product?.variants?.find(item => item.isActive && item.stock > 0);
   const [expanded, setExpanded] = useState(false);
@@ -151,16 +150,6 @@ const ProductDetailsScreen = () => {
     expanded || !shouldCollapse
       ? description
       : `${description.slice(0, 220).trim()}...`;
-
-  const handleBuyNow = () => {
-    if (!product) return;
-    navigation.navigate('Checkout', {
-      mode: 'buyNow',
-      product,
-      quantity,
-      ...(selectedVariant ? { variantId: selectedVariant._id } : {}),
-    });
-  };
 
   const showCartToast = useCallback(() => {
     setShowAddedMessage(true);
@@ -333,7 +322,7 @@ const ProductDetailsScreen = () => {
             {product.variants?.filter(item => item.isActive).map(variant => {
               const selected = variant._id === selectedVariant?._id;
               const normalized = normalizedVariantPrice(variant);
-              return <Pressable key={variant._id} onPress={() => { setSelectedVariantId(variant._id); setQuantity(1); }} disabled={variant.stock <= 0} style={[styles.variantCard, selected && styles.variantCardSelected, variant.stock <= 0 && styles.variantCardDisabled]} accessibilityRole="button" accessibilityState={{ selected, disabled: variant.stock <= 0 }}>
+              return <Pressable key={variant._id} onPress={() => setSelectedVariantId(variant._id)} disabled={variant.stock <= 0} style={[styles.variantCard, selected && styles.variantCardSelected, variant.stock <= 0 && styles.variantCardDisabled]} accessibilityRole="button" accessibilityState={{ selected, disabled: variant.stock <= 0 }}>
                 <Text style={styles.variantUnit}>{variant.quantity} {variant.unit}</Text>
                 <Text style={styles.variantPrice}>₹{variantSellingPrice(variant).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Text>
                 {hasVariantDiscount(variant) ? <Text style={styles.variantOffer}>{variantDiscountPercentage(variant)}% OFF on MRP</Text> : <View style={styles.variantOfferSpacer} />}
@@ -343,39 +332,6 @@ const ProductDetailsScreen = () => {
               </Pressable>;
             })}
           </ScrollView>
-          <View style={styles.quantityControl}>
-            <Pressable
-              style={styles.quantityButton}
-              onPress={() => setQuantity(value => Math.max(1, value - 1))}
-              disabled={quantity <= 1}
-            >
-              <Text
-                style={[
-                  styles.quantityButtonText,
-                  quantity <= 1 && styles.disabledText,
-                ]}
-              >
-                −
-              </Text>
-            </Pressable>
-            <Text style={styles.quantityValue}>{quantity}</Text>
-            <Pressable
-              style={styles.quantityButton}
-              onPress={() =>
-                setQuantity(value => Math.min(selectedVariant?.stock ?? 1, value + 1))
-              }
-              disabled={quantity >= (selectedVariant?.stock ?? 1)}
-            >
-              <Text
-                style={[
-                  styles.quantityButtonText,
-                  quantity >= (selectedVariant?.stock ?? 1) && styles.disabledText,
-                ]}
-              >
-                +
-              </Text>
-            </Pressable>
-          </View>
         </View>
       </ScrollView>
 
@@ -385,15 +341,11 @@ const ProductDetailsScreen = () => {
       />
 
       <View style={styles.bottomBar}>
-        <Pressable style={styles.buyButton} onPress={handleBuyNow}>
-          <Text style={styles.stickyPrice}>{`₹${sellingPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}</Text>
-          <Text style={styles.stickyUnit}>{selectedVariant ? `${selectedVariant.quantity} ${selectedVariant.unit} · ` : ''}{t('ui.product.buyNow')}</Text>
-        </Pressable>
         <CartQuantityControl
           productId={product._id}
           productName={product.name}
           productImage={product.image}
-          chooseVariantOnAdd={false}
+          quantityScope="variant"
           stock={selectedVariant?.stock}
           variants={product.variants}
           cartItems={cartResponse?.data?.items}
@@ -580,30 +532,6 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) =>
     variantOfferSpacer: { height: 16, marginTop: 4 },
     variantOriginal: { marginTop: 2, color: colors.secondaryText, fontSize: 11, textDecorationLine: 'line-through' },
     variantStock: { marginTop: 4, color: colors.secondaryText, fontSize: 10 },
-    quantityControl: {
-      width: 96,
-      height: 33,
-      borderWidth: 1,
-      borderColor: colors.grey50,
-      borderRadius: 8,
-      marginTop: 6,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    quantityButton: {
-      width: 31,
-      height: 31,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    quantityButtonText: { fontSize: 21, color: colors.text, lineHeight: 22 },
-    disabledText: { color: colors.grey100 },
-    quantityValue: {
-      fontFamily: 'PlusJakartaSans-Regular',
-      fontSize: 14,
-      color: colors.text,
-    },
     addedMessage: {
       position: 'absolute',
       left: 16,
@@ -655,45 +583,8 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) =>
       paddingTop: 10,
       paddingBottom: 12,
       flexDirection: 'row',
-      gap: 8,
       borderTopWidth: 1,
       borderTopColor: colors.grey50,
-    },
-    buyButton: {
-      flex: 1,
-      height: 61,
-      borderWidth: 1,
-      borderColor: colors.grey50,
-      borderRadius: 12,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.surface,
-    },
-    buyText: {
-      fontFamily: 'PlusJakartaSans-Medium',
-      fontSize: 14,
-      color: mode === 'dark' ? colors.cyan : colors.text,
-    },
-    stickyPrice: { fontFamily: 'PlusJakartaSans-Bold', fontSize: 17, color: colors.text },
-    stickyUnit: { fontFamily: 'PlusJakartaSans-Medium', fontSize: 11, color: colors.secondaryText, marginTop: 2 },
-    addButton: {
-      flex: 1,
-      height: 61,
-      borderRadius: 12,
-      backgroundColor: mode === 'dark' ? colors.cyan : colors.black,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 10,
-    },
-    buyButtonDisabled: {
-      opacity: 0.7,
-    },
-    addButtonDisabled: { opacity: 0.75 },
-    addText: {
-      fontFamily: 'PlusJakartaSans-Medium',
-      fontSize: 14,
-      color: colors.white,
     },
   });
 

@@ -12,6 +12,20 @@ export const getProductCartSummary = (
   };
 };
 
+export const getProductVariantCartSummary = (
+  cartItems: CartItem[] = [],
+  productId: string,
+  variantId?: string,
+) =>
+  getProductCartSummary(
+    cartItems.filter(
+      item =>
+        item.product?._id === productId &&
+        (item.variantId ?? '') === (variantId ?? ''),
+    ),
+    productId,
+  );
+
 export type CartQuantityIntent = 'add' | 'increase' | 'decrease';
 
 export const getCartQuantityAction = (

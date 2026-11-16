@@ -20,7 +20,6 @@ import {
 import AddAddressModal from '../../components/AddAddressModal';
 import BackButton from '../../components/common/BackButton';
 import {
-  useCreateBuyNowOrderMutation,
   useCreateOrderMutation,
 } from '../../api/orderApi';
 import {
@@ -51,47 +50,25 @@ type PaymentMethod =
   | 'CARD'
   | 'WALLET';
 
-export default function CheckoutScreen({ navigation, route }: Props) {
+export default function CheckoutScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const styles = useStyles();
-  const checkoutMode = route.params?.mode ?? 'cart';
-  const buyNowProduct = route.params?.product;
-  const buyNowQuantity = route.params?.quantity ?? 1;
-  const buyNowVariantId = route.params?.variantId;
-  const isBuyNow = checkoutMode === 'buyNow';
-
-  const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery(
-    undefined,
-    { skip: isBuyNow },
-  );
+  const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery();
   const { data: addressResponse, isLoading: addressLoading, refetch: refetchAddresses } =
     useGetAddressesQuery();
   const [createOrder, { isLoading: placingCartOrder }] =
     useCreateOrderMutation();
-  const [createBuyNowOrder, { isLoading: placingBuyNowOrder }] =
-    useCreateBuyNowOrderMutation();
   const [clearCart] = useClearCartMutation();
   const [createCashfreeSession, { isLoading: creatingCashfreeSession }] =
     useCreateCashfreeSessionMutation();
   const [verifyCashfreePayment, { isLoading: verifyingCashfreePayment }] =
     useVerifyCashfreePaymentMutation();
 
-  const items: CartItem[] = isBuyNow
-    ? buyNowProduct
-      ? [
-          {
-            product: buyNowProduct,
-            ...(buyNowVariantId ? { variantId: buyNowVariantId } : {}),
-            quantity: buyNowQuantity,
-          } as CartItem,
-        ]
-      : []
-    : cartResponse?.data?.items ?? [];
+  const items: CartItem[] = cartResponse?.data?.items ?? [];
 
   const addresses: Address[] = addressResponse?.data ?? [];
   const placingOrder =
     placingCartOrder ||
-    placingBuyNowOrder ||
     creatingCashfreeSession ||
     verifyingCashfreePayment;
 
@@ -128,35 +105,18 @@ export default function CheckoutScreen({ navigation, route }: Props) {
 
     if (items.length === 0) {
       Alert.alert(
-        isBuyNow ? t('ui.checkout.productUnavailable') : t('ui.checkout.emptyCart'),
-        isBuyNow
-          ? t('ui.checkout.productUnavailableMessage')
-          : t('ui.checkout.emptyCartMessage'),
+        t('ui.checkout.emptyCart'),
+        t('ui.checkout.emptyCartMessage'),
       );
       return;
     }
 
     try {
       if (isOnlinePayment) {
-        if (isBuyNow && !buyNowProduct) {
-          Alert.alert(
-            t('ui.checkout.productUnavailable'),
-            t('ui.checkout.unableToCheckout'),
-          );
-          return;
-        }
-
         const session = await createCashfreeSession({
           addressId,
-          checkoutMode: isBuyNow ? 'buyNow' : 'cart',
+          checkoutMode: 'cart',
           paymentMethod: payment as Exclude<PaymentMethod, 'COD'>,
-          ...(isBuyNow
-            ? {
-                productId: buyNowProduct!._id,
-                quantity: buyNowQuantity,
-                ...(buyNowVariantId ? { variantId: buyNowVariantId } : {}),
-              }
-            : {}),
         }).unwrap();
 
         // Cashfree's SDK callback is not proof of payment. Always verify with our backend.
@@ -205,30 +165,11 @@ export default function CheckoutScreen({ navigation, route }: Props) {
         return;
       }
 
-      if (isBuyNow) {
-        if (!buyNowProduct) {
-          Alert.alert(
-            t('ui.checkout.productUnavailable'),
-            t('ui.checkout.unableToCheckout'),
-          );
-          return;
-        }
-
-        await createBuyNowOrder({
-          productId: buyNowProduct._id,
-          quantity: buyNowQuantity,
-          ...(buyNowVariantId ? { variantId: buyNowVariantId } : {}),
-          addressId,
-          paymentMethod: 'COD',
-        }).unwrap();
-        // Buy Now is independent from the cart; never clear the cart here.
-      } else {
-        await createOrder({ addressId, paymentMethod: 'COD' }).unwrap();
-        try {
-          await clearCart().unwrap();
-        } catch (clearError) {
-          console.error('Cart cleanup after order failed:', clearError);
-        }
+      await createOrder({ addressId, paymentMethod: 'COD' }).unwrap();
+      try {
+        await clearCart().unwrap();
+      } catch (clearError) {
+        console.error('Cart cleanup after order failed:', clearError);
       }
 
       setStep('success');

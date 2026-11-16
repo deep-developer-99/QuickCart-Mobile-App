@@ -49,14 +49,7 @@ export type RootStackParamList = {
     productId: string;
   };
 
-  Checkout:
-    | {
-        mode: 'cart' | 'buyNow';
-        product?: CartProduct;
-        quantity?: number;
-        variantId?: string;
-      }
-    | undefined;
+  Checkout: undefined;
   ShippingAddress: undefined;
   PaymentMethod: undefined;
 };

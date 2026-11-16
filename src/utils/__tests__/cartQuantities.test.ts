@@ -1,5 +1,9 @@
 import type { CartItem } from '../../api/quickCartApi';
-import { getCartQuantityAction, getProductCartSummary } from '../cartQuantities';
+import {
+  getCartQuantityAction,
+  getProductCartSummary,
+  getProductVariantCartSummary,
+} from '../cartQuantities';
 
 const item = (variantId: string, quantity: number): CartItem => ({
   product: { _id: 'product-1', name: 'Tea' },
@@ -56,5 +60,24 @@ describe('getCartQuantityAction', () => {
   it('decreases directly for one cart variant and opens the sheet for multiple cart variants', () => {
     expect(getCartQuantityAction('decrease', 3, 1)).toBe('direct');
     expect(getCartQuantityAction('decrease', 3, 2)).toBe('openVariantSheet');
+  });
+});
+
+describe('getProductVariantCartSummary', () => {
+  it('keeps quantities independent when switching between variants', () => {
+    const cart = [item('A', 2)];
+
+    expect(getProductVariantCartSummary(cart, 'product-1', 'A').totalQuantity).toBe(2);
+    expect(getProductVariantCartSummary(cart, 'product-1', 'B').totalQuantity).toBe(0);
+  });
+
+  it('preserves other variant quantities when adding or removing one variant', () => {
+    const cartWithBoth = [item('A', 2), item('B', 1)];
+    const cartAfterRemovingA = [item('B', 1)];
+
+    expect(getProductVariantCartSummary(cartWithBoth, 'product-1', 'A').totalQuantity).toBe(2);
+    expect(getProductVariantCartSummary(cartWithBoth, 'product-1', 'B').totalQuantity).toBe(1);
+    expect(getProductVariantCartSummary(cartAfterRemovingA, 'product-1', 'A').totalQuantity).toBe(0);
+    expect(getProductVariantCartSummary(cartAfterRemovingA, 'product-1', 'B').totalQuantity).toBe(1);
   });
 });
