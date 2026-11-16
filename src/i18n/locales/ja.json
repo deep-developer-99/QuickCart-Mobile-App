@@ -211,7 +211,10 @@
       "sortPriceLow": "価格の安い順",
       "sortPriceHigh": "価格の高い順",
       "sortAZ": "A-Z",
-      "sortZA": "Z-A"
+      "sortZA": "Z-A",
+      "sort": "並べ替え",
+      "retry": "再試行",
+      "noSubcategories": "サブカテゴリがありません"
     },
     "search": {
       "recentSearches": "最近の検索",

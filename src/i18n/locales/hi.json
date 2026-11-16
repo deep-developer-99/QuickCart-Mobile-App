@@ -211,7 +211,10 @@
       "sortPriceLow": "कीमत: कम से ज़्यादा",
       "sortPriceHigh": "कीमत: ज़्यादा से कम",
       "sortAZ": "अ से ज्ञ",
-      "sortZA": "ज्ञ से अ"
+      "sortZA": "ज्ञ से अ",
+      "sort": "क्रमबद्ध करें",
+      "retry": "पुनः प्रयास करें",
+      "noSubcategories": "कोई उपश्रेणी नहीं"
     },
     "search": {
       "recentSearches": "हाल की खोजें",

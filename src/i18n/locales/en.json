@@ -211,7 +211,10 @@
       "sortPriceLow": "Price (Low to High)",
       "sortPriceHigh": "Price (High to Low)",
       "sortAZ": "A-Z",
-      "sortZA": "Z-A"
+      "sortZA": "Z-A",
+      "sort": "Sort",
+      "retry": "Retry",
+      "noSubcategories": "No subcategories"
     },
     "search": {
       "recentSearches": "RECENT SEARCHES",

@@ -7,6 +7,7 @@ import {
 } from '@reduxjs/toolkit/query/react';
 
 import { getToken } from '../services/secureStorage';
+import { getSubcategoriesPath } from '../utils/categoryBrowsing';
 import {
   getApiErrorDiagnostics,
   logApiDiagnostic,
@@ -48,7 +49,23 @@ export interface ProductResponse {
     rating?: number;
     reviews?: number;
     category?: string | { _id: string; name: string };
+    subCategory?: string | { _id: string; name: string; image?: string };
   }>;
+  pagination?: {
+    currentPage: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
+export interface Subcategory {
+  _id: string;
+  name: string;
+  image?: string;
+  parentCategory?: string | { _id: string };
 }
 
 export interface Banner {
@@ -86,6 +103,10 @@ export type ProductsQuery =
   | {
       search?: string;
       category?: string;
+      subCategory?: string;
+      page?: number;
+      limit?: number;
+      sort?: 'priceLow' | 'priceHigh' | 'az' | 'za';
     }
   | undefined;
 
@@ -283,6 +304,16 @@ export const quickCartApi = createApi({
       providesTags: ['Categories'],
     }),
 
+    getSubcategories: builder.query<{ success: boolean; data: Subcategory[] }, string>({
+      query: parentCategoryId => ({
+        url: getSubcategoriesPath(parentCategoryId),
+        method: 'GET',
+      }),
+      providesTags: (_result, _error, parentCategoryId) => [
+        { type: 'Categories', id: parentCategoryId },
+      ],
+    }),
+
     getBanners: builder.query<BannerResponse, void>({
       query: () => ({
         url: '/banners',
@@ -301,6 +332,10 @@ export const quickCartApi = createApi({
             ? {
                 ...(request.search ? { search: request.search } : {}),
                 ...(request.category ? { category: request.category } : {}),
+                ...(request.subCategory ? { subCategory: request.subCategory } : {}),
+                ...(request.page ? { page: request.page } : {}),
+                ...(request.limit ? { limit: request.limit } : {}),
+                ...(request.sort ? { sort: request.sort } : {}),
               }
             : undefined;
 
@@ -521,8 +556,10 @@ export const {
   useRegisterFcmTokenMutation,
   useRemoveFcmTokenMutation,
   useGetCategoriesQuery,
+  useGetSubcategoriesQuery,
   useGetBannersQuery,
   useGetProductsQuery,
+  useLazyGetProductsQuery,
   useGetProductByIdQuery,
   useGetCartQuery,
   useGetWishlistQuery,
