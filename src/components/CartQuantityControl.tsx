@@ -1,13 +1,7 @@
 import { AppText as Text } from './AppText';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import {
   type CartItem,
@@ -17,7 +11,8 @@ import {
 } from '../api/quickCartApi';
 import { radius, spacing, typography, useTheme } from '../theme';
 import type { ProductVariant } from '../api/quickCartApi';
-import { hasVariantDiscount, variantDiscountPercentage, variantSellingPrice } from '../utils/variantPricing';
+import ProductVariantBottomSheet from './ProductVariantBottomSheet';
+import { activeVariantCount } from '../utils/variantPricing';
 
 type CartQuantityControlProps = {
   productId: string;
@@ -30,6 +25,9 @@ type CartQuantityControlProps = {
   onAdded?: () => void;
   variants?: ProductVariant[];
   selectedVariantId?: string;
+  productName?: string;
+  productImage?: string;
+  chooseVariantOnAdd?: boolean;
 };
 
 const CartQuantityControl = ({
@@ -43,6 +41,9 @@ const CartQuantityControl = ({
   onAdded,
   variants = [],
   selectedVariantId: requestedVariantId,
+  productName = 'Choose a variant',
+  productImage,
+  chooseVariantOnAdd = true,
 }: CartQuantityControlProps) => {
   const { theme, mode } = useTheme();
   const { t } = useTranslation();
@@ -53,6 +54,7 @@ const CartQuantityControl = ({
   const [removeCartItem, { isLoading: removing }] =
     useRemoveCartItemMutation();
   const activeVariants = variants.filter(item => item.isActive);
+  const opensVariantSheet = chooseVariantOnAdd && activeVariantCount(variants) > 1;
   const [selectedVariantId, setSelectedVariantId] = React.useState<string | undefined>(() => requestedVariantId ?? activeVariants.find(item => item.stock > 0)?._id);
   const [showVariantPicker, setShowVariantPicker] = React.useState(false);
   const selectedVariant = activeVariants.find(item => item._id === selectedVariantId) ?? activeVariants.find(item => item.stock > 0);
@@ -69,6 +71,7 @@ const CartQuantityControl = ({
     if (isBusy) return;
 
     try {
+      if (selectedVariant?.stock === 0) return;
       await addToCart({ productId, quantity: 1, ...(selectedVariant ? { variantId: selectedVariant._id } : {}) }).unwrap();
       setShowVariantPicker(false);
       onAdded?.();
@@ -94,7 +97,7 @@ const CartQuantityControl = ({
     }
   };
 
-  if (!selectedCartItem || quantity <= 0) {
+  if (!selectedCartItem || quantity <= 0 || opensVariantSheet) {
     return (
       <>
       <Pressable
@@ -108,29 +111,22 @@ const CartQuantityControl = ({
             mode === 'dark' &&
             styles.compactAddButtonDark,
         ]}
-        onPress={() => activeVariants.length ? setShowVariantPicker(true) : void handleAdd()}
+        onPress={() => opensVariantSheet ? setShowVariantPicker(true) : handleAdd()}
         onPressIn={event => event.stopPropagation()}
-        disabled={isBusy}
+        disabled={isBusy || (!selectedVariant && activeVariants.length > 0)}
         accessibilityRole="button"
         accessibilityLabel={t('ui.common.addProductToCart')}
       >
         {adding ? (
           <ActivityIndicator size="small" color={theme.colors.white} />
         ) : (
-          <Text style={styles.addText}>
+        <Text style={compact ? styles.compactAddText : styles.addText}>
             {compact ? t('ui.common.add') : t('ui.common.addToCart')}
           </Text>
         )}
       </Pressable>
-      <Modal visible={showVariantPicker} transparent animationType="fade" onRequestClose={() => setShowVariantPicker(false)}>
-        <View style={{ flex: 1, backgroundColor: '#0008', justifyContent: 'center', padding: 24 }}>
-          <View style={{ backgroundColor: theme.colors.surface, borderRadius: 16, padding: 20, gap: 10 }}>
-            <Text style={{ ...typography.body2Medium, color: theme.colors.text }}>Choose an option</Text>
-            {activeVariants.map(item => <Pressable key={item._id} disabled={item.stock <= 0} onPress={() => setSelectedVariantId(item._id)} style={{ padding: 12, borderRadius: 10, borderWidth: 1, borderColor: selectedVariant?._id === item._id ? theme.colors.cyan : theme.colors.border, opacity: item.stock <= 0 ? 0.45 : 1 }}><Text style={{ color: theme.colors.text }}>{item.quantity} {item.unit} | {String.fromCharCode(0x20b9)}{variantSellingPrice(item)}{hasVariantDiscount(item) ? <Text> <Text style={{ textDecorationLine: 'line-through' }}>{String.fromCharCode(0x20b9)}{item.price}</Text> {variantDiscountPercentage(item)}% off</Text> : null}</Text><Text style={{ color: theme.colors.secondaryText }}>{item.stock > 0 ? `${item.stock} available` : 'Out of stock'}</Text></Pressable>)}
-            <Pressable onPress={() => void handleAdd()} disabled={!selectedVariant || isBusy} style={{ padding: 13, borderRadius: 10, backgroundColor: theme.colors.control, alignItems: 'center' }}><Text style={{ color: theme.colors.white }}>Add to Cart</Text></Pressable>
-          </View>
-        </View>
-      </Modal>
+      {compact && opensVariantSheet ? <Text style={styles.optionsText} onPressIn={event => event.stopPropagation()}>{activeVariantCount(variants)} options</Text> : null}
+      {opensVariantSheet && <ProductVariantBottomSheet visible={showVariantPicker} productId={productId} productName={productName} productImage={productImage} variants={activeVariants} cartItems={cartItems} onClose={() => setShowVariantPicker(false)} onAdded={onAdded} />}
       </>
     );
   }
@@ -173,15 +169,6 @@ const CartQuantityControl = ({
         </Text>
       </Pressable>
     </View>
-    <Modal visible={showVariantPicker} transparent animationType="fade" onRequestClose={() => setShowVariantPicker(false)}>
-      <View style={{ flex: 1, backgroundColor: '#0008', justifyContent: 'center', padding: 24 }}>
-        <View style={{ backgroundColor: theme.colors.surface, borderRadius: 16, padding: 20, gap: 10 }}>
-          <Text style={{ ...typography.body2Medium, color: theme.colors.text }}>Choose an option</Text>
-          {activeVariants.map(item => <Pressable key={item._id} disabled={item.stock <= 0} onPress={() => setSelectedVariantId(item._id)} style={{ padding: 12, borderRadius: 10, borderWidth: 1, borderColor: selectedVariant?._id === item._id ? theme.colors.cyan : theme.colors.border, opacity: item.stock <= 0 ? 0.45 : 1 }}><Text style={{ color: theme.colors.text }}>{item.quantity} {item.unit} | {String.fromCharCode(0x20b9)}{variantSellingPrice(item)}{hasVariantDiscount(item) ? <Text> <Text style={{ textDecorationLine: 'line-through' }}>{String.fromCharCode(0x20b9)}{item.price}</Text> {variantDiscountPercentage(item)}% off</Text> : null}</Text><Text style={{ color: theme.colors.secondaryText }}>{item.stock > 0 ? `${item.stock} available` : 'Out of stock'}</Text></Pressable>)}
-          <Pressable onPress={() => void handleAdd()} disabled={!selectedVariant || isBusy} style={{ padding: 13, borderRadius: 10, backgroundColor: theme.colors.control, alignItems: 'center' }}><Text style={{ color: theme.colors.white }}>Add to Cart</Text></Pressable>
-        </View>
-      </View>
-    </Modal>
     </>
   );
 };
@@ -202,11 +189,15 @@ const createStyles = (colors: ReturnType<typeof useTheme>['theme']['colors']) =>
       minHeight: 36,
       borderRadius: radius.sm,
       paddingHorizontal: spacing.lg,
+      backgroundColor: colors.surface,
+      width: '100%',
     },
     compactAddButtonDark: { backgroundColor: colors.cyan },
     fullAddButton: { minHeight: 61, borderRadius: radius.md, flex: 1 },
     fullAddButtonDark: { backgroundColor: colors.cyan },
     addText: { ...typography.body2Medium, color: colors.white },
+    compactAddText: { ...typography.body2Medium, color: '#168B43' },
+    optionsText: { textAlign: 'center', color: colors.secondaryText, fontSize: 10, marginTop: 2 },
     quantityControl: {
       minHeight: 36,
       flexDirection: 'row',

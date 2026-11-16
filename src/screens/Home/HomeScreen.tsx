@@ -622,14 +622,9 @@ const HomeScreen = () => {
                 const isWishlisted = wishlistIds.includes(product._id);
 
                 return (
-                  <View key={product._id} style={styles.productCard}>
-                    <Pressable
+                  <Pressable key={product._id} style={styles.productCard} onPress={() => navigation.navigate('ProductDetails', { product })} accessibilityRole="button" accessibilityLabel={`View ${product.name}`}>
+                    <View
                       style={styles.productImageContainer}
-                      onPress={() =>
-                        navigation.navigate('ProductDetails', {
-                          product,
-                        })
-                      }
                     >
                       {product.image ? (
                         <Image
@@ -667,34 +662,29 @@ const HomeScreen = () => {
                           {isWishlisted ? '♥' : '♡'}
                         </Text>
                       </Pressable>
-                    </Pressable>
+                      <View style={styles.cartControl}>
+                        <CartQuantityControl
+                          productId={product._id}
+                          productName={product.name}
+                          productImage={product.image}
+                          stock={cardVariant?.stock}
+                          variants={product.variants}
+                          cartItems={cartResponse?.data?.items}
+                          cartItem={cartItemByProductId.get(`${product._id}:${product.variants?.find(variant => variant.isActive && variant.stock > 0)?._id ?? ''}`)}
+                          disabled={cartLoading}
+                          compact
+                          onAdded={showAddedToast}
+                        />
+                      </View>
+                    </View>
 
-                    <Text style={styles.productName} numberOfLines={1}>
+                    <Text style={styles.productName} numberOfLines={3}>
                       {product.name}
                     </Text>
-                    {cardVariant ? <Text style={styles.productPrice}>{cardVariant.quantity} {cardVariant.unit}</Text> : null}
-                    <Text style={styles.productPrice}>
-                      ₹{sellingPrice.toFixed(2)}
-                    </Text>
-                    {hasVariantDiscount(cardVariant) ? (
-                      <Text style={styles.originalPrice}>
-                        ₹{cardVariant.price.toFixed(2)} ({variantDiscountPercentage(cardVariant)}% off)
-                      </Text>
-                    ) : null}
-                    <View style={styles.cartControl}>
-                      <CartQuantityControl
-                        productId={product._id}
-                        stock={cardVariant?.stock}
-                        variants={product.variants}
-                        cartItems={cartResponse?.data?.items}
-                        cartItem={cartItemByProductId.get(`${product._id}:${product.variants?.find(variant => variant.isActive && variant.stock > 0)?._id ?? ''}`)}
-                        disabled={cartLoading}
-                        compact
-                        darkModeCompactAddButton
-                        onAdded={showAddedToast}
-                      />
-                    </View>
-                  </View>
+                    {cardVariant ? <Text style={styles.productUnit}>{cardVariant.quantity} {cardVariant.unit}</Text> : null}
+                    {cardVariant ? <Text style={styles.productPrice}>₹{sellingPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Text> : null}
+                    {hasVariantDiscount(cardVariant) ? <View style={styles.discountRow}><Text style={styles.originalPrice}>₹{cardVariant.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Text><Text style={styles.productDiscount}>{variantDiscountPercentage(cardVariant)}% OFF on MRP</Text></View> : null}
+                  </Pressable>
                 );
               })}
             </View>
@@ -912,18 +902,17 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
     justifyContent: 'space-between' as const,
   },
   productCard: {
-    width: '48.2%' as const,
-    height: 252,
+    width: '31.6%' as const,
     marginBottom: spacing.lg,
   },
   productImageContainer: {
-    height: 138,
+    aspectRatio: 0.92,
     borderRadius: radius.xl,
-    overflow: 'hidden' as const,
+    overflow: 'visible' as const,
     backgroundColor: colors.grey50,
     position: 'relative' as const,
   },
-  productImage: { width: '100%', height: '100%' },
+  productImage: { width: '100%', height: '100%', borderRadius: radius.xl },
   productFallback: {
     flex: 1,
     alignItems: 'center' as const,
@@ -949,19 +938,25 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
   productName: {
     ...typography.body2Regular,
     color: colors.text,
-    marginTop: spacing.sm,
-    height: 22,
-    lineHeight: 22,
+    marginTop: spacing.xl,
+    minHeight: 48,
+    lineHeight: 16,
   },
   productPrice: { ...typography.body2Medium, color: colors.text },
+  productUnit: { ...typography.captionRegular, color: colors.secondaryText },
   originalPrice: {
     ...typography.captionRegular,
     color: colors.secondaryText,
     textDecorationLine: 'line-through' as const,
   },
+  discountRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4 },
+  productDiscount: { ...typography.captionRegular, color: '#168BCE', fontSize: 9 },
   cartControl: {
-    height: 36,
-    marginTop: 'auto' as const,
+    position: 'absolute' as const,
+    right: 5,
+    bottom: -30,
+    width: '56%' as const,
+    zIndex: 2,
   },
   loadingBox: {
     height: 100,

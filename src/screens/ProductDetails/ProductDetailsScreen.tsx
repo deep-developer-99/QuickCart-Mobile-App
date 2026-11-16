@@ -17,7 +17,7 @@ import {
   useRoute,
   type RouteProp,
 } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
@@ -36,7 +36,7 @@ import {
   isValidProductId,
 } from '../../services/productLinks';
 import ShareNodesIcon from '../../assets/icons/share-nodes.svg';
-import { hasVariantDiscount, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
+import { hasVariantDiscount, normalizedVariantPrice, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
 
 type ProductDetailsRouteProp = RouteProp<RootStackParamList, 'ProductDetails'>;
 
@@ -74,6 +74,7 @@ const ProductDetailsScreen = () => {
   const styles = useStyles();
   const navigation = useNavigation<any>();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const route = useRoute<ProductDetailsRouteProp>();
   const [addToWishlist, { isLoading: addingToWishlist }] =
     useAddToWishlistMutation();
@@ -207,20 +208,13 @@ const ProductDetailsScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <BackButton
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          hitSlop={4}
-        />
-      </View>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <View style={[styles.imageSection, { height: imageSectionHeight }]}>
+        <View style={[styles.imageSection, { height: imageSectionHeight + insets.top }]}>
           {images.length > 0 ? (
             <ScrollView
               horizontal
@@ -241,7 +235,7 @@ const ProductDetailsScreen = () => {
                   source={{ uri }}
                   style={[
                     styles.productImage,
-                    { width, height: imageSectionHeight },
+                    { width, height: imageSectionHeight + insets.top },
                   ]}
                   resizeMode="contain"
                 />
@@ -253,7 +247,9 @@ const ProductDetailsScreen = () => {
             </View>
           )}
 
-          <View style={styles.topControls}>
+          <View style={[styles.topControls, { top: insets.top + 10 }]}>
+            <BackButton style={styles.backButton} onPress={() => navigation.goBack()} hitSlop={4} />
+            <Pressable style={styles.shareButton} onPress={shareProduct} accessibilityRole="button" accessibilityLabel={t('ui.product.shareProduct', { name: product.name })}><ShareNodesIcon width={22} height={22} /></Pressable>
             <Pressable
               style={[
                 styles.heartCircle,
@@ -290,20 +286,6 @@ const ProductDetailsScreen = () => {
           ) : null}
         </View>
 
-        <View style={styles.shareRow}>
-          <Pressable
-            style={styles.shareButton}
-            onPress={shareProduct}
-            accessibilityRole="button"
-            accessibilityLabel={t('ui.product.shareProduct', {
-              name: product.name,
-            })}
-            hitSlop={4}
-          >
-            <ShareNodesIcon width={22} height={22} />
-          </Pressable>
-        </View>
-
         <View style={styles.sheet}>
           <View style={styles.titleRow}>
             <Text style={styles.title}>{product.name}</Text>
@@ -314,26 +296,16 @@ const ProductDetailsScreen = () => {
                   <Text style={styles.originalPrice}>
                   ₹ {selectedVariant?.price.toFixed(2)}
                   </Text>
-                  <Text style={styles.originalPrice}>{Math.round((((selectedVariant?.price ?? 0) - sellingPrice) / (selectedVariant?.price || 1)) * 100)}% off</Text>
+                  <Text style={styles.variantOffer}>{variantDiscountPercentage(selectedVariant)}% OFF on MRP</Text>
                 </>
               ) : null}
             </View>
           </View>
 
-          <View style={styles.ratingRow}>
+          {product.rating !== undefined ? <View style={styles.ratingRow}>
             <Text style={styles.stars}>★★★★★</Text>
-            <Text style={styles.ratingText}>
-              {product.rating !== undefined
-                ? `${product.rating.toFixed(1)}${
-                    product.reviews !== undefined
-                      ? ` (${t('ui.product.reviews', {
-                          count: product.reviews,
-                        })})`
-                      : ''
-                  }`
-                : '4.5'}
-            </Text>
-          </View>
+            <Text style={styles.ratingText}>{`${product.rating.toFixed(1)}${product.reviews !== undefined ? ` (${t('ui.product.reviews', { count: product.reviews })})` : ''}`}</Text>
+          </View> : null}
 
           <Text style={styles.description}>
             {visibleDescription}
@@ -349,8 +321,21 @@ const ProductDetailsScreen = () => {
             ) : null}
           </Text>
 
-          <Text style={styles.quantityLabel}>{t('ui.product.quantity')}</Text>
-          {product.variants?.filter(item => item.isActive).map(variant => <Pressable key={variant._id} onPress={() => setSelectedVariantId(variant._id)} disabled={variant.stock <= 0} style={{ padding: 10, marginTop: 5, borderWidth: 1, borderColor: variant._id === selectedVariant?._id ? '#21D4B4' : '#C0C0C0', borderRadius: 8, opacity: variant.stock <= 0 ? 0.45 : 1 }}><Text style={{ color: '#1C1B1B' }}>{variant.quantity} {variant.unit} | {String.fromCharCode(0x20b9)}{variantSellingPrice(variant)}{hasVariantDiscount(variant) ? <Text> <Text style={{ textDecorationLine: 'line-through' }}>{String.fromCharCode(0x20b9)}{variant.price}</Text> {variantDiscountPercentage(variant)}% off</Text> : null} | {variant.stock > 0 ? `${variant.stock} available` : 'Out of stock'}</Text></Pressable>)}
+          <Text style={styles.quantityLabel}>Select Unit</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.variantRow}>
+            {product.variants?.filter(item => item.isActive).map(variant => {
+              const selected = variant._id === selectedVariant?._id;
+              const normalized = normalizedVariantPrice(variant);
+              return <Pressable key={variant._id} onPress={() => { setSelectedVariantId(variant._id); setQuantity(1); }} disabled={variant.stock <= 0} style={[styles.variantCard, selected && styles.variantCardSelected, variant.stock <= 0 && styles.variantCardDisabled]} accessibilityRole="button" accessibilityState={{ selected, disabled: variant.stock <= 0 }}>
+                <Text style={styles.variantUnit}>{variant.quantity} {variant.unit}</Text>
+                <Text style={styles.variantPrice}>₹{variantSellingPrice(variant).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Text>
+                {hasVariantDiscount(variant) ? <Text style={styles.variantOffer}>{variantDiscountPercentage(variant)}% OFF on MRP</Text> : <View style={styles.variantOfferSpacer} />}
+                {hasVariantDiscount(variant) ? <Text style={styles.variantOriginal}>₹{variant.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Text> : null}
+                {normalized ? <Text style={styles.variantStock}>₹{normalized.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}/{normalized.unit}</Text> : null}
+                <Text style={styles.variantStock}>{variant.stock > 0 ? `${variant.stock} available` : 'Out of stock'}</Text>
+              </Pressable>;
+            })}
+          </ScrollView>
           <View style={styles.quantityControl}>
             <Pressable
               style={styles.quantityButton}
@@ -394,10 +379,14 @@ const ProductDetailsScreen = () => {
 
       <View style={styles.bottomBar}>
         <Pressable style={styles.buyButton} onPress={handleBuyNow}>
-          <Text style={styles.buyText}>{t('ui.product.buyNow')}</Text>
+          <Text style={styles.stickyPrice}>{`₹${sellingPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}</Text>
+          <Text style={styles.stickyUnit}>{selectedVariant ? `${selectedVariant.quantity} ${selectedVariant.unit} · ` : ''}{t('ui.product.buyNow')}</Text>
         </Pressable>
         <CartQuantityControl
           productId={product._id}
+          productName={product.name}
+          productImage={product.image}
+          chooseVariantOnAdd={false}
           stock={selectedVariant?.stock}
           variants={product.variants}
           cartItems={cartResponse?.data?.items}
@@ -448,10 +437,11 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) =>
     fallbackText: { color: colors.secondaryText, fontSize: 14 },
     topControls: {
       position: 'absolute',
-      right: 16,
-      top: 12,
+      left: 12,
+      right: 12,
       flexDirection: 'row',
-      justifyContent: 'flex-end',
+      justifyContent: 'space-between',
+      alignItems: 'center',
     },
     shareRow: {
       height: 60,
@@ -567,6 +557,16 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) =>
       fontSize: 12,
       color: colors.text,
     },
+    variantRow: { paddingTop: 8, paddingBottom: 4, gap: 10 },
+    variantCard: { width: 142, minHeight: 126, padding: 11, borderWidth: 1, borderColor: colors.grey50, borderRadius: 12, backgroundColor: colors.surface },
+    variantCardSelected: { borderColor: '#168B43', borderWidth: 2, backgroundColor: mode === 'dark' ? '#18392B' : '#EAF7EE' },
+    variantCardDisabled: { opacity: 0.45 },
+    variantUnit: { color: colors.text, fontSize: 13, fontWeight: '600' },
+    variantPrice: { marginTop: 6, color: colors.text, fontSize: 17, fontWeight: '700' },
+    variantOffer: { marginTop: 4, color: '#168BCE', fontSize: 10 },
+    variantOfferSpacer: { height: 16, marginTop: 4 },
+    variantOriginal: { marginTop: 2, color: colors.secondaryText, fontSize: 11, textDecorationLine: 'line-through' },
+    variantStock: { marginTop: 4, color: colors.secondaryText, fontSize: 10 },
     quantityControl: {
       width: 96,
       height: 33,
@@ -661,6 +661,8 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) =>
       fontSize: 14,
       color: mode === 'dark' ? colors.cyan : colors.text,
     },
+    stickyPrice: { fontFamily: 'PlusJakartaSans-Bold', fontSize: 17, color: colors.text },
+    stickyUnit: { fontFamily: 'PlusJakartaSans-Medium', fontSize: 11, color: colors.secondaryText, marginTop: 2 },
     addButton: {
       flex: 1,
       height: 61,

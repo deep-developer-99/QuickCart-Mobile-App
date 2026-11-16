@@ -452,6 +452,8 @@ const CategoriesScreen = () => {
                   <View style={styles.cartControl}>
                     <CartQuantityControl
                       productId={product._id}
+                      productName={product.name}
+                      productImage={product.image}
                       stock={cardVariant?.stock}
                       variants={product.variants}
                       cartItems={cartResponse?.data?.items}
