@@ -110,10 +110,6 @@ const CategoriesScreen = () => {
 
   const { data: wishlistResponse } = useGetWishlistQuery();
   const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery();
-  const cartItemByProductId = useMemo(() => {
-    const items = cartResponse?.data?.items ?? [];
-    return new Map(items.map(item => [`${item.product?._id}:${item.variantId ?? ''}`, item]));
-  }, [cartResponse]);
   const showAddedToast = () => {
     setShowCartToast(true);
     if (cartToastTimeout.current) clearTimeout(cartToastTimeout.current);
@@ -457,7 +453,6 @@ const CategoriesScreen = () => {
                       stock={cardVariant?.stock}
                       variants={product.variants}
                       cartItems={cartResponse?.data?.items}
-                      cartItem={cartItemByProductId.get(`${product._id}:${product.variants?.find(variant => variant.isActive && variant.stock > 0)?._id ?? ''}`)}
                       disabled={cartLoading}
                       compact
                       onAdded={showAddedToast}

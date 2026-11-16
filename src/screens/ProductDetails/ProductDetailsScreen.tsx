@@ -162,10 +162,6 @@ const ProductDetailsScreen = () => {
     });
   };
 
-  const cartItem = cartResponse?.data?.items?.find(
-    item => item.product?._id === product?._id && (item.variantId ?? '') === (selectedVariant?._id ?? ''),
-  );
-
   const showCartToast = useCallback(() => {
     setShowAddedMessage(true);
     setTimeout(() => setShowAddedMessage(false), 2800);
@@ -283,6 +279,9 @@ const ProductDetailsScreen = () => {
               ))}
             </View>
           ) : null}
+        </View>
+
+        <View style={styles.shareButtonRow}>
           <Pressable
             style={styles.shareButton}
             onPress={shareProduct}
@@ -399,7 +398,6 @@ const ProductDetailsScreen = () => {
           variants={product.variants}
           cartItems={cartResponse?.data?.items}
           selectedVariantId={selectedVariant?._id}
-          cartItem={cartItem}
           disabled={cartLoading}
           onAdded={showCartToast}
         />
@@ -451,10 +449,16 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) =>
       justifyContent: 'space-between',
       alignItems: 'center',
     },
+    shareButtonRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingTop: 10,
+      paddingBottom: 12,
+      backgroundColor: colors.background,
+    },
     shareButton: {
-      position: 'absolute',
-      right: 16,
-      bottom: 12,
       width: 44,
       height: 44,
       borderRadius: 22,

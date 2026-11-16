@@ -9,10 +9,10 @@ import {
   useRemoveCartItemMutation,
   useUpdateCartItemMutation,
 } from '../api/quickCartApi';
-import { radius, spacing, typography, useTheme } from '../theme';
 import type { ProductVariant } from '../api/quickCartApi';
+import { radius, spacing, typography, useTheme } from '../theme';
+import { getCartQuantityAction, getProductCartSummary } from '../utils/cartQuantities';
 import ProductVariantBottomSheet from './ProductVariantBottomSheet';
-import { activeVariantCount } from '../utils/variantPricing';
 
 type CartQuantityControlProps = {
   productId: string;
@@ -36,139 +36,175 @@ const CartQuantityControl = ({
   cartItem,
   cartItems,
   compact = false,
-  darkModeCompactAddButton = false,
   disabled = false,
   onAdded,
   variants = [],
   selectedVariantId: requestedVariantId,
   productName = 'Choose a variant',
   productImage,
-  chooseVariantOnAdd = true,
 }: CartQuantityControlProps) => {
-  const { theme, mode } = useTheme();
+  const { theme } = useTheme();
   const { t } = useTranslation();
   const styles = useStyles();
   const [addToCart, { isLoading: adding }] = useAddToCartMutation();
-  const [updateCartItem, { isLoading: updating }] =
-    useUpdateCartItemMutation();
-  const [removeCartItem, { isLoading: removing }] =
-    useRemoveCartItemMutation();
-  const activeVariants = variants.filter(item => item.isActive);
-  const opensVariantSheet = chooseVariantOnAdd && activeVariantCount(variants) > 1;
-  const [selectedVariantId, setSelectedVariantId] = React.useState<string | undefined>(() => requestedVariantId ?? activeVariants.find(item => item.stock > 0)?._id);
+  const [updateCartItem, { isLoading: updating }] = useUpdateCartItemMutation();
+  const [removeCartItem, { isLoading: removing }] = useRemoveCartItemMutation();
   const [showVariantPicker, setShowVariantPicker] = React.useState(false);
-  const selectedVariant = activeVariants.find(item => item._id === selectedVariantId) ?? activeVariants.find(item => item.stock > 0);
-  const selectedCartItem = cartItems?.find(item => item.product?._id === productId && (item.variantId ?? '') === (selectedVariant?._id ?? '')) ?? (cartItem && (cartItem.variantId ?? '') === (selectedVariant?._id ?? '') ? cartItem : undefined);
+  const mutationLock = React.useRef(false);
+  const activeVariants = variants.filter(item => item.isActive);
+  const purchasableVariants = activeVariants.filter(item => item.stock > 0);
+  const opensVariantSheet = purchasableVariants.length > 1;
+  const [selectedVariantId, setSelectedVariantId] = React.useState<string | undefined>(
+    () => requestedVariantId ?? purchasableVariants[0]?._id,
+  );
+  const selectedVariant =
+    activeVariants.find(item => item._id === selectedVariantId) ??
+    purchasableVariants[0];
+  const currentCartItems = cartItems ?? (cartItem ? [cartItem] : []);
+  const productCart = getProductCartSummary(currentCartItems, productId);
+  const isBusy = adding || updating || removing || disabled;
+  const directEntries = productCart.items.map(item => ({
+    item,
+    variant:
+      activeVariants.find(candidate => candidate._id === item.variantId) ??
+      (activeVariants.length === 1 ? activeVariants[0] : undefined),
+  }));
+  const directEntry = directEntries[0];
+
   React.useEffect(() => {
-    if (requestedVariantId && requestedVariantId !== selectedVariantId) setSelectedVariantId(requestedVariantId);
+    if (requestedVariantId && requestedVariantId !== selectedVariantId) {
+      setSelectedVariantId(requestedVariantId);
+    }
   }, [requestedVariantId, selectedVariantId]);
 
-  const isBusy = adding || updating || removing || disabled;
-  const quantity = selectedCartItem?.quantity ?? 0;
-  const maximumQuantity = selectedVariant?.stock ?? stock ?? 1;
+  const runMutation = async (operation: () => Promise<unknown>, notify = false) => {
+    if (mutationLock.current || isBusy) return;
+    mutationLock.current = true;
+    try {
+      await operation();
+      if (notify) onAdded?.();
+    } catch (error) {
+      console.error('Failed to update cart:', error);
+    } finally {
+      mutationLock.current = false;
+    }
+  };
 
-  const handleAdd = async () => {
+  const addOne = () => {
+    if (!selectedVariant && activeVariants.length > 0) return;
+    if (selectedVariant && selectedVariant.stock <= 0) return;
+    return runMutation(() =>
+      addToCart({
+        productId,
+        quantity: 1,
+        ...(selectedVariant ? { variantId: selectedVariant._id } : {}),
+      }).unwrap(),
+      true,
+    );
+  };
+
+  const setVariantQuantity = (entry: typeof directEntries[number], next: number) => {
+    const variantId = entry.variant?._id ?? entry.item.variantId;
+    const payload = { productId, ...(variantId ? { variantId } : {}) };
+    if (next <= 0) {
+      return runMutation(() => removeCartItem(payload).unwrap());
+    }
+    if (next > (entry.variant?.stock ?? stock ?? 1)) return Promise.resolve();
+    return runMutation(() =>
+      updateCartItem({ ...payload, quantity: next }).unwrap(),
+    );
+  };
+
+  const handleDecrease = () => {
     if (isBusy) return;
-
-    try {
-      if (selectedVariant?.stock === 0) return;
-      await addToCart({ productId, quantity: 1, ...(selectedVariant ? { variantId: selectedVariant._id } : {}) }).unwrap();
-      setShowVariantPicker(false);
-      onAdded?.();
-    } catch (error) {
-      console.error('Failed to add product to cart:', error);
+    if (getCartQuantityAction('decrease', purchasableVariants.length, productCart.distinctVariantCount) === 'openVariantSheet') {
+      setShowVariantPicker(true);
+    } else if (directEntry) {
+      return setVariantQuantity(directEntry, directEntry.item.quantity - 1);
     }
   };
 
-  const handleQuantityChange = async (nextQuantity: number) => {
-    if (isBusy || !selectedCartItem) return;
-
-    try {
-      if (nextQuantity <= 0) {
-        await removeCartItem({ productId, ...(selectedVariant ? { variantId: selectedVariant._id } : {}) }).unwrap();
-        return;
-      }
-
-      if (nextQuantity > maximumQuantity) return;
-
-      await updateCartItem({ productId, quantity: nextQuantity, ...(selectedVariant ? { variantId: selectedVariant._id } : {}) }).unwrap();
-    } catch (error) {
-      console.error('Failed to update cart quantity:', error);
+  const handleIncrease = () => {
+    if (isBusy) return;
+    if (getCartQuantityAction('increase', purchasableVariants.length, productCart.distinctVariantCount) === 'openVariantSheet') {
+      setShowVariantPicker(true);
+    } else if (directEntry) {
+      return setVariantQuantity(directEntry, directEntry.item.quantity + 1);
+    } else if (!directEntry && selectedVariant && selectedVariant.stock > 0) {
+      addOne();
     }
   };
 
-  if (!selectedCartItem || quantity <= 0 || opensVariantSheet) {
+  const modal = activeVariants.length > 1 ? (
+    <ProductVariantBottomSheet
+      visible={showVariantPicker}
+      productId={productId}
+      productName={productName}
+      productImage={productImage}
+      variants={activeVariants}
+      cartItems={currentCartItems}
+      onClose={() => setShowVariantPicker(false)}
+      onAdded={onAdded}
+    />
+  ) : null;
+
+  if (productCart.totalQuantity === 0) {
     return (
       <>
-      <Pressable
-        style={[
-          styles.addButton,
-          compact && styles.compactAddButton,
-          !compact && styles.fullAddButton,
-          !compact && mode === 'dark' && styles.fullAddButtonDark,
-          compact &&
-            darkModeCompactAddButton &&
-            mode === 'dark' &&
-            styles.compactAddButtonDark,
-        ]}
-        onPress={() => opensVariantSheet ? setShowVariantPicker(true) : handleAdd()}
-        onPressIn={event => event.stopPropagation()}
-        disabled={isBusy || (!selectedVariant && activeVariants.length > 0)}
-        accessibilityRole="button"
-        accessibilityLabel={t('ui.common.addProductToCart')}
-      >
-        {adding ? (
-          <ActivityIndicator size="small" color={theme.colors.white} />
-        ) : (
-        <Text style={compact ? styles.compactAddText : styles.addText}>
-            {compact ? t('ui.common.add') : t('ui.common.addToCart')}
+        <Pressable
+          style={[styles.addButton, compact ? styles.compactAddButton : styles.fullAddButton]}
+          onPress={() => (getCartQuantityAction('add', purchasableVariants.length, productCart.distinctVariantCount) === 'openVariantSheet' ? setShowVariantPicker(true) : addOne())}
+          onPressIn={event => event.stopPropagation()}
+          disabled={isBusy || (!opensVariantSheet && activeVariants.length > 0 && (!selectedVariant || selectedVariant.stock <= 0))}
+          accessibilityRole="button"
+          accessibilityLabel={t('ui.common.addProductToCart')}
+        >
+          {adding ? (
+            <ActivityIndicator size="small" color={compact ? '#168B43' : theme.colors.white} />
+          ) : (
+            <Text style={compact ? styles.compactAddText : styles.addText}>
+              {compact ? t('ui.common.add') : t('ui.common.addToCart')}
+            </Text>
+          )}
+        </Pressable>
+        {compact && opensVariantSheet ? (
+          <Text style={styles.optionsText} onPressIn={event => event.stopPropagation()}>
+            {purchasableVariants.length} options
           </Text>
-        )}
-      </Pressable>
-      {compact && opensVariantSheet ? <Text style={styles.optionsText} onPressIn={event => event.stopPropagation()}>{activeVariantCount(variants)} options</Text> : null}
-      {opensVariantSheet && <ProductVariantBottomSheet visible={showVariantPicker} productId={productId} productName={productName} productImage={productImage} variants={activeVariants} cartItems={cartItems} onClose={() => setShowVariantPicker(false)} onAdded={onAdded} />}
+        ) : null}
+        {modal}
       </>
     );
   }
 
   return (
     <>
-    <View style={[styles.quantityControl, !compact && styles.fullQuantityControl]}>
-      <Pressable
-        style={styles.quantityButton}
-        onPress={() => handleQuantityChange(quantity - 1)}
-        onPressIn={event => event.stopPropagation()}
-        disabled={isBusy}
-        accessibilityRole="button"
-        accessibilityLabel={t('ui.common.decreaseCartQuantity')}
-      >
-        <Text style={styles.quantitySymbol}>−</Text>
-      </Pressable>
-
-      {isBusy ? (
-        <ActivityIndicator size="small" color={theme.colors.cyan} />
-      ) : (
-        <Text style={styles.quantityValue}>{quantity}</Text>
-      )}
-
-      <Pressable
-        style={styles.quantityButton}
-        onPress={() => handleQuantityChange(quantity + 1)}
-        onPressIn={event => event.stopPropagation()}
-        disabled={isBusy || quantity >= maximumQuantity}
-        accessibilityRole="button"
-        accessibilityLabel={t('ui.common.increaseCartQuantity')}
-      >
-        <Text
-          style={[
-            styles.quantitySymbol,
-            quantity >= maximumQuantity && styles.disabledText,
-          ]}
+      <View style={[styles.quantityControl, compact ? styles.compactQuantityControl : styles.fullQuantityControl]}>
+        <Pressable
+          style={[styles.quantityButton, compact && styles.compactQuantityButton]}
+          onPress={handleDecrease}
+          onPressIn={event => event.stopPropagation()}
+          disabled={isBusy || !directEntry && productCart.distinctVariantCount <= 1}
+          accessibilityRole="button"
+          accessibilityLabel={t('ui.common.decreaseCartQuantity')}
         >
-          +
+          <Text style={[styles.quantitySymbol, compact && styles.compactQuantitySymbol]}>−</Text>
+        </Pressable>
+        <Text style={[styles.quantityValue, compact && styles.compactQuantityValue]}>
+          {isBusy ? '…' : productCart.totalQuantity}
         </Text>
-      </Pressable>
-    </View>
+        <Pressable
+          style={[styles.quantityButton, compact && styles.compactQuantityButton]}
+          onPress={handleIncrease}
+          onPressIn={event => event.stopPropagation()}
+          disabled={isBusy || (!opensVariantSheet && directEntry !== undefined && directEntry.item.quantity >= (directEntry.variant?.stock ?? stock ?? 1))}
+          accessibilityRole="button"
+          accessibilityLabel={t('ui.common.increaseCartQuantity')}
+        >
+          <Text style={[styles.quantitySymbol, compact && styles.compactQuantitySymbol]}>+</Text>
+        </Pressable>
+      </View>
+      {modal}
     </>
   );
 };
@@ -178,24 +214,16 @@ const createStyles = (colors: ReturnType<typeof useTheme>['theme']['colors']) =>
     addButton: {
       minHeight: 44,
       borderRadius: radius.md,
-      backgroundColor: colors.control,
+      backgroundColor: colors.surface,
       borderWidth: 1,
-      borderColor: colors.cyan,
+      borderColor: '#168B43',
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: spacing.md,
     },
-    compactAddButton: {
-      minHeight: 36,
-      borderRadius: radius.sm,
-      paddingHorizontal: spacing.lg,
-      backgroundColor: colors.surface,
-      width: '100%',
-    },
-    compactAddButtonDark: { backgroundColor: colors.cyan },
+    compactAddButton: { minHeight: 36, borderRadius: radius.sm, paddingHorizontal: spacing.sm, width: '100%' },
     fullAddButton: { minHeight: 61, borderRadius: radius.md, flex: 1 },
-    fullAddButtonDark: { backgroundColor: colors.cyan },
-    addText: { ...typography.body2Medium, color: colors.white },
+    addText: { ...typography.body2Medium, color: '#168B43' },
     compactAddText: { ...typography.body2Medium, color: '#168B43' },
     optionsText: { textAlign: 'center', color: colors.secondaryText, fontSize: 10, marginTop: 2 },
     quantityControl: {
@@ -204,20 +232,18 @@ const createStyles = (colors: ReturnType<typeof useTheme>['theme']['colors']) =>
       alignItems: 'center',
       justifyContent: 'space-between',
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: '#168B43',
       borderRadius: radius.sm,
-      backgroundColor: colors.surface,
+      backgroundColor: '#168B43',
     },
+    compactQuantityControl: { width: '100%' },
     fullQuantityControl: { minHeight: 44, width: 132 },
-    quantityButton: {
-      minWidth: 40,
-      minHeight: 36,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    quantitySymbol: { fontSize: 21, color: colors.text, lineHeight: 23 },
-    disabledText: { color: colors.grey100 },
-    quantityValue: { ...typography.body2Medium, color: colors.text },
+    quantityButton: { minWidth: 40, minHeight: 36, alignItems: 'center', justifyContent: 'center' },
+    compactQuantityButton: { minWidth: 22, flex: 1 },
+    quantitySymbol: { fontSize: 21, color: colors.white, lineHeight: 23 },
+    compactQuantitySymbol: { fontSize: 18, lineHeight: 21 },
+    quantityValue: { ...typography.body2Medium, color: colors.white },
+    compactQuantityValue: { minWidth: 18, textAlign: 'center' },
   });
 
 const useStyles = () => {

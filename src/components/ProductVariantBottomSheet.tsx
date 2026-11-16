@@ -16,6 +16,7 @@ export default function ProductVariantBottomSheet({ visible, productId, productN
   const [update] = useUpdateCartItemMutation();
   const [remove] = useRemoveCartItemMutation();
   const [pendingId, setPendingId] = React.useState<string | null>(null);
+  const pendingIdRef = React.useRef<string | null>(null);
   const screenHeight = Dimensions.get('window').height;
   const maxHeight = screenHeight * 0.82;
   const collapsedHeight = screenHeight * 0.55;
@@ -67,15 +68,16 @@ export default function ProductVariantBottomSheet({ visible, productId, productN
   }), [collapsedHeight, maxHeight, onClose, sheetHeight]);
   React.useEffect(() => { if (visible) { currentHeight.current = collapsedHeight; sheetHeight.setValue(collapsedHeight); } }, [collapsedHeight, sheetHeight, visible]);
   const updateVariant = async (variant: ProductVariant, next: number) => {
-    if (pendingId) return;
+    if (pendingIdRef.current) return;
     const item = cartItems.find(row => row.product?._id === productId && row.variantId === variant._id);
+    pendingIdRef.current = variant._id;
     setPendingId(variant._id);
     try {
       if (next <= 0 && item) await remove({ productId, variantId: variant._id }).unwrap();
       else if (item) await update({ productId, variantId: variant._id, quantity: Math.min(next, variant.stock) }).unwrap();
       else if (variant.stock > 0) { await add({ productId, variantId: variant._id, quantity: 1 }).unwrap(); onAdded?.(); }
     } catch (error) { console.error('Failed to update variant cart quantity:', error); }
-    finally { setPendingId(null); }
+    finally { pendingIdRef.current = null; setPendingId(null); }
   };
   return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
     <View style={styles.overlay}>
@@ -88,11 +90,12 @@ export default function ProductVariantBottomSheet({ visible, productId, productN
             const cartItem = cartItems.find(row => row.product?._id === productId && row.variantId === variant._id);
             const quantity = cartItem?.quantity ?? 0;
             const busy = pendingId === variant._id;
+            const mutationsPending = pendingId !== null;
             const discounted = hasVariantDiscount(variant);
             const normalized = normalizedVariantPrice(variant);
             return <View key={variant._id} style={[styles.card, variant.stock <= 0 && styles.disabledCard]}>
               <View style={styles.imageBox}>{productImage ? <Image source={{ uri: productImage }} style={styles.image} resizeMode="contain" /> : <Text style={{ color: theme.colors.secondaryText }}>No image</Text>}
-                {quantity > 0 ? <View style={[styles.quantity, variant.stock <= 0 && styles.disabledQuantity]}><Pressable onPress={() => updateVariant(variant, quantity - 1)} disabled={busy} accessibilityLabel="Decrease quantity"><Text style={styles.qbutton}>−</Text></Pressable><Text style={styles.qvalue}>{busy ? '…' : quantity}</Text><Pressable onPress={() => updateVariant(variant, quantity + 1)} disabled={busy || quantity >= variant.stock} accessibilityLabel="Increase quantity"><Text style={styles.qbutton}>+</Text></Pressable></View> : <Pressable style={styles.add} disabled={variant.stock <= 0 || busy} onPress={() => updateVariant(variant, 1)} accessibilityRole="button" accessibilityLabel={`Add ${variant.quantity} ${variant.unit} to cart`}>{busy ? <ActivityIndicator size="small" color="#168B43" /> : <Text style={styles.addText}>{variant.stock <= 0 ? 'SOLD OUT' : 'ADD'}</Text>}</Pressable>}
+              {quantity > 0 ? <View style={[styles.quantity, variant.stock <= 0 && styles.disabledQuantity]}><Pressable onPress={() => updateVariant(variant, quantity - 1)} disabled={mutationsPending} accessibilityLabel="Decrease quantity"><Text style={styles.qbutton}>−</Text></Pressable><Text style={styles.qvalue}>{busy ? '…' : quantity}</Text><Pressable onPress={() => updateVariant(variant, quantity + 1)} disabled={mutationsPending || quantity >= variant.stock} accessibilityLabel="Increase quantity"><Text style={styles.qbutton}>+</Text></Pressable></View> : <Pressable style={styles.add} disabled={variant.stock <= 0 || mutationsPending} onPress={() => updateVariant(variant, 1)} accessibilityRole="button" accessibilityLabel={`Add ${variant.quantity} ${variant.unit} to cart`}>{busy ? <ActivityIndicator size="small" color="#168B43" /> : <Text style={styles.addText}>{variant.stock <= 0 ? 'SOLD OUT' : 'ADD'}</Text>}</Pressable>}
               </View>
               <Text style={styles.unit}>{variant.quantity} {variant.unit}</Text>
               <View style={styles.priceRow}><Text style={styles.price}>{money(variantSellingPrice(variant))}</Text>{discounted ? <Text style={styles.original}>{money(variant.price)}</Text> : null}</View>
