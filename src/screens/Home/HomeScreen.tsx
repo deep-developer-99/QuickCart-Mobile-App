@@ -265,6 +265,10 @@ const HomeScreen = () => {
         : [],
     [productResponse],
   );
+  const productCardWidth = Math.max(
+    1,
+    (screenWidth - spacing.lg * 2 - spacing.sm) / 2,
+  );
 
   const isRefreshing =
     categoriesFetching || productsFetching || bannersFetching;
@@ -615,14 +619,14 @@ const HomeScreen = () => {
               />
             </View>
           ) : (
-            <View style={styles.productGrid}>
+            <View style={[styles.productGrid, { columnGap: spacing.sm }]}>
               {products.map(product => {
                 const cardVariant = lowestPricedVariant(product.variants);
                 const sellingPrice = variantSellingPrice(cardVariant);
                 const isWishlisted = wishlistIds.includes(product._id);
 
                 return (
-                  <Pressable key={product._id} style={styles.productCard} onPress={() => navigation.navigate('ProductDetails', { product })} accessibilityRole="button" accessibilityLabel={`View ${product.name}`}>
+                  <Pressable key={product._id} style={[styles.productCard, { width: productCardWidth }]} onPress={() => navigation.navigate('ProductDetails', { product })} accessibilityRole="button" accessibilityLabel={`View ${product.name}`}>
                     <View
                       style={styles.productImageContainer}
                     >
@@ -630,7 +634,7 @@ const HomeScreen = () => {
                         <Image
                           source={{ uri: product.image }}
                           style={styles.productImage}
-                          resizeMode="cover"
+                          resizeMode="contain"
                         />
                       ) : (
                         <View style={styles.productFallback}>
@@ -662,8 +666,9 @@ const HomeScreen = () => {
                           {isWishlisted ? '♥' : '♡'}
                         </Text>
                       </Pressable>
-                      <View style={styles.cartControl}>
-                        <CartQuantityControl
+                    </View>
+                    <View style={styles.cartControl}>
+                      <CartQuantityControl
                           productId={product._id}
                           productName={product.name}
                           productImage={product.image}
@@ -674,16 +679,21 @@ const HomeScreen = () => {
                           disabled={cartLoading}
                           compact
                           onAdded={showAddedToast}
-                        />
-                      </View>
+                      />
                     </View>
 
                     <Text style={styles.productName} numberOfLines={3}>
                       {product.name}
                     </Text>
-                    {cardVariant ? <Text style={styles.productUnit}>{cardVariant.quantity} {cardVariant.unit}</Text> : null}
-                    {cardVariant ? <Text style={styles.productPrice}>₹{sellingPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Text> : null}
-                    {hasVariantDiscount(cardVariant) ? <View style={styles.discountRow}><Text style={styles.originalPrice}>₹{cardVariant.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Text><Text style={styles.productDiscount}>{variantDiscountPercentage(cardVariant)}% OFF on MRP</Text></View> : null}
+                    <Text style={styles.productUnit} numberOfLines={1}>
+                      {cardVariant ? `${cardVariant.quantity} ${cardVariant.unit}` : ' '}
+                    </Text>
+                    <Text style={styles.productPrice} numberOfLines={1}>
+                      {cardVariant ? `₹${sellingPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : ' '}
+                    </Text>
+                    <View style={styles.discountRow}>
+                      {hasVariantDiscount(cardVariant) ? <><Text style={styles.originalPrice} numberOfLines={1}>₹{cardVariant.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Text><Text style={styles.productDiscount}>{variantDiscountPercentage(cardVariant)}% OFF on MRP</Text></> : null}
+                    </View>
                   </Pressable>
                 );
               })}
@@ -899,16 +909,16 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
     paddingHorizontal: spacing.lg,
     flexDirection: 'row' as const,
     flexWrap: 'wrap' as const,
-    justifyContent: 'space-between' as const,
+    justifyContent: 'flex-start' as const,
   },
   productCard: {
-    width: '31.6%' as const,
+    minWidth: 0,
     marginBottom: spacing.lg,
   },
   productImageContainer: {
     aspectRatio: 0.92,
     borderRadius: radius.xl,
-    overflow: 'visible' as const,
+    overflow: 'hidden' as const,
     backgroundColor: colors.grey50,
     position: 'relative' as const,
   },
@@ -938,25 +948,28 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
   productName: {
     ...typography.body2Regular,
     color: colors.text,
-    marginTop: spacing.xl,
+    marginTop: spacing.sm,
     minHeight: 48,
     lineHeight: 16,
+    flexShrink: 1,
   },
-  productPrice: { ...typography.body2Medium, color: colors.text },
-  productUnit: { ...typography.captionRegular, color: colors.secondaryText },
+  productPrice: { ...typography.body2Medium, color: colors.text, minHeight: 20 },
+  productUnit: { ...typography.captionRegular, color: colors.secondaryText, minHeight: 16 },
   originalPrice: {
     ...typography.captionRegular,
     color: colors.secondaryText,
     textDecorationLine: 'line-through' as const,
+    flexShrink: 1,
   },
-  discountRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4 },
-  productDiscount: { ...typography.captionRegular, color: '#168BCE', fontSize: 9 },
+  discountRow: { minHeight: 16, flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4 },
+  productDiscount: { ...typography.captionRegular, color: '#168BCE', fontSize: 9, flexShrink: 1 },
   cartControl: {
-    position: 'absolute' as const,
-    right: 5,
-    bottom: -30,
+    alignSelf: 'flex-end' as const,
     width: '56%' as const,
-    zIndex: 2,
+    minHeight: 54,
+    justifyContent: 'flex-start' as const,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
   },
   loadingBox: {
     height: 100,

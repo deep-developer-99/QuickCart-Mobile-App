@@ -249,7 +249,6 @@ const ProductDetailsScreen = () => {
 
           <View style={[styles.topControls, { top: insets.top + 10 }]}>
             <BackButton style={styles.backButton} onPress={() => navigation.goBack()} hitSlop={4} />
-            <Pressable style={styles.shareButton} onPress={shareProduct} accessibilityRole="button" accessibilityLabel={t('ui.product.shareProduct', { name: product.name })}><ShareNodesIcon width={22} height={22} /></Pressable>
             <Pressable
               style={[
                 styles.heartCircle,
@@ -284,6 +283,15 @@ const ProductDetailsScreen = () => {
               ))}
             </View>
           ) : null}
+          <Pressable
+            style={styles.shareButton}
+            onPress={shareProduct}
+            accessibilityRole="button"
+            accessibilityLabel={t('ui.product.shareProduct', { name: product.name })}
+            hitSlop={4}
+          >
+            <ShareNodesIcon width={22} height={22} />
+          </Pressable>
         </View>
 
         <View style={styles.sheet}>
@@ -443,22 +451,23 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) =>
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    shareRow: {
-      height: 60,
-      paddingHorizontal: 16,
-      justifyContent: 'center',
-      alignItems: 'flex-end',
-      backgroundColor: colors.background,
-    },
     shareButton: {
+      position: 'absolute',
+      right: 16,
+      bottom: 12,
       width: 44,
       height: 44,
       borderRadius: 22,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: '#FFFFFF',
+      backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.grey50,
+      shadowColor: '#000000',
+      shadowOpacity: 0.16,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 4,
     },
     unavailableState: {
       flex: 1,
@@ -484,7 +493,7 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) =>
     imageDots: {
       position: 'absolute',
       bottom: 10,
-      alignSelf: 'center',
+      left: 16,
       flexDirection: 'row',
       paddingHorizontal: 7,
       paddingVertical: 4,
