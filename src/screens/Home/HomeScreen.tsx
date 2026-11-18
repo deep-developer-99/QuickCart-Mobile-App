@@ -37,7 +37,6 @@ import {
 } from '../../api/quickCartApi';
 import { hasVariantDiscount, lowestPricedVariant, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
 import type { Banner } from '../../api/quickCartApi';
-import { useGetCartQuery } from '../../api/quickCartApi';
 import CartAddedToast from '../../components/CartAddedToast';
 import CartQuantityControl from '../../components/CartQuantityControl';
 import QuickCartWordmark from '../../components/QuickCartWordmark';
@@ -195,7 +194,8 @@ const HomeScreen = () => {
   }, [detectCurrentLocation]);
 
   const { data: wishlistResponse } = useGetWishlistQuery();
-  const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery();
+  const localCartItems = useSelector((state: RootState) => state.cart.items);
+  const cartLoading = useSelector((state: RootState) => Boolean(state.auth.user?.id && state.cart.hydratedForUserId !== state.auth.user.id));
   const showAddedToast = useCallback(() => {
     setShowCartToast(true);
     if (cartToastTimeout.current) clearTimeout(cartToastTimeout.current);
@@ -670,7 +670,7 @@ const HomeScreen = () => {
                           productImage={product.image}
                           stock={cardVariant?.stock}
                           variants={product.variants}
-                          cartItems={cartResponse?.data?.items}
+                          cartItems={localCartItems}
                           disabled={cartLoading}
                           compact
                           onAdded={showAddedToast}

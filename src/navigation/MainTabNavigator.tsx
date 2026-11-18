@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../store/store';
 
 import HomeScreen from '../screens/Home/HomeScreen';
 import CategoriesScreen from '../screens/Categories/CategoriesScreen';
@@ -20,7 +22,6 @@ import ProfileIcon from '../assets/icons/profile.svg';
 
 import {
   getWishlistProducts,
-  useGetCartQuery,
   useGetWishlistQuery,
 } from '../api/quickCartApi';
 
@@ -49,14 +50,10 @@ const tabIcons = {
 
 const TabBarIcon = ({ color, routeName }: TabBarIconProps) => {
   const styles = useStyles();
-  const { data: cartResponse } = useGetCartQuery();
+  const cartItems = useSelector((state: RootState) => state.cart.items);
   const { data: wishlistResponse } = useGetWishlistQuery();
 
-  const cartCount =
-    cartResponse?.data?.items?.reduce(
-      (total, item) => total + item.quantity,
-      0,
-    ) ?? 0;
+  const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   const hasWishlistItems = getWishlistProducts(wishlistResponse).length > 0;
   const Icon = tabIcons[routeName];

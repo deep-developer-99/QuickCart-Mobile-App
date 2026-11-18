@@ -12,6 +12,8 @@ export interface CreateCashfreeSessionRequest {
   addressId: string;
   checkoutMode: 'cart';
   paymentMethod: CashfreePaymentMethod;
+  items: Array<{ productId: string; variantId: string; quantity: number }>;
+  expectedTotal?: number;
 }
 
 export interface CashfreeSessionResponse {

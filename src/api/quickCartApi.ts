@@ -290,7 +290,7 @@ const diagnosticBaseQuery: BaseQueryFn<
 
 export const quickCartApi = createApi({
   reducerPath: 'quickCartApi',
-  tagTypes: ['Categories', 'Products', 'Banners', 'Me', 'Cart', 'Wishlist'],
+  tagTypes: ['Categories', 'Products', 'Banners', 'Me', 'Wishlist'],
 
   baseQuery: diagnosticBaseQuery,
 
@@ -369,61 +369,6 @@ export const quickCartApi = createApi({
         url: `/offers/${encodeURIComponent(offerId)}`,
         method: 'GET',
       }),
-    }),
-
-    // Get current user's cart
-    getCart: builder.query<CartResponse, void>({
-      query: () => ({
-        url: '/cart',
-        method: 'GET',
-      }),
-      providesTags: ['Cart'],
-    }),
-
-    // Add product to cart
-    addToCart: builder.mutation<
-      CartMutationResponse,
-      { productId: string; quantity: number; variantId?: string }
-    >({
-      query: body => ({
-        url: '/cart',
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: ['Cart'],
-    }),
-
-    // Update cart item quantity
-    updateCartItem: builder.mutation<
-      CartMutationResponse,
-      { productId: string; quantity: number; variantId?: string }
-    >({
-      query: ({ productId, quantity, variantId }) => ({
-        url: `/cart/${productId}${variantId ? `?variantId=${encodeURIComponent(variantId)}` : ''}`,
-        method: 'PUT',
-        body: { quantity, variantId },
-      }),
-      invalidatesTags: ['Cart'],
-    }),
-
-    // Remove product from cart
-    removeCartItem: builder.mutation<CartMutationResponse, string | { productId: string; variantId?: string }>({
-      query: input => {
-        const { productId, variantId } = typeof input === 'string' ? { productId: input } : input;
-        return ({
-        url: `/cart/${productId}${variantId ? `?variantId=${encodeURIComponent(variantId)}` : ''}`,
-        method: 'DELETE',
-      }); },
-      invalidatesTags: ['Cart'],
-    }),
-
-    // Clear cart
-    clearCart: builder.mutation<{ success: boolean; message: string }, void>({
-      query: () => ({
-        url: '/cart',
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['Cart'],
     }),
 
     // Get current user's wishlist
@@ -561,13 +506,8 @@ export const {
   useGetProductsQuery,
   useLazyGetProductsQuery,
   useGetProductByIdQuery,
-  useGetCartQuery,
   useGetWishlistQuery,
   useAddToWishlistMutation,
   useRemoveFromWishlistMutation,
   useClearWishlistMutation,
-  useAddToCartMutation,
-  useUpdateCartItemMutation,
-  useRemoveCartItemMutation,
-  useClearCartMutation,
 } = quickCartApi;

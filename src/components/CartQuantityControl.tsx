@@ -1,13 +1,12 @@
 import { AppText as Text } from './AppText';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
 
 import {
   type CartItem,
-  useAddToCartMutation,
-  useRemoveCartItemMutation,
-  useUpdateCartItemMutation,
+  type CartProduct,
 } from '../api/quickCartApi';
 import type { ProductVariant } from '../api/quickCartApi';
 import { radius, spacing, typography, useTheme } from '../theme';
@@ -17,6 +16,8 @@ import {
   getProductVariantCartSummary,
 } from '../utils/cartQuantities';
 import ProductVariantBottomSheet from './ProductVariantBottomSheet';
+import type { RootState, AppDispatch } from '../store/store';
+import { addCartLine, removeCartLine, setCartLineQuantity } from '../store/slices/cartSlice';
 
 type CartQuantityControlProps = {
   productId: string;
@@ -47,14 +48,13 @@ const CartQuantityControl = ({
   productImage,
   quantityScope = 'product',
 }: CartQuantityControlProps) => {
-  const { theme } = useTheme();
   const { t } = useTranslation();
   const styles = useStyles();
-  const [addToCart, { isLoading: adding }] = useAddToCartMutation();
-  const [updateCartItem, { isLoading: updating }] = useUpdateCartItemMutation();
-  const [removeCartItem, { isLoading: removing }] = useRemoveCartItemMutation();
+  const dispatch = useDispatch<AppDispatch>();
+  const userId = useSelector((state: RootState) => state.auth.user?.id ?? '');
+  const localItems = useSelector((state: RootState) => state.cart.items);
+  const hydratedForUserId = useSelector((state: RootState) => state.cart.hydratedForUserId);
   const [showVariantPicker, setShowVariantPicker] = React.useState(false);
-  const mutationLock = React.useRef(false);
   const activeVariants = variants.filter(item => item.isActive);
   const purchasableVariants = activeVariants.filter(item => item.stock > 0);
   const actionVariantCount = quantityScope === 'variant' ? 1 : purchasableVariants.length;
@@ -66,13 +66,14 @@ const CartQuantityControl = ({
   const selectedVariant =
     activeVariants.find(item => item._id === effectiveSelectedVariantId) ??
     purchasableVariants[0];
-  const currentCartItems = cartItems ?? (cartItem ? [cartItem] : []);
+  const currentCartItems = cartItems ?? (cartItem ? [cartItem] : localItems);
   const allProductCart = getProductCartSummary(currentCartItems, productId);
   const productCart =
     quantityScope === 'variant'
       ? getProductVariantCartSummary(currentCartItems, productId, selectedVariant?._id)
       : allProductCart;
-  const isBusy = adding || updating || removing || disabled;
+  const isBusy = disabled || !userId || hydratedForUserId !== userId;
+  const productSnapshot: CartProduct = { _id: productId, name: productName, image: productImage, variants };
   const directEntries = productCart.items.map(item => ({
     item,
     variant:
@@ -87,42 +88,24 @@ const CartQuantityControl = ({
     }
   }, [requestedVariantId, selectedVariantId]);
 
-  const runMutation = async (operation: () => Promise<unknown>, notify = false) => {
-    if (mutationLock.current || isBusy) return;
-    mutationLock.current = true;
-    try {
-      await operation();
-      if (notify) onAdded?.();
-    } catch (error) {
-      console.error('Failed to update cart:', error);
-    } finally {
-      mutationLock.current = false;
-    }
-  };
-
   const addOne = () => {
     if (!selectedVariant && activeVariants.length > 0) return;
     if (selectedVariant && selectedVariant.stock <= 0) return;
-    return runMutation(() =>
-      addToCart({
-        productId,
-        quantity: 1,
-        ...(selectedVariant ? { variantId: selectedVariant._id } : {}),
-      }).unwrap(),
-      true,
-    );
+    dispatch(addCartLine({ userId, product: productSnapshot, variantId: selectedVariant?._id ?? '', quantity: 1 }));
+    onAdded?.();
+    return Promise.resolve();
   };
 
   const setVariantQuantity = (entry: typeof directEntries[number], next: number) => {
     const variantId = entry.variant?._id ?? entry.item.variantId;
     const payload = { productId, ...(variantId ? { variantId } : {}) };
     if (next <= 0) {
-      return runMutation(() => removeCartItem(payload).unwrap());
+      dispatch(removeCartLine({ userId, ...payload }));
+      return Promise.resolve();
     }
     if (next > (entry.variant?.stock ?? stock ?? 1)) return Promise.resolve();
-    return runMutation(() =>
-      updateCartItem({ ...payload, quantity: next }).unwrap(),
-    );
+    dispatch(setCartLineQuantity({ userId, ...payload, quantity: next }));
+    return Promise.resolve();
   };
 
   const handleDecrease = () => {
@@ -153,6 +136,7 @@ const CartQuantityControl = ({
       productImage={productImage}
       variants={activeVariants}
       cartItems={currentCartItems}
+      product={productSnapshot}
       onClose={() => setShowVariantPicker(false)}
       onAdded={onAdded}
     />
@@ -169,13 +153,9 @@ const CartQuantityControl = ({
           accessibilityRole="button"
           accessibilityLabel={t('ui.common.addProductToCart')}
         >
-          {adding ? (
-            <ActivityIndicator size="small" color={compact ? '#168B43' : theme.colors.white} />
-          ) : (
-            <Text style={compact ? styles.compactAddText : styles.addText}>
-              {compact ? t('ui.common.add') : t('ui.common.addToCart')}
-            </Text>
-          )}
+          <Text style={compact ? styles.compactAddText : styles.addText}>
+            {compact ? t('ui.common.add') : t('ui.common.addToCart')}
+          </Text>
         </Pressable>
         {compact && opensVariantSheet ? (
           <Text style={styles.optionsText} onPressIn={event => event.stopPropagation()}>

@@ -81,6 +81,25 @@ export interface CreateOrderRequest {
   addressId: string;
   paymentMethod: 'COD';
   paymentId?: string;
+  items: Array<{ productId: string; variantId: string; quantity: number }>;
+  expectedTotal?: number;
+}
+
+export interface CheckoutSummaryRequest {
+  donationSelected?: boolean;
+  items: Array<{ productId: string; variantId: string; quantity: number }>;
+}
+
+export interface CheckoutSummaryResponse {
+  success: boolean;
+  message?: string;
+  data: {
+    subtotal: number;
+    shippingAmount: number;
+    donationAmount: number;
+    totalAmount: number;
+    items: Array<{ productId: string; variantId: string; name: string; image?: string; variantQuantity: number; variantUnit: string; quantity: number; price: number; discountPrice?: number; sellingPrice: number; itemTotal: number }>;
+  };
 }
 
 interface CreateOrderResponse {
@@ -91,6 +110,9 @@ interface CreateOrderResponse {
 
 export const orderApi = quickCartApi.injectEndpoints({
   endpoints: builder => ({
+    getCheckoutSummary: builder.mutation<CheckoutSummaryResponse, CheckoutSummaryRequest>({
+      query: body => ({ url: '/orders/checkout-summary', method: 'POST', body }),
+    }),
     createOrder: builder.mutation<CreateOrderResponse, CreateOrderRequest>({
       query: body => ({
         url: '/orders',
@@ -117,6 +139,7 @@ export const orderApi = quickCartApi.injectEndpoints({
 });
 
 export const {
+  useGetCheckoutSummaryMutation,
   useCreateOrderMutation,
   useGetMyOrdersQuery,
   useGetOrderByIdQuery,

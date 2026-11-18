@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useDispatch, useSelector } from 'react-redux';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import {
@@ -21,17 +22,16 @@ import AddAddressModal from '../../components/AddAddressModal';
 import BackButton from '../../components/common/BackButton';
 import {
   useCreateOrderMutation,
+  useGetCheckoutSummaryMutation,
 } from '../../api/orderApi';
 import {
   useCreateCashfreeSessionMutation,
   useVerifyCashfreePaymentMutation,
 } from '../../api/cashfreePaymentApi';
 import { startCashfreeTransaction } from '../../services/cashfreePaymentService';
-import {
-  type CartItem,
-  useClearCartMutation,
-  useGetCartQuery,
-} from '../../api/quickCartApi';
+import type { CartItem } from '../../api/quickCartApi';
+import type { RootState, AppDispatch } from '../../store/store';
+import { removePurchasedCartLines } from '../../store/slices/cartSlice';
 import { hasVariantDiscount, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useTheme } from '../../theme';
@@ -53,22 +53,43 @@ type PaymentMethod =
 export default function CheckoutScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const styles = useStyles();
-  const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery();
+  const dispatch = useDispatch<AppDispatch>();
+  const userId = useSelector((state: RootState) => state.auth.user?.id ?? '');
+  const { items, hydratedForUserId } = useSelector((state: RootState) => state.cart);
+  const cartLoading = Boolean(userId && hydratedForUserId !== userId);
   const { data: addressResponse, isLoading: addressLoading, refetch: refetchAddresses } =
     useGetAddressesQuery();
   const [createOrder, { isLoading: placingCartOrder }] =
     useCreateOrderMutation();
-  const [clearCart] = useClearCartMutation();
+  const [getCheckoutSummary, { isLoading: verifyingCart }] = useGetCheckoutSummaryMutation();
   const [createCashfreeSession, { isLoading: creatingCashfreeSession }] =
     useCreateCashfreeSessionMutation();
   const [verifyCashfreePayment, { isLoading: verifyingCashfreePayment }] =
     useVerifyCashfreePaymentMutation();
 
-  const items: CartItem[] = cartResponse?.data?.items ?? [];
+  const cartLines = items.flatMap(item => item.product?._id && item.variantId ? [{ productId: item.product._id, variantId: item.variantId, quantity: item.quantity }] : []);
+  const cartLinesKey = JSON.stringify(cartLines);
+  const [verifiedSummary, setVerifiedSummary] = useState<{ success: boolean; data: { subtotal: number; shippingAmount: number; totalAmount: number; items: Array<{ productId: string; variantId: string; sellingPrice: number; name: string }> } } | null>(null);
+  const [priceChangesAccepted, setPriceChangesAccepted] = useState(false);
+  const [checkoutValidationError, setCheckoutValidationError] = useState('');
+  React.useEffect(() => {
+    if (!userId || cartLoading || cartLines.length === 0) { setVerifiedSummary(null); return; }
+    setCheckoutValidationError('');
+    getCheckoutSummary({ items: cartLines }).unwrap()
+      .then(summary => { setVerifiedSummary(summary); setPriceChangesAccepted(false); setCheckoutValidationError(''); })
+      .catch(error => {
+        console.warn('Checkout cart validation failed:', error);
+        setVerifiedSummary(null);
+        setCheckoutValidationError(error?.data?.message ?? 'Unable to verify current prices and stock. Check your connection and try again.');
+      });
+  // cartLinesKey represents the stable line identifiers and quantities.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartLinesKey, cartLoading, getCheckoutSummary, userId]);
 
   const addresses: Address[] = addressResponse?.data ?? [];
   const placingOrder =
     placingCartOrder ||
+    verifyingCart ||
     creatingCashfreeSession ||
     verifyingCashfreePayment;
 
@@ -79,13 +100,20 @@ export default function CheckoutScreen({ navigation }: Props) {
 
   const [addressModalOpen, setAddressModalOpen] = useState(false);
 
-  const subtotal = items.reduce((sum, item) => {
+  const localSubtotal = items.reduce((sum, item) => {
     const price = variantSellingPrice(item.product.variants?.find(variant => variant._id === item.variantId));
     return sum + price * item.quantity;
   }, 0);
 
-  const shipping = subtotal > 0 && subtotal <= 99 ? 40 : 0;
-  const total = subtotal + shipping;
+  const subtotal = verifiedSummary?.data.subtotal ?? localSubtotal;
+  const shipping = verifiedSummary?.data.shippingAmount ?? (localSubtotal > 0 && localSubtotal <= 99 ? 40 : 0);
+  const total = verifiedSummary?.data.totalAmount ?? subtotal + shipping;
+  const changedPrices = (verifiedSummary?.data.items ?? []).filter(verified => {
+    const local = items.find(item => item.product._id === verified.productId && item.variantId === verified.variantId);
+    const localPrice = local ? variantSellingPrice(local.product.variants?.find(variant => variant._id === local.variantId)) : 0;
+    return Math.abs(localPrice - verified.sellingPrice) > 0.009;
+  });
+  const hasUnacceptedPriceChanges = changedPrices.length > 0 && !priceChangesAccepted;
 
   const selectedAddress = addresses.find(address => address._id === addressId);
 
@@ -110,6 +138,14 @@ export default function CheckoutScreen({ navigation }: Props) {
       );
       return;
     }
+    if (!verifiedSummary) {
+      Alert.alert(t('ui.checkout.paymentStatusUnavailable'), 'Current prices and stock are still being checked. Please try again.');
+      return;
+    }
+    if (hasUnacceptedPriceChanges) {
+      Alert.alert(t('ui.checkout.reviewOrder'), 'Review and accept the updated item prices before continuing.');
+      return;
+    }
 
     try {
       if (isOnlinePayment) {
@@ -117,6 +153,8 @@ export default function CheckoutScreen({ navigation }: Props) {
           addressId,
           checkoutMode: 'cart',
           paymentMethod: payment as Exclude<PaymentMethod, 'COD'>,
+          items: cartLines,
+          expectedTotal: verifiedSummary.data.totalAmount,
         }).unwrap();
 
         // Cashfree's SDK callback is not proof of payment. Always verify with our backend.
@@ -136,8 +174,7 @@ export default function CheckoutScreen({ navigation }: Props) {
         }).unwrap();
 
         if (verification.data.status === 'paid') {
-          // The backend finalizes the order and clears the unchanged cart transactionally.
-          // Do not clear the cart again on the client: the customer may have changed it.
+          dispatch(removePurchasedCartLines({ userId, items: cartLines }));
           setStep('success');
           return;
         }
@@ -165,15 +202,19 @@ export default function CheckoutScreen({ navigation }: Props) {
         return;
       }
 
-      await createOrder({ addressId, paymentMethod: 'COD' }).unwrap();
-      try {
-        await clearCart().unwrap();
-      } catch (clearError) {
-        console.error('Cart cleanup after order failed:', clearError);
-      }
+      await createOrder({ addressId, paymentMethod: 'COD', items: cartLines, expectedTotal: verifiedSummary.data.totalAmount }).unwrap();
+      dispatch(removePurchasedCartLines({ userId, items: cartLines }));
 
       setStep('success');
     } catch (error: any) {
+      if (error?.status === 409) {
+        try {
+          const summary = await getCheckoutSummary({ items: cartLines }).unwrap();
+          setVerifiedSummary(summary);
+          setPriceChangesAccepted(false);
+          setCheckoutValidationError('');
+        } catch (refreshError) { console.warn('Unable to refresh checkout totals:', refreshError); }
+      }
       Alert.alert(
         isOnlinePayment ? t('ui.checkout.paymentStatusUnavailable') : t('ui.checkout.orderFailed'),
         error?.data?.message ??
@@ -200,7 +241,7 @@ export default function CheckoutScreen({ navigation }: Props) {
     }
   };
 
-  if (cartLoading || addressLoading) {
+  if (cartLoading || addressLoading || (items.length > 0 && verifyingCart && !verifiedSummary)) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
@@ -372,12 +413,17 @@ export default function CheckoutScreen({ navigation }: Props) {
               <Text style={styles.paymentNotice}>{t('ui.checkout.onlineNotice')}</Text>
             )}
 
+            {checkoutValidationError ? <Text style={styles.paymentNotice}>{checkoutValidationError}</Text> : null}
+
             <Summary
               items={items}
               subtotal={subtotal}
               shipping={shipping}
               total={total}
+              verifiedItems={verifiedSummary?.data.items}
             />
+
+            {checkoutValidationError ? <Text style={styles.paymentNotice}>{checkoutValidationError}</Text> : null}
 
             <Button title={t('ui.checkout.continue')} onPress={() => setStep('review')} />
           </>
@@ -414,7 +460,22 @@ export default function CheckoutScreen({ navigation }: Props) {
               subtotal={subtotal}
               shipping={shipping}
               total={total}
+              verifiedItems={verifiedSummary?.data.items}
             />
+
+            {changedPrices.length > 0 && (
+              <View style={styles.reviewCard}>
+                <Text style={styles.reviewLabel}>Some item prices changed</Text>
+                {changedPrices.map(item => {
+                  const local = items.find(entry => entry.product._id === item.productId && entry.variantId === item.variantId);
+                  const oldPrice = local ? variantSellingPrice(local.product.variants?.find(entry => entry._id === item.variantId)) : 0;
+                  return <Text key={`${item.productId}:${item.variantId}`} style={styles.reviewText}>{item.name}: ₹{oldPrice.toFixed(2)} → ₹{item.sellingPrice.toFixed(2)}</Text>;
+                })}
+                {!priceChangesAccepted ? (
+                  <Button title="Review and accept updated prices" onPress={() => setPriceChangesAccepted(true)} />
+                ) : <Text style={styles.reviewText}>Updated prices accepted.</Text>}
+              </View>
+            )}
 
             <Button
               title={
@@ -426,7 +487,7 @@ export default function CheckoutScreen({ navigation }: Props) {
                   ? t('ui.checkout.payAmount', { amount: total.toFixed(2) })
                   : t('ui.checkout.placeOrder')
               }
-              disabled={placingOrder}
+              disabled={placingOrder || !verifiedSummary || hasUnacceptedPriceChanges}
               onPress={placeOrder}
             />
           </>
@@ -626,11 +687,13 @@ function Summary({
   subtotal,
   shipping,
   total,
+  verifiedItems,
 }: {
   items: CartItem[];
   subtotal: number;
   shipping: number;
   total: number;
+  verifiedItems?: Array<{ productId: string; variantId: string; sellingPrice: number }>;
 }) {
   const { t } = useTranslation();
   const styles = useStyles();
@@ -648,7 +711,7 @@ function Summary({
         <View style={styles.orderItems}>
           {items.map(item => {
             const variant = item.product.variants?.find(entry => entry._id === item.variantId);
-            const unitPrice = variantSellingPrice(variant);
+            const unitPrice = verifiedItems?.find(entry => entry.productId === item.product._id && entry.variantId === item.variantId)?.sellingPrice ?? variantSellingPrice(variant);
             const itemTotal = unitPrice * item.quantity;
             const imageUri = item.product.image || item.product.images?.[0];
 

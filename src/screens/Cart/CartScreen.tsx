@@ -19,22 +19,19 @@ import {
 } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { useDispatch, useSelector } from 'react-redux';
 
 import EmptyCart from './EmptyCart';
 import { getVoucherInputScrollDelta } from './voucherKeyboard';
 import BackButton from '../../components/common/BackButton';
 import { hasVariantDiscount, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
 import TrashIcon from '../../assets/icons/trash.svg';
-import {
-  CartItem,
-  useGetCartQuery,
-  useRemoveCartItemMutation,
-  useUpdateCartItemMutation,
-} from '../../api/quickCartApi';
+import type { CartItem } from '../../api/quickCartApi';
+import type { RootState, AppDispatch } from '../../store/store';
+import { removeCartLine, setCartLineQuantity } from '../../store/slices/cartSlice';
 import { radius, spacing, typography, useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
 
-const EMPTY_CART_ITEMS: CartItem[] = [];
 const cartKey = (item: CartItem) => `${item.product?._id ?? ''}:${item.variantId ?? ''}`;
 
 const CartScreen = () => {
@@ -43,18 +40,11 @@ const CartScreen = () => {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { t } = useTranslation();
 
-  const {
-    data: cartResponse,
-    isLoading,
-    isFetching,
-    isError,
-    refetch,
-  } = useGetCartQuery();
-
-  const [updateCartItem] = useUpdateCartItemMutation();
-  const [removeCartItem] = useRemoveCartItemMutation();
-
-  const items = cartResponse?.data?.items ?? EMPTY_CART_ITEMS;
+  const dispatch = useDispatch<AppDispatch>();
+  const userId = useSelector((state: RootState) => state.auth.user?.id ?? null);
+  const { items: savedItems, hydratedForUserId } = useSelector((state: RootState) => state.cart);
+  const isLoading = Boolean(userId && hydratedForUserId !== userId);
+  const items: CartItem[] = savedItems;
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [voucherVisible, setVoucherVisible] = useState(false);
@@ -159,34 +149,13 @@ const CartScreen = () => {
 
     if (!productId) return;
 
-    try {
-      if (nextQuantity <= 0) {
-        await removeCartItem({ productId, ...(item.variantId ? { variantId: item.variantId } : {}) }).unwrap();
-        return;
-      }
-
-      const variant = item.product?.variants?.find(entry => entry._id === item.variantId);
-      if (variant && nextQuantity > variant.stock) {
-        return;
-      }
-
-      await updateCartItem({
-        productId,
-        quantity: nextQuantity,
-        ...(item.variantId ? { variantId: item.variantId } : {}),
-      }).unwrap();
-    } catch (error) {
-      console.error('Cart quantity update failed:', error);
-    }
+    if (nextQuantity > (item.product?.variants?.find(entry => entry._id === item.variantId)?.stock ?? 0)) return;
+    dispatch(setCartLineQuantity({ userId: userId ?? '', productId, variantId: item.variantId, quantity: nextQuantity }));
   };
 
   const removeItem = async (productId: string, variantId?: string) => {
-    try {
-      await removeCartItem({ productId, ...(variantId ? { variantId } : {}) }).unwrap();
-      setSelectedIds(current => current.filter(id => id !== `${productId}:${variantId ?? ''}`));
-    } catch (error) {
-      console.error('Remove cart item failed:', error);
-    }
+    dispatch(removeCartLine({ userId: userId ?? '', productId, variantId }));
+    setSelectedIds(current => current.filter(id => id !== `${productId}:${variantId ?? ''}`));
   };
 
   if (isLoading) {
@@ -194,22 +163,6 @@ const CartScreen = () => {
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loader}>
           <ActivityIndicator size="small" color={theme.colors.black} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (isError) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>{t('cart.loadError')}</Text>
-          <Text style={styles.errorText}>
-            {t('cart.connectionError')}
-          </Text>
-          <Pressable style={styles.retryButton} onPress={() => refetch()}>
-            <Text style={styles.retryText}>{t('common.tryAgain')}</Text>
-          </Pressable>
         </View>
       </SafeAreaView>
     );
@@ -251,12 +204,6 @@ const CartScreen = () => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            {isFetching && (
-              <View style={styles.refreshingRow}>
-                <ActivityIndicator size="small" color={theme.colors.cyan} />
-              </View>
-            )}
-
             {items.map(item => {
               const product = item.product;
               if (!product) return null;

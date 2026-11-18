@@ -1,20 +1,42 @@
 import React, { useEffect } from 'react';
 import { StatusBar } from 'react-native';
-import { Provider } from 'react-redux';
+import { Provider, useDispatch, useSelector } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import RootNavigator from './src/navigation/RootNavigator';
 import { store } from './src/store/store';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { restoreLanguage } from './src/i18n';
-import { useSelector } from 'react-redux';
-import type { RootState } from './src/store/store';
+import type { AppDispatch, RootState } from './src/store/store';
 import {
   configurePushNotifications,
   handleNotificationOpen,
   type NotificationData,
 } from './src/services/pushNotifications';
 import InAppNotification from './src/components/InAppNotification';
+import { beginCartHydration, hydrateCart } from './src/store/slices/cartSlice';
+import { readLocalCart } from './src/services/cartStorage';
+
+const CartHydrator = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const userId = useSelector((state: RootState) => state.auth.user?.id ?? null);
+  const requestId = React.useRef(0);
+  useEffect(() => {
+    if (!userId) return;
+    const request = ++requestId.current;
+    dispatch(beginCartHydration(userId));
+    readLocalCart(userId)
+      .then(items => {
+        if (request === requestId.current) dispatch(hydrateCart({ userId, items }));
+      })
+      .catch(error => {
+        console.warn('Unable to restore the local cart; starting an empty cart:', error);
+        if (request === requestId.current) dispatch(hydrateCart({ userId, items: [] }));
+      });
+    return () => { requestId.current += 1; };
+  }, [dispatch, userId]);
+  return null;
+};
 
 const PushNotificationManager = ({
   navigationReady,
@@ -110,6 +132,7 @@ const ThemedApp = () => {
 
   return (
     <>
+      <CartHydrator />
       <StatusBar
         barStyle={mode === 'dark' ? 'light-content' : 'dark-content'}
       />

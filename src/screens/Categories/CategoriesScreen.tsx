@@ -19,15 +19,16 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSelector } from 'react-redux';
 import {
   useGetCategoriesQuery,
-  useGetCartQuery,
   useGetSubcategoriesQuery,
   useLazyGetProductsQuery,
   useGetWishlistQuery,
   useAddToWishlistMutation,
   useRemoveFromWishlistMutation,
 } from '../../api/quickCartApi';
+import type { RootState } from '../../store/store';
 import { hasVariantDiscount, lowestPricedVariant, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
 import CartAddedToast from '../../components/CartAddedToast';
 import BackButton from '../../components/common/BackButton';
@@ -123,7 +124,8 @@ const CategoriesScreen = () => {
   const [fetchProducts] = useLazyGetProductsQuery();
 
   const { data: wishlistResponse } = useGetWishlistQuery();
-  const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery();
+  const localCartItems = useSelector((state: RootState) => state.cart.items);
+  const cartLoading = useSelector((state: RootState) => Boolean(state.auth.user?.id && state.cart.hydratedForUserId !== state.auth.user.id));
   const showAddedToast = () => {
     setShowCartToast(true);
     if (cartToastTimeout.current) clearTimeout(cartToastTimeout.current);
@@ -567,7 +569,7 @@ const CategoriesScreen = () => {
                       {hasVariantDiscount(cardVariant) ? <><Text style={styles.originalPrice} numberOfLines={1}>₹{cardVariant.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Text><Text style={styles.productDiscount}>{variantDiscountPercentage(cardVariant)}% off</Text></> : null}
                     </View>
                     <View style={styles.cartControl}>
-                      <CartQuantityControl productId={product._id} productName={product.name} productImage={product.image} stock={cardVariant?.stock} variants={product.variants} cartItems={cartResponse?.data?.items} disabled={cartLoading} compact onAdded={showAddedToast} />
+                      <CartQuantityControl productId={product._id} productName={product.name} productImage={product.image} stock={cardVariant?.stock} variants={product.variants} cartItems={localCartItems} disabled={cartLoading} compact onAdded={showAddedToast} />
                     </View>
                   </Pressable>
                 );

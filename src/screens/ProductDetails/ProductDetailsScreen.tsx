@@ -18,16 +18,17 @@ import {
   type RouteProp,
 } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSelector } from 'react-redux';
 import Svg, { Path } from 'react-native-svg';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   getWishlistProducts,
-  useGetCartQuery,
   useAddToWishlistMutation,
   useGetWishlistQuery,
   useRemoveFromWishlistMutation,
   useGetProductByIdQuery,
 } from '../../api/quickCartApi';
+import type { RootState } from '../../store/store';
 import CartAddedToast from '../../components/CartAddedToast';
 import BackButton from '../../components/common/BackButton';
 import CartQuantityControl from '../../components/CartQuantityControl';
@@ -81,7 +82,8 @@ const ProductDetailsScreen = () => {
   const [removeFromWishlist, { isLoading: removingFromWishlist }] =
     useRemoveFromWishlistMutation();
   const { data: wishlistResponse } = useGetWishlistQuery();
-  const { data: cartResponse, isLoading: cartLoading } = useGetCartQuery();
+  const localCartItems = useSelector((state: RootState) => state.cart.items);
+  const cartLoading = useSelector((state: RootState) => Boolean(state.auth.user?.id && state.cart.hydratedForUserId !== state.auth.user.id));
   const hasProduct = 'product' in route.params;
   const productId = hasProduct
     ? route.params.product._id
@@ -366,7 +368,7 @@ const ProductDetailsScreen = () => {
             quantityScope="variant"
             stock={selectedVariant?.stock}
             variants={product.variants}
-            cartItems={cartResponse?.data?.items}
+            cartItems={localCartItems}
             selectedVariantId={selectedVariant?._id}
             disabled={cartLoading}
             onAdded={showCartToast}
