@@ -149,7 +149,7 @@ const CartQuantityControl = ({
           style={[styles.addButton, compact ? styles.compactAddButton : styles.fullAddButton]}
           onPress={() => (getCartQuantityAction('add', actionVariantCount, productCart.distinctVariantCount) === 'openVariantSheet' ? setShowVariantPicker(true) : addOne())}
           onPressIn={event => event.stopPropagation()}
-          disabled={isBusy || (!opensVariantSheet && activeVariants.length > 0 && (!selectedVariant || selectedVariant.stock <= 0))}
+          disabled={isBusy || (!opensVariantSheet && (!selectedVariant || selectedVariant.stock <= 0))}
           accessibilityRole="button"
           accessibilityLabel={t('ui.common.addProductToCart')}
         >

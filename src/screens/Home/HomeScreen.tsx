@@ -622,36 +622,39 @@ const HomeScreen = () => {
                 const isWishlisted = wishlistIds.includes(product._id);
 
                 return (
-                  <Pressable key={product._id} style={[styles.productCard, { width: productCardWidth }]} onPress={() => navigation.navigate('ProductDetails', { product })} accessibilityRole="button" accessibilityLabel={`View ${product.name}`}>
-                    <View
-                      style={styles.productImageContainer}
-                    >
-                      {product.image ? (
-                        <Image
-                          source={{ uri: product.image }}
-                          style={styles.productImage}
-                          resizeMode="contain"
-                        />
-                      ) : (
-                        <View style={styles.productFallback}>
-                          <Text style={styles.productFallbackEmoji}>
-                            {productEmoji(product.name)}
-                          </Text>
-                        </View>
-                      )}
-
+                  <View key={product._id} style={[styles.productCard, { width: productCardWidth }]}>
+                    <View style={styles.productImageContainer}>
+                      <Pressable
+                        style={styles.productImagePressable}
+                        onPress={() => navigation.navigate('ProductDetails', { product })}
+                        accessibilityRole="button"
+                        accessibilityLabel={`View ${product.name}`}
+                      >
+                        {product.image ? (
+                          <Image
+                            source={{ uri: product.image }}
+                            style={styles.productImage}
+                            resizeMode="contain"
+                          />
+                        ) : (
+                          <View style={styles.productFallback}>
+                            <Text style={styles.productFallbackEmoji}>
+                              {productEmoji(product.name)}
+                            </Text>
+                          </View>
+                        )}
+                      </Pressable>
                       <Pressable
                         style={styles.heartButton}
                         hitSlop={8}
-                        onPress={async event => {
-                          event.stopPropagation();
+                        accessibilityRole="button"
+                        accessibilityLabel={isWishlisted ? t('ui.common.removeFromWishlist', { name: product.name }) : t('ui.product.addToWishlist', { name: product.name })}
+                        onPress={async () => {
                           try {
                             if (isWishlisted) {
                               await removeFromWishlist(product._id).unwrap();
                             } else {
-                              await addToWishlist({
-                                productId: product._id,
-                              }).unwrap();
+                              await addToWishlist({ productId: product._id }).unwrap();
                             }
                           } catch (error) {
                             console.error('Failed to update wishlist:', error);
@@ -676,20 +679,25 @@ const HomeScreen = () => {
                           onAdded={showAddedToast}
                       />
                     </View>
-
-                    <Text style={styles.productName} numberOfLines={3}>
-                      {product.name}
-                    </Text>
-                    <Text style={styles.productUnit} numberOfLines={1}>
-                      {cardVariant ? `${cardVariant.quantity} ${cardVariant.unit}` : ' '}
-                    </Text>
-                    <Text style={styles.productPrice} numberOfLines={1}>
-                      {cardVariant ? `₹${sellingPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : ' '}
-                    </Text>
-                    <View style={styles.discountRow}>
-                      {hasVariantDiscount(cardVariant) ? <><Text style={styles.originalPrice} numberOfLines={1}>₹{cardVariant.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Text><Text style={styles.productDiscount}>{variantDiscountPercentage(cardVariant)}% OFF on MRP</Text></> : null}
-                    </View>
-                  </Pressable>
+                    <Pressable
+                      onPress={() => navigation.navigate('ProductDetails', { product })}
+                      accessibilityRole="button"
+                      accessibilityLabel={`View ${product.name}`}
+                    >
+                      <Text style={styles.productName} numberOfLines={3}>
+                        {product.name}
+                      </Text>
+                      <Text style={styles.productUnit} numberOfLines={1}>
+                        {cardVariant ? `${cardVariant.quantity} ${cardVariant.unit}` : ' '}
+                      </Text>
+                      <Text style={styles.productPrice} numberOfLines={1}>
+                        {cardVariant ? `₹${sellingPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : ' '}
+                      </Text>
+                      <View style={styles.discountRow}>
+                        {hasVariantDiscount(cardVariant) ? <><Text style={styles.originalPrice} numberOfLines={1}>₹{cardVariant.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Text><Text style={styles.productDiscount}>{variantDiscountPercentage(cardVariant)}% OFF on MRP</Text></> : null}
+                      </View>
+                    </Pressable>
+                  </View>
                 );
               })}
             </View>
@@ -917,6 +925,7 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
     backgroundColor: colors.grey50,
     position: 'relative' as const,
   },
+  productImagePressable: { flex: 1 },
   productImage: { width: '100%', height: '100%', borderRadius: radius.xl },
   productFallback: {
     flex: 1,

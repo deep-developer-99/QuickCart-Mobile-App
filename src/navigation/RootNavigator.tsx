@@ -178,12 +178,18 @@ const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
         const response = await getMe().unwrap();
 
         if (mounted && response.success) {
-          dispatch(
-            setCredentials({
-              user: response.data,
-              token,
-            }),
-          );
+          const userId = response.data.id ?? response.data._id;
+          if (typeof userId === 'string' && userId.trim()) {
+            dispatch(
+              setCredentials({
+                user: { ...response.data, id: userId.trim() },
+                token,
+              }),
+            );
+          } else {
+            console.warn('Session restore returned a user without an ID.');
+            await invalidateSession();
+          }
         } else if (mounted) {
           await invalidateSession();
         }

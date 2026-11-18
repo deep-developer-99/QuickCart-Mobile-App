@@ -549,11 +549,17 @@ const CategoriesScreen = () => {
                 const price = variantSellingPrice(cardVariant);
                 const isWishlisted = wishlistIds.includes(product._id);
                 return (
-                  <Pressable style={styles.productCard} onPress={() => navigation.navigate('ProductDetails', { product })} accessibilityRole="button" accessibilityLabel={`View ${product.name}`}>
+                  <View style={styles.productCard}>
                     <View style={styles.productImageWrap}>
-                      {product.image ? <Image source={{ uri: product.image }} style={styles.productImage} resizeMode="contain" /> : <View style={styles.productFallback}><Text style={styles.productEmoji}>{productEmoji(product.name)}</Text></View>}
-                      <Pressable style={styles.heartButton} onPress={async event => {
-                        event.stopPropagation();
+                      <Pressable
+                        style={styles.productImagePressable}
+                        onPress={() => navigation.navigate('ProductDetails', { product })}
+                        accessibilityRole="button"
+                        accessibilityLabel={`View ${product.name}`}
+                      >
+                        {product.image ? <Image source={{ uri: product.image }} style={styles.productImage} resizeMode="contain" /> : <View style={styles.productFallback}><Text style={styles.productEmoji}>{productEmoji(product.name)}</Text></View>}
+                      </Pressable>
+                      <Pressable style={styles.heartButton} onPress={async () => {
                         try {
                           if (isWishlisted) await removeFromWishlist(product._id).unwrap();
                           else await addToWishlist({ productId: product._id }).unwrap();
@@ -562,16 +568,22 @@ const CategoriesScreen = () => {
                         <Text style={styles.heartText}>{isWishlisted ? '♥' : '♡'}</Text>
                       </Pressable>
                     </View>
-                    <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
-                    <Text style={styles.productUnit} numberOfLines={1}>{cardVariant ? `${cardVariant.quantity} ${cardVariant.unit}` : ' '}</Text>
-                    <Text style={styles.productPrice} numberOfLines={1}>{cardVariant ? `₹${price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : ' '}</Text>
-                    <View style={styles.discountRow}>
-                      {hasVariantDiscount(cardVariant) ? <><Text style={styles.originalPrice} numberOfLines={1}>₹{cardVariant.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Text><Text style={styles.productDiscount}>{variantDiscountPercentage(cardVariant)}% off</Text></> : null}
-                    </View>
+                    <Pressable
+                      onPress={() => navigation.navigate('ProductDetails', { product })}
+                      accessibilityRole="button"
+                      accessibilityLabel={`View ${product.name}`}
+                    >
+                      <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
+                      <Text style={styles.productUnit} numberOfLines={1}>{cardVariant ? `${cardVariant.quantity} ${cardVariant.unit}` : ' '}</Text>
+                      <Text style={styles.productPrice} numberOfLines={1}>{cardVariant ? `₹${price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : ' '}</Text>
+                      <View style={styles.discountRow}>
+                        {hasVariantDiscount(cardVariant) ? <><Text style={styles.originalPrice} numberOfLines={1}>₹{cardVariant.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</Text><Text style={styles.productDiscount}>{variantDiscountPercentage(cardVariant)}% off</Text></> : null}
+                      </View>
+                    </Pressable>
                     <View style={styles.cartControl}>
                       <CartQuantityControl productId={product._id} productName={product.name} productImage={product.image} stock={cardVariant?.stock} variants={product.variants} cartItems={localCartItems} disabled={cartLoading} compact onAdded={showAddedToast} />
                     </View>
-                  </Pressable>
+                  </View>
                 );
               }}
             />
@@ -862,6 +874,7 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.grey50,
       position: 'relative' as const,
     },
+    productImagePressable: { flex: 1 },
     productImage: { width: '100%', height: '100%' },
     productFallback: {
       flex: 1,

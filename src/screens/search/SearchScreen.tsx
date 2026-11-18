@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
 import {
   useGetCategoriesQuery,
   useGetProductsQuery,
@@ -24,9 +25,11 @@ import {
   useRemoveFromWishlistMutation,
   type ProductResponse,
 } from '../../api/quickCartApi';
+import type { RootState } from '../../store/store';
 import { hasVariantDiscount, lowestPricedVariant, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
 import { radius, spacing, typography, useTheme } from '../../theme';
 import QuickCartWordmark from '../../components/QuickCartWordmark';
+import CartQuantityControl from '../../components/CartQuantityControl';
 import type { ThemeColors } from '../../theme';
 
 type Product = ProductResponse['data'][number];
@@ -91,6 +94,7 @@ const SearchScreen = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState<ProductFilters>(scopedFilters);
   const [draftFilters, setDraftFilters] = useState<ProductFilters>(scopedFilters);
+  const localCartItems = useSelector((state: RootState) => state.cart.items);
 
   const { data: categoryResponse } = useGetCategoriesQuery();
   const categories = useMemo(
@@ -381,33 +385,33 @@ const SearchScreen = () => {
 
                 return (
                   <View key={product._id} style={styles.productCard}>
-                    <Pressable
-                      style={styles.productImageContainer}
-                      onPress={() =>
-                        navigation.navigate('ProductDetails', {
-                          product,
-                        })
-                      }
-                    >
-                      {product.image ? (
-                        <Image
-                          source={{ uri: product.image }}
-                          style={styles.productImage}
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <View style={styles.productFallback}>
-                          <Text style={styles.productFallbackEmoji}>
-                            {productEmoji(product.name)}
-                          </Text>
-                        </View>
-                      )}
-
+                    <View style={styles.productImageContainer}>
+                      <Pressable
+                        style={styles.productImagePressable}
+                        onPress={() => navigation.navigate('ProductDetails', { product })}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('ui.common.viewProductDetails', { name: product.name })}
+                      >
+                        {product.image ? (
+                          <Image
+                            source={{ uri: product.image }}
+                            style={styles.productImage}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View style={styles.productFallback}>
+                            <Text style={styles.productFallbackEmoji}>
+                              {productEmoji(product.name)}
+                            </Text>
+                          </View>
+                        )}
+                      </Pressable>
                       <Pressable
                         style={styles.heartButton}
                         hitSlop={8}
-                        onPress={async event => {
-                          event.stopPropagation();
+                        accessibilityRole="button"
+                        accessibilityLabel={isWishlisted ? t('ui.common.removeFromWishlist', { name: product.name }) : t('ui.product.addToWishlist', { name: product.name })}
+                        onPress={async () => {
                           try {
                             if (isWishlisted) {
                               await removeFromWishlist(product._id).unwrap();
@@ -425,19 +429,36 @@ const SearchScreen = () => {
                           {isWishlisted ? '♥' : '♡'}
                         </Text>
                       </Pressable>
-                    </Pressable>
+                    </View>
 
-                    <Text style={styles.productName} numberOfLines={2}>
-                      {product.name}
-                    </Text>
-                    <Text style={styles.productPrice}>
-                      ₹{sellingPrice.toFixed(2)}
-                    </Text>
-                    {hasVariantDiscount(cardVariant) ? (
-                      <Text style={styles.originalPrice}>
-                        ₹{cardVariant.price.toFixed(2)} ({variantDiscountPercentage(cardVariant)}% off)
+                    <Pressable
+                      onPress={() => navigation.navigate('ProductDetails', { product })}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('ui.common.viewProductDetails', { name: product.name })}
+                    >
+                      <Text style={styles.productName} numberOfLines={2}>
+                        {product.name}
                       </Text>
-                    ) : null}
+                      <Text style={styles.productPrice}>
+                        ₹{sellingPrice.toFixed(2)}
+                      </Text>
+                      {hasVariantDiscount(cardVariant) ? (
+                        <Text style={styles.originalPrice}>
+                          ₹{cardVariant.price.toFixed(2)} ({variantDiscountPercentage(cardVariant)}% off)
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                    <View style={styles.cartControl}>
+                      <CartQuantityControl
+                        productId={product._id}
+                        productName={product.name}
+                        productImage={product.image}
+                        stock={cardVariant?.stock}
+                        variants={product.variants}
+                        cartItems={localCartItems}
+                        compact
+                      />
+                    </View>
                   </View>
                 );
               })}
@@ -738,6 +759,7 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.grey50,
       position: 'relative',
     },
+    productImagePressable: { flex: 1 },
     productImage: { width: '100%', height: '100%' },
     productFallback: {
       flex: 1,
@@ -768,6 +790,7 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.grey100,
       textDecorationLine: 'line-through',
     },
+    cartControl: { width: '56%', alignSelf: 'flex-end', marginTop: spacing.xs },
     stateBox: {
       minHeight: 220,
       alignItems: 'center',

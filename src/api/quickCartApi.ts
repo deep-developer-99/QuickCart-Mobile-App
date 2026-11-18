@@ -211,7 +211,8 @@ interface MeResponse {
   success: boolean;
   message: string;
   data: {
-    id: string;
+    id?: string;
+    _id?: string;
     name: string;
     email: string;
     phone?: string;
