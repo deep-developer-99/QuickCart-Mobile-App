@@ -10,7 +10,6 @@ import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  getWishlistProducts,
   useGetWishlistQuery,
 } from '../../api/quickCartApi';
 import { spacing, typography, useTheme } from '../../theme';
@@ -18,24 +17,24 @@ import type { ThemeColors } from '../../theme';
 import EmptyWishlist from './EmptyWishlist';
 import WishlistProducts from './WishlistProducts';
 import BackButton from '../../components/common/BackButton';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store/store';
+import { selectWishlistItems } from '../../store/slices/wishlistSlice';
 
 const WishlistScreen = () => {
   const { t } = useTranslation();
   const styles = useStyles();
   const navigation = useNavigation<any>();
+  const wishlistProducts = useSelector(selectWishlistItems);
+  const isWishlistLoaded = useSelector((state: RootState) => state.wishlist.isLoaded);
+  const isWishlistLoading = useSelector((state: RootState) => state.wishlist.isLoading);
   const {
-    data: wishlistResponse,
-    isLoading,
     isFetching,
     isError,
     refetch,
-  } = useGetWishlistQuery(undefined, {
-    refetchOnMountOrArgChange: true,
-  });
+  } = useGetWishlistQuery();
 
-  const wishlistProducts = getWishlistProducts(wishlistResponse);
-
-  if (isLoading) {
+  if (!isWishlistLoaded && isWishlistLoading && wishlistProducts.length === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <WishlistHeader navigation={navigation} styles={styles} />
@@ -47,7 +46,7 @@ const WishlistScreen = () => {
     );
   }
 
-  if (isError) {
+  if (!isWishlistLoaded && isError && wishlistProducts.length === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <WishlistHeader navigation={navigation} styles={styles} />

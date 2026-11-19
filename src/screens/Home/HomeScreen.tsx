@@ -31,14 +31,12 @@ import {
   useGetBannersQuery,
   useGetCategoriesQuery,
   useGetProductsQuery,
-  useGetWishlistQuery,
-  useAddToWishlistMutation,
-  useRemoveFromWishlistMutation,
 } from '../../api/quickCartApi';
 import { hasVariantDiscount, lowestPricedVariant, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
 import type { Banner } from '../../api/quickCartApi';
 import CartAddedToast from '../../components/CartAddedToast';
 import CartQuantityControl from '../../components/CartQuantityControl';
+import WishlistHeartButton from '../../components/WishlistHeartButton';
 import QuickCartWordmark from '../../components/QuickCartWordmark';
 import type { CartProduct } from '../../store/slices/cartSlice';
 import type { RootState } from '../../store/store';
@@ -97,8 +95,6 @@ const HomeScreen = () => {
   const styles = useStyles();
   const navigation = useNavigation<any>();
   const { t } = useTranslation();
-  const [addToWishlist] = useAddToWishlistMutation();
-  const [removeFromWishlist] = useRemoveFromWishlistMutation();
   const insets = useSafeAreaInsets();
   const user = useSelector((state: RootState) => state.auth.user);
   const [currentLocation, setCurrentLocation] = useState<string | null>(null);
@@ -193,7 +189,6 @@ const HomeScreen = () => {
     detectCurrentLocation();
   }, [detectCurrentLocation]);
 
-  const { data: wishlistResponse } = useGetWishlistQuery();
   const localCartItems = useSelector((state: RootState) => state.cart.items);
   const cartLoading = useSelector((state: RootState) => Boolean(state.auth.user?.id && state.cart.hydratedForUserId !== state.auth.user.id));
   const showAddedToast = useCallback(() => {
@@ -201,11 +196,6 @@ const HomeScreen = () => {
     if (cartToastTimeout.current) clearTimeout(cartToastTimeout.current);
     cartToastTimeout.current = setTimeout(() => setShowCartToast(false), 2800);
   }, []);
-  const wishlistIds = useMemo(() => {
-    const data = wishlistResponse?.data;
-    const products = Array.isArray(data) ? data : data?.products ?? [];
-    return products.map(item => item._id);
-  }, [wishlistResponse]);
 
   const {
     data: categoryResponse,
@@ -619,7 +609,6 @@ const HomeScreen = () => {
               {products.map(product => {
                 const cardVariant = lowestPricedVariant(product.variants);
                 const sellingPrice = variantSellingPrice(cardVariant);
-                const isWishlisted = wishlistIds.includes(product._id);
 
                 return (
                   <View key={product._id} style={[styles.productCard, { width: productCardWidth }]}>
@@ -644,27 +633,13 @@ const HomeScreen = () => {
                           </View>
                         )}
                       </Pressable>
-                      <Pressable
-                        style={styles.heartButton}
-                        hitSlop={8}
-                        accessibilityRole="button"
-                        accessibilityLabel={isWishlisted ? t('ui.common.removeFromWishlist', { name: product.name }) : t('ui.product.addToWishlist', { name: product.name })}
-                        onPress={async () => {
-                          try {
-                            if (isWishlisted) {
-                              await removeFromWishlist(product._id).unwrap();
-                            } else {
-                              await addToWishlist({ productId: product._id }).unwrap();
-                            }
-                          } catch (error) {
-                            console.error('Failed to update wishlist:', error);
-                          }
-                        }}
-                      >
-                        <Text style={styles.heartText}>
-                          {isWishlisted ? '♥' : '♡'}
-                        </Text>
-                      </Pressable>
+                      <WishlistHeartButton
+                        product={product}
+                        buttonStyle={styles.heartButton}
+                        heartStyle={styles.heartText}
+                        addLabel={t('ui.product.addToWishlist', { name: product.name })}
+                        removeLabel={t('ui.common.removeFromWishlist', { name: product.name })}
+                      />
                     </View>
                     <View style={styles.cartControl}>
                       <CartQuantityControl

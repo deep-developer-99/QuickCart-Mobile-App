@@ -20,9 +20,6 @@ import { useSelector } from 'react-redux';
 import {
   useGetCategoriesQuery,
   useGetProductsQuery,
-  useGetWishlistQuery,
-  useAddToWishlistMutation,
-  useRemoveFromWishlistMutation,
   type ProductResponse,
 } from '../../api/quickCartApi';
 import type { RootState } from '../../store/store';
@@ -30,6 +27,7 @@ import { hasVariantDiscount, lowestPricedVariant, variantDiscountPercentage, var
 import { radius, spacing, typography, useTheme } from '../../theme';
 import QuickCartWordmark from '../../components/QuickCartWordmark';
 import CartQuantityControl from '../../components/CartQuantityControl';
+import WishlistHeartButton from '../../components/WishlistHeartButton';
 import type { ThemeColors } from '../../theme';
 
 type Product = ProductResponse['data'][number];
@@ -85,8 +83,6 @@ const SearchScreen = () => {
     () => ({ ...emptyFilters, categoryId: initialCategoryId ?? null }),
     [initialCategoryId],
   );
-  const [addToWishlist] = useAddToWishlistMutation();
-  const [removeFromWishlist] = useRemoveFromWishlistMutation();
   const [searchText, setSearchText] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
@@ -102,12 +98,6 @@ const SearchScreen = () => {
     [categoryResponse],
   );
 
-  const { data: wishlistResponse } = useGetWishlistQuery();
-  const wishlistIds = useMemo(() => {
-    const data = wishlistResponse?.data;
-    const products = Array.isArray(data) ? data : data?.products ?? [];
-    return products.map(item => item._id);
-  }, [wishlistResponse]);
 
   useEffect(() => {
     const loadRecentSearches = async () => {
@@ -381,7 +371,6 @@ const SearchScreen = () => {
               {products.map(product => {
                 const cardVariant = lowestPricedVariant(product.variants);
                 const sellingPrice = variantSellingPrice(cardVariant);
-                const isWishlisted = wishlistIds.includes(product._id);
 
                 return (
                   <View key={product._id} style={styles.productCard}>
@@ -406,29 +395,13 @@ const SearchScreen = () => {
                           </View>
                         )}
                       </Pressable>
-                      <Pressable
-                        style={styles.heartButton}
-                        hitSlop={8}
-                        accessibilityRole="button"
-                        accessibilityLabel={isWishlisted ? t('ui.common.removeFromWishlist', { name: product.name }) : t('ui.product.addToWishlist', { name: product.name })}
-                        onPress={async () => {
-                          try {
-                            if (isWishlisted) {
-                              await removeFromWishlist(product._id).unwrap();
-                            } else {
-                              await addToWishlist({
-                                productId: product._id,
-                              }).unwrap();
-                            }
-                          } catch (error) {
-                            console.error('Failed to update wishlist:', error);
-                          }
-                        }}
-                      >
-                        <Text style={styles.heartText}>
-                          {isWishlisted ? '♥' : '♡'}
-                        </Text>
-                      </Pressable>
+                      <WishlistHeartButton
+                        product={product}
+                        buttonStyle={styles.heartButton}
+                        heartStyle={styles.heartText}
+                        addLabel={t('ui.product.addToWishlist', { name: product.name })}
+                        removeLabel={t('ui.common.removeFromWishlist', { name: product.name })}
+                      />
                     </View>
 
                     <Pressable

@@ -10,11 +10,11 @@ import {
   View,
 } from 'react-native';
 import type { CartProduct } from '../../api/quickCartApi';
-import { useRemoveFromWishlistMutation } from '../../api/quickCartApi';
 import TrashIcon from '../../assets/icons/trash.svg';
 import { radius, spacing, typography, useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
-import { hasVariantDiscount, lowestPricedVariant, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
+import { hasVariantDiscount, lowestPricedVariant, variantSellingPrice } from '../../utils/variantPricing';
+import { useWishlistActions } from '../../hooks/useWishlistActions';
 
 interface WishlistProductsProps {
   products: CartProduct[];
@@ -24,7 +24,7 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
   const { t } = useTranslation();
   const styles = useStyles();
   const navigation = useNavigation<any>();
-  const [removeFromWishlist] = useRemoveFromWishlistMutation();
+  const { setWishlisted } = useWishlistActions();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 
   const getQuantity = (id: string) => quantities[id] ?? 1;
@@ -45,17 +45,15 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
     });
   };
 
-  const handleRemove = async (productId: string) => {
-    try {
-      await removeFromWishlist(productId).unwrap();
+  const handleRemove = (product: CartProduct) => {
+    setWishlisted(product, false).then(succeeded => {
+      if (!succeeded) return;
       setQuantities(previous => {
         const next = { ...previous };
-        delete next[productId];
+        delete next[product._id];
         return next;
       });
-    } catch (error) {
-      console.error('Failed to remove product from wishlist:', error);
-    }
+    });
   };
 
   const renderItem = ({ item }: { item: CartProduct }) => {
@@ -127,7 +125,7 @@ const WishlistProducts = ({ products }: WishlistProductsProps) => {
 
             <Pressable
               style={styles.deleteButton}
-              onPress={() => handleRemove(item._id)}
+              onPress={() => handleRemove(item)}
               hitSlop={10}
               accessibilityRole="button"
               accessibilityLabel={t('ui.common.removeFromWishlist', { name: item.name })}

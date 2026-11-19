@@ -24,15 +24,13 @@ import {
   useGetCategoriesQuery,
   useGetSubcategoriesQuery,
   useLazyGetProductsQuery,
-  useGetWishlistQuery,
-  useAddToWishlistMutation,
-  useRemoveFromWishlistMutation,
 } from '../../api/quickCartApi';
 import type { RootState } from '../../store/store';
 import { hasVariantDiscount, lowestPricedVariant, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
 import CartAddedToast from '../../components/CartAddedToast';
 import BackButton from '../../components/common/BackButton';
 import CartQuantityControl from '../../components/CartQuantityControl';
+import WishlistHeartButton from '../../components/WishlistHeartButton';
 import QuickCartWordmark from '../../components/QuickCartWordmark';
 import type { CartProduct } from '../../store/slices/cartSlice';
 import { radius, spacing, typography, useTheme } from '../../theme';
@@ -85,8 +83,6 @@ const CategoriesScreen = () => {
   const sidebarWidth = windowWidth * 0.24;
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const [addToWishlist] = useAddToWishlistMutation();
-  const [removeFromWishlist] = useRemoveFromWishlistMutation();
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null,
   );
@@ -123,7 +119,6 @@ const CategoriesScreen = () => {
   });
   const [fetchProducts] = useLazyGetProductsQuery();
 
-  const { data: wishlistResponse } = useGetWishlistQuery();
   const localCartItems = useSelector((state: RootState) => state.cart.items);
   const cartLoading = useSelector((state: RootState) => Boolean(state.auth.user?.id && state.cart.hydratedForUserId !== state.auth.user.id));
   const showAddedToast = () => {
@@ -131,11 +126,6 @@ const CategoriesScreen = () => {
     if (cartToastTimeout.current) clearTimeout(cartToastTimeout.current);
     cartToastTimeout.current = setTimeout(() => setShowCartToast(false), 2800);
   };
-  const wishlistIds = useMemo(() => {
-    const data = wishlistResponse?.data;
-    const products = Array.isArray(data) ? data : data?.products ?? [];
-    return products.map(item => item._id);
-  }, [wishlistResponse]);
 
   const categories = useMemo<Category[]>(
     () => (Array.isArray(categoryResponse?.data) ? categoryResponse.data : []),
@@ -547,7 +537,6 @@ const CategoriesScreen = () => {
               renderItem={({ item: product }) => {
                 const cardVariant = lowestPricedVariant(product.variants);
                 const price = variantSellingPrice(cardVariant);
-                const isWishlisted = wishlistIds.includes(product._id);
                 return (
                   <View style={styles.productCard}>
                     <View style={styles.productImageWrap}>
@@ -559,14 +548,13 @@ const CategoriesScreen = () => {
                       >
                         {product.image ? <Image source={{ uri: product.image }} style={styles.productImage} resizeMode="contain" /> : <View style={styles.productFallback}><Text style={styles.productEmoji}>{productEmoji(product.name)}</Text></View>}
                       </Pressable>
-                      <Pressable style={styles.heartButton} onPress={async () => {
-                        try {
-                          if (isWishlisted) await removeFromWishlist(product._id).unwrap();
-                          else await addToWishlist({ productId: product._id }).unwrap();
-                        } catch (error) { console.error('Failed to update wishlist:', error); }
-                      }} hitSlop={8} accessibilityRole="button" accessibilityLabel={isWishlisted ? t('ui.common.removeFromWishlist', { name: product.name }) : t('ui.product.addToWishlist', { name: product.name })}>
-                        <Text style={styles.heartText}>{isWishlisted ? '♥' : '♡'}</Text>
-                      </Pressable>
+                      <WishlistHeartButton
+                        product={product}
+                        buttonStyle={styles.heartButton}
+                        heartStyle={styles.heartText}
+                        addLabel={t('ui.product.addToWishlist', { name: product.name })}
+                        removeLabel={t('ui.common.removeFromWishlist', { name: product.name })}
+                      />
                     </View>
                     <Pressable
                       onPress={() => navigation.navigate('ProductDetails', { product })}

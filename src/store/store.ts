@@ -2,7 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import type { Middleware } from '@reduxjs/toolkit';
 
 import { quickCartApi } from '../api/quickCartApi';
-import authReducer from './slices/authSlice';
+import authReducer, { logout, setCredentials } from './slices/authSlice';
 import cartReducer from './slices/cartSlice';
 import wishlistReducer from './slices/wishlistSlice';
 import type { CartState } from './slices/cartSlice';
@@ -27,6 +27,18 @@ const cartPersistenceMiddleware: Middleware = api => next => action => {
   return result;
 };
 
+const clearUserApiCacheMiddleware: Middleware = api => next => action => {
+  const previousUserId = (api.getState() as { auth: { user: { id: string } | null } }).auth.user?.id;
+  const result = next(action);
+  const nextUserId = (api.getState() as { auth: { user: { id: string } | null } }).auth.user?.id;
+  const accountChanged =
+    (setCredentials.match(action) && previousUserId !== nextUserId) ||
+    (logout.match(action) && previousUserId !== null);
+
+  if (accountChanged) api.dispatch(quickCartApi.util.resetApiState());
+  return result;
+};
+
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -35,7 +47,11 @@ export const store = configureStore({
     [quickCartApi.reducerPath]: quickCartApi.reducer,
   },
   middleware: getDefaultMiddleware =>
-    getDefaultMiddleware().concat(cartPersistenceMiddleware, quickCartApi.middleware),
+    getDefaultMiddleware().concat(
+      cartPersistenceMiddleware,
+      clearUserApiCacheMiddleware,
+      quickCartApi.middleware,
+    ),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

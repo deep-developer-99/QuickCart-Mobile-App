@@ -20,7 +20,8 @@ import CartIcon from '../assets/icons/shopping-cart.svg';
 import WishlistIcon from '../assets/icons/heart.svg';
 import ProfileIcon from '../assets/icons/profile.svg';
 
-import { getWishlistProducts, useGetWishlistQuery } from '../api/quickCartApi';
+import { useGetWishlistQuery } from '../api/quickCartApi';
+import { selectHasWishlistItems } from '../store/slices/wishlistSlice';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -48,11 +49,10 @@ const tabIcons = {
 const TabBarIcon = ({ color, routeName }: TabBarIconProps) => {
   const styles = useStyles();
   const cartItems = useSelector((state: RootState) => state.cart.items);
-  const { data: wishlistResponse } = useGetWishlistQuery();
+  const hasWishlistItems = useSelector(selectHasWishlistItems);
 
   const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
-  const hasWishlistItems = getWishlistProducts(wishlistResponse).length > 0;
   const Icon = tabIcons[routeName];
 
   return (
@@ -91,6 +91,8 @@ const MainTabNavigator = () => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+  useGetWishlistQuery(undefined, { skip: !isAuthenticated });
 
   return (
     <Tab.Navigator

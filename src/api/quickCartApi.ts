@@ -6,13 +6,25 @@ import {
   type FetchBaseQueryError,
 } from '@reduxjs/toolkit/query/react';
 
-import { getToken } from '../services/secureStorage';
+import { getToken, removeToken } from '../services/secureStorage';
 import { getSubcategoriesPath } from '../utils/categoryBrowsing';
 import {
   getApiErrorDiagnostics,
   logApiDiagnostic,
   safeApiPath,
 } from '../services/apiDiagnostics';
+import {
+  wishlistClearOptimistic,
+  wishlistClearRolledBack,
+  wishlistClearSettled,
+  wishlistHydrated,
+  wishlistOperationRolledBack,
+  wishlistOperationSettled,
+  wishlistOptimisticSet,
+  wishlistRequestFailed,
+  wishlistRequestStarted,
+} from '../store/slices/wishlistSlice';
+import { logout } from '../store/slices/authSlice';
 
 interface VerifyOtpResponse {
   success: boolean;
@@ -124,6 +136,12 @@ export interface WishlistMutationResponse {
   success: boolean;
   message: string;
   data?: CartProduct[] | { products?: CartProduct[] };
+}
+
+export interface WishlistMutationArg {
+  productId: string;
+  product?: CartProduct;
+  userId?: string;
 }
 
 export const getWishlistProducts = (
@@ -289,6 +307,44 @@ const diagnosticBaseQuery: BaseQueryFn<
   }
 };
 
+const wishlistMutationQueues = new Map<string, Promise<void>>();
+
+const withWishlistMutationLock = async <T,>(key: string, task: () => Promise<T>): Promise<T> => {
+  const previous = wishlistMutationQueues.get(key) ?? Promise.resolve();
+  let release = () => {};
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const queued = previous.then(() => gate);
+  wishlistMutationQueues.set(key, queued);
+  await previous;
+
+  try {
+    return await task();
+  } finally {
+    release();
+    if (wishlistMutationQueues.get(key) === queued) wishlistMutationQueues.delete(key);
+  }
+};
+
+const wishlistLockKey = (userId: string | undefined, productId: string) =>
+  `${userId ?? 'anonymous'}:${productId}`;
+
+const logoutIfWishlistUnauthorized = (
+  error: unknown,
+  userId: string,
+  dispatch: (action: ReturnType<typeof logout>) => unknown,
+  getState: () => unknown,
+) => {
+  const requestError = error as { error?: FetchBaseQueryError };
+  if (requestError?.error?.status !== 401) return;
+  const state = getState() as { auth: { user: { id: string } | null } };
+  if (state.auth.user?.id === userId) {
+    dispatch(logout());
+    removeToken().catch(removeError => {
+      console.warn('Failed to remove expired authentication token:', removeError);
+    });
+  }
+};
+
 export const quickCartApi = createApi({
   reducerPath: 'quickCartApi',
   tagTypes: ['Categories', 'Products', 'Banners', 'Me', 'Wishlist'],
@@ -379,28 +435,116 @@ export const quickCartApi = createApi({
         method: 'GET',
       }),
       providesTags: ['Wishlist'],
+      async onQueryStarted(_arg, { dispatch, getState, queryFulfilled }) {
+        const state = getState() as unknown as {
+          auth: { user: { id: string } | null };
+          wishlist: { ownerId: string | null; revision: number };
+        };
+        const userId = state.auth.user?.id;
+        if (!userId || state.wishlist.ownerId !== userId) return;
+        const startedAtRevision = state.wishlist.revision;
+        dispatch(wishlistRequestStarted({ userId }));
+        try {
+          const { data } = await queryFulfilled;
+          if (!data.success) throw new Error(data.message || 'Wishlist request failed.');
+          dispatch(wishlistHydrated({
+            userId,
+            startedAtRevision,
+            products: getWishlistProducts(data),
+          }));
+        } catch (error) {
+          logoutIfWishlistUnauthorized(error, userId, dispatch, getState);
+          dispatch(wishlistRequestFailed({ userId }));
+        }
+      },
     }),
 
     // Add product to wishlist
     addToWishlist: builder.mutation<
       WishlistMutationResponse,
-      { productId: string }
+      WishlistMutationArg
     >({
-      query: body => ({
-        url: '/wishlist',
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: ['Wishlist'],
+      queryFn: async ({ productId, userId: requestedUserId }, api, _extraOptions, baseQuery) => {
+        const currentUserId = (api.getState() as { auth: { user: { id: string } | null } }).auth.user?.id;
+        const userId = requestedUserId ?? currentUserId;
+        return withWishlistMutationLock(wishlistLockKey(userId, productId), async () => {
+          const activeUserId = (api.getState() as { auth: { user: { id: string } | null } }).auth.user?.id;
+          if (!userId || activeUserId !== userId) {
+            return { error: { status: 401, data: 'Authentication changed before wishlist update.' } };
+          }
+          const result = await baseQuery({ url: '/wishlist', method: 'POST', body: { productId } });
+          if (result.error) return { error: result.error };
+          return { data: result.data as WishlistMutationResponse };
+        });
+      },
+      async onQueryStarted(arg, { dispatch, getState, queryFulfilled, requestId }) {
+        const state = getState() as unknown as {
+          auth: { user: { id: string } | null };
+          wishlist: { ownerId: string | null; items: CartProduct[] };
+        };
+        const userId = state.auth.user?.id;
+        if (!userId || state.wishlist.ownerId !== userId || (arg.userId && arg.userId !== userId)) return;
+        dispatch(wishlistOptimisticSet({
+          userId,
+          productId: arg.productId,
+          product: arg.product,
+          isWishlisted: true,
+          operationId: requestId,
+        }));
+        try {
+          const { data } = await queryFulfilled;
+          if (!data.success) throw new Error(data.message || 'Wishlist update failed.');
+          dispatch(wishlistOperationSettled({
+            userId,
+            productId: arg.productId,
+            operationId: requestId,
+            isWishlisted: true,
+            product: arg.product,
+          }));
+        } catch (error) {
+          logoutIfWishlistUnauthorized(error, userId, dispatch, getState);
+          dispatch(wishlistOperationRolledBack({
+            userId,
+            productId: arg.productId,
+            operationId: requestId,
+          }));
+        }
+      },
     }),
 
     // Remove product from wishlist
-    removeFromWishlist: builder.mutation<WishlistMutationResponse, string>({
-      query: productId => ({
-        url: `/wishlist/${productId}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['Wishlist'],
+    removeFromWishlist: builder.mutation<WishlistMutationResponse, WishlistMutationArg>({
+      queryFn: async ({ productId, userId: requestedUserId }, api, _extraOptions, baseQuery) => {
+        const currentUserId = (api.getState() as { auth: { user: { id: string } | null } }).auth.user?.id;
+        const userId = requestedUserId ?? currentUserId;
+        return withWishlistMutationLock(wishlistLockKey(userId, productId), async () => {
+          const activeUserId = (api.getState() as { auth: { user: { id: string } | null } }).auth.user?.id;
+          if (!userId || activeUserId !== userId) {
+            return { error: { status: 401, data: 'Authentication changed before wishlist update.' } };
+          }
+          const result = await baseQuery({ url: `/wishlist/${productId}`, method: 'DELETE' });
+          if (result.error) return { error: result.error };
+          return { data: result.data as WishlistMutationResponse };
+        });
+      },
+      async onQueryStarted(arg, { dispatch, getState, queryFulfilled, requestId }) {
+        const state = getState() as unknown as {
+          auth: { user: { id: string } | null };
+          wishlist: { ownerId: string | null; items: CartProduct[] };
+        };
+        const userId = state.auth.user?.id;
+        const { productId } = arg;
+        if (!userId || state.wishlist.ownerId !== userId || (arg.userId && arg.userId !== userId)) return;
+        dispatch(wishlistOptimisticSet({ userId, productId, isWishlisted: false, operationId: requestId }));
+        try {
+          const { data } = await queryFulfilled;
+          if (!data.success) throw new Error(data.message || 'Wishlist update failed.');
+          dispatch(wishlistOperationSettled({ userId, productId, operationId: requestId, isWishlisted: false }));
+        } catch (error) {
+          logoutIfWishlistUnauthorized(error, userId, dispatch, getState);
+          dispatch(wishlistOperationRolledBack({ userId, productId, operationId: requestId }));
+        }
+      },
     }),
 
     // Clear current user's wishlist
@@ -412,7 +556,24 @@ export const quickCartApi = createApi({
         url: '/wishlist',
         method: 'DELETE',
       }),
-      invalidatesTags: ['Wishlist'],
+      async onQueryStarted(_arg, { dispatch, getState, queryFulfilled, requestId }) {
+        const state = getState() as unknown as {
+          auth: { user: { id: string } | null };
+          wishlist: { ownerId: string | null; items: CartProduct[] };
+        };
+        const userId = state.auth.user?.id;
+        if (!userId || state.wishlist.ownerId !== userId) return;
+        const previousItems = state.wishlist.items;
+        dispatch(wishlistClearOptimistic({ userId, operationId: requestId }));
+        try {
+          const { data } = await queryFulfilled;
+          if (!data.success) throw new Error(data.message || 'Wishlist clear failed.');
+          dispatch(wishlistClearSettled({ userId, operationId: requestId }));
+        } catch (error) {
+          logoutIfWishlistUnauthorized(error, userId, dispatch, getState);
+          dispatch(wishlistClearRolledBack({ userId, operationId: requestId, previousItems }));
+        }
+      },
     }),
 
     // Google Login

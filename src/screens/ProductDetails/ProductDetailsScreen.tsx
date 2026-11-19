@@ -22,13 +22,10 @@ import { useSelector } from 'react-redux';
 import Svg, { Path } from 'react-native-svg';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
-  getWishlistProducts,
-  useAddToWishlistMutation,
-  useGetWishlistQuery,
-  useRemoveFromWishlistMutation,
   useGetProductByIdQuery,
 } from '../../api/quickCartApi';
 import type { RootState } from '../../store/store';
+import { useWishlistActions } from '../../hooks/useWishlistActions';
 import CartAddedToast from '../../components/CartAddedToast';
 import BackButton from '../../components/common/BackButton';
 import CartQuantityControl from '../../components/CartQuantityControl';
@@ -77,11 +74,7 @@ const ProductDetailsScreen = () => {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const route = useRoute<ProductDetailsRouteProp>();
-  const [addToWishlist, { isLoading: addingToWishlist }] =
-    useAddToWishlistMutation();
-  const [removeFromWishlist, { isLoading: removingFromWishlist }] =
-    useRemoveFromWishlistMutation();
-  const { data: wishlistResponse } = useGetWishlistQuery();
+  const { toggleWishlist } = useWishlistActions();
   const localCartItems = useSelector((state: RootState) => state.cart.items);
   const cartLoading = useSelector((state: RootState) => Boolean(state.auth.user?.id && state.cart.hydratedForUserId !== state.auth.user.id));
   const hasProduct = 'product' in route.params;
@@ -107,12 +100,9 @@ const ProductDetailsScreen = () => {
   const [activeImage, setActiveImage] = useState(0);
   const [showAddedMessage, setShowAddedMessage] = useState(false);
 
-  const wishlistIds = useMemo(
-    () => getWishlistProducts(wishlistResponse).map(item => item._id),
-    [wishlistResponse],
+  const isWishlisted = useSelector((state: RootState) =>
+    Boolean(product && state.wishlist.items.some(item => item._id === product._id)),
   );
-  const isWishlisted = product ? wishlistIds.includes(product._id) : false;
-  const updatingWishlist = addingToWishlist || removingFromWishlist;
 
   const images = useMemo(() => {
     const list = Array.isArray(product?.images)
@@ -158,18 +148,10 @@ const ProductDetailsScreen = () => {
     setTimeout(() => setShowAddedMessage(false), 2800);
   }, []);
 
-  const handleWishlistToggle = useCallback(async () => {
+  const handleWishlistToggle = useCallback(() => {
     if (!product) return;
-    try {
-      if (isWishlisted) {
-        await removeFromWishlist(product._id).unwrap();
-      } else {
-        await addToWishlist({ productId: product._id }).unwrap();
-      }
-    } catch (error) {
-      console.error('Failed to update wishlist:', error);
-    }
-  }, [addToWishlist, isWishlisted, product, removeFromWishlist]);
+    toggleWishlist(product);
+  }, [product, toggleWishlist]);
 
   if (!product || product.isActive === false) {
     return (
@@ -237,12 +219,8 @@ const ProductDetailsScreen = () => {
           <View style={[styles.topControls, { top: insets.top + 10 }]}>
             <BackButton style={styles.backButton} onPress={() => navigation.goBack()} hitSlop={4} />
             <Pressable
-              style={[
-                styles.heartCircle,
-                updatingWishlist && styles.heartCircleDisabled,
-              ]}
+              style={styles.heartCircle}
               onPress={handleWishlistToggle}
-              disabled={updatingWishlist}
               accessibilityRole="button"
               accessibilityLabel={
                 isWishlisted
