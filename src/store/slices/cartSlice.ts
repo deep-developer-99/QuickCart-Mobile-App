@@ -50,6 +50,22 @@ const cartSlice = createSlice({
       const next: CartItem = { product: action.payload.product, variantId: action.payload.variantId, quantity };
       state.items = existing ? state.items.map(item => lineKey(item) === key ? next : item) : [...state.items, next];
     },
+    incrementCartLine: (state, action: PayloadAction<{ userId: string; productId: string; variantId: string }>) => {
+      if (state.ownerId !== action.payload.userId || state.hydratedForUserId !== action.payload.userId) return;
+      const item = state.items.find(entry => lineKey(entry) === `${action.payload.productId}:${action.payload.variantId}`);
+      if (!item) return;
+      const stock = selectedStock(item);
+      if (stock <= 0 || item.quantity >= Math.min(MAX_QUANTITY, stock)) return;
+      item.quantity += 1;
+    },
+    decrementCartLine: (state, action: PayloadAction<{ userId: string; productId: string; variantId: string }>) => {
+      if (state.ownerId !== action.payload.userId || state.hydratedForUserId !== action.payload.userId) return;
+      const key = `${action.payload.productId}:${action.payload.variantId}`;
+      const item = state.items.find(entry => lineKey(entry) === key);
+      if (!item) return;
+      if (item.quantity <= 1) state.items = state.items.filter(entry => lineKey(entry) !== key);
+      else item.quantity -= 1;
+    },
     setCartLineQuantity: (state, action: PayloadAction<{ userId: string; productId: string; variantId?: string; quantity: number }>) => {
       if (state.ownerId !== action.payload.userId || state.hydratedForUserId !== action.payload.userId) return;
       if (!Number.isInteger(action.payload.quantity)) return;
@@ -96,5 +112,5 @@ const cartSlice = createSlice({
   },
 });
 
-export const { beginCartHydration, hydrateCart, addCartLine, setCartLineQuantity, removeCartLine, clearUserCart, removePurchasedCartLines } = cartSlice.actions;
+export const { beginCartHydration, hydrateCart, addCartLine, incrementCartLine, decrementCartLine, setCartLineQuantity, removeCartLine, clearUserCart, removePurchasedCartLines } = cartSlice.actions;
 export default cartSlice.reducer;

@@ -1,5 +1,7 @@
 import reducer, {
   addCartLine,
+  decrementCartLine,
+  incrementCartLine,
   beginCartHydration,
   hydrateCart,
   removePurchasedCartLines,
@@ -54,6 +56,29 @@ describe('local cart slice', () => {
     let state = reducer(undefined, beginCartHydration('user-a'));
     state = reducer(state, hydrateCart({ userId: 'user-a', items: [{ product, variantId: 'variant-500', quantity: 3 }] }));
     state = reducer(state, removePurchasedCartLines({ userId: 'user-a', items: [{ productId: 'product-a', variantId: 'variant-500', quantity: 2 }] }));
+    expect(state.items[0].quantity).toBe(1);
+  });
+
+  it('applies rapid increments and decrements against the latest reducer state', () => {
+    let state = reducer(undefined, beginCartHydration('user-a'));
+    state = reducer(state, hydrateCart({ userId: 'user-a', items: [{ product, variantId: 'variant-500', quantity: 1 }] }));
+    state = reducer(state, incrementCartLine({ userId: 'user-a', productId: 'product-a', variantId: 'variant-500' }));
+    state = reducer(state, incrementCartLine({ userId: 'user-a', productId: 'product-a', variantId: 'variant-500' }));
+    expect(state.items[0].quantity).toBe(3);
+    state = reducer(state, incrementCartLine({ userId: 'user-a', productId: 'product-a', variantId: 'variant-500' }));
+    expect(state.items[0].quantity).toBe(3);
+    state = reducer(state, decrementCartLine({ userId: 'user-a', productId: 'product-a', variantId: 'variant-500' }));
+    state = reducer(state, decrementCartLine({ userId: 'user-a', productId: 'product-a', variantId: 'variant-500' }));
+    expect(state.items[0].quantity).toBe(1);
+    state = reducer(state, decrementCartLine({ userId: 'user-a', productId: 'product-a', variantId: 'variant-500' }));
+    expect(state.items).toEqual([]);
+  });
+
+  it('keeps increment and decrement actions isolated to the hydrated account', () => {
+    let state = reducer(undefined, beginCartHydration('user-a'));
+    state = reducer(state, hydrateCart({ userId: 'user-a', items: [{ product, variantId: 'variant-500', quantity: 1 }] }));
+    state = reducer(state, incrementCartLine({ userId: 'user-b', productId: 'product-a', variantId: 'variant-500' }));
+    state = reducer(state, decrementCartLine({ userId: 'user-b', productId: 'product-a', variantId: 'variant-500' }));
     expect(state.items[0].quantity).toBe(1);
   });
 });

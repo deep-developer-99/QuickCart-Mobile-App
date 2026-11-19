@@ -75,7 +75,6 @@ const ProductDetailsScreen = () => {
   const insets = useSafeAreaInsets();
   const route = useRoute<ProductDetailsRouteProp>();
   const { toggleWishlist } = useWishlistActions();
-  const localCartItems = useSelector((state: RootState) => state.cart.items);
   const cartLoading = useSelector((state: RootState) => Boolean(state.auth.user?.id && state.cart.hydratedForUserId !== state.auth.user.id));
   const hasProduct = 'product' in route.params;
   const productId = hasProduct
@@ -346,7 +345,6 @@ const ProductDetailsScreen = () => {
             quantityScope="variant"
             stock={selectedVariant?.stock}
             variants={product.variants}
-            cartItems={localCartItems}
             selectedVariantId={selectedVariant?._id}
             disabled={cartLoading}
             onAdded={showCartToast}

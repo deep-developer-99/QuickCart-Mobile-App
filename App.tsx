@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
-import { StatusBar } from 'react-native';
+import { AppState, StatusBar } from 'react-native';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import RootNavigator from './src/navigation/RootNavigator';
-import { store } from './src/store/store';
+import { flushCartPersistence, store } from './src/store/store';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { restoreLanguage } from './src/i18n';
 import type { AppDispatch, RootState } from './src/store/store';
@@ -128,6 +128,13 @@ const ThemedApp = () => {
     restoreLanguage().catch(error => {
       console.warn('Failed to restore language preference:', error);
     });
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state !== 'active') flushCartPersistence();
+    });
+    return () => subscription.remove();
   }, []);
 
   return (

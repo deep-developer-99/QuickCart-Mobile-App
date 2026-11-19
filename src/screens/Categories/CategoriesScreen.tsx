@@ -119,7 +119,6 @@ const CategoriesScreen = () => {
   });
   const [fetchProducts] = useLazyGetProductsQuery();
 
-  const localCartItems = useSelector((state: RootState) => state.cart.items);
   const cartLoading = useSelector((state: RootState) => Boolean(state.auth.user?.id && state.cart.hydratedForUserId !== state.auth.user.id));
   const showAddedToast = () => {
     setShowCartToast(true);
@@ -569,7 +568,7 @@ const CategoriesScreen = () => {
                       </View>
                     </Pressable>
                     <View style={styles.cartControl}>
-                      <CartQuantityControl productId={product._id} productName={product.name} productImage={product.image} stock={cardVariant?.stock} variants={product.variants} cartItems={localCartItems} disabled={cartLoading} compact onAdded={showAddedToast} />
+                      <CartQuantityControl productId={product._id} productName={product.name} productImage={product.image} stock={cardVariant?.stock} variants={product.variants} disabled={cartLoading} compact onAdded={showAddedToast} />
                     </View>
                   </View>
                 );

@@ -16,13 +16,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useSelector } from 'react-redux';
 import {
   useGetCategoriesQuery,
   useGetProductsQuery,
   type ProductResponse,
 } from '../../api/quickCartApi';
-import type { RootState } from '../../store/store';
 import { hasVariantDiscount, lowestPricedVariant, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
 import { radius, spacing, typography, useTheme } from '../../theme';
 import QuickCartWordmark from '../../components/QuickCartWordmark';
@@ -90,7 +88,6 @@ const SearchScreen = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState<ProductFilters>(scopedFilters);
   const [draftFilters, setDraftFilters] = useState<ProductFilters>(scopedFilters);
-  const localCartItems = useSelector((state: RootState) => state.cart.items);
 
   const { data: categoryResponse } = useGetCategoriesQuery();
   const categories = useMemo(
@@ -428,7 +425,6 @@ const SearchScreen = () => {
                         productImage={product.image}
                         stock={cardVariant?.stock}
                         variants={product.variants}
-                        cartItems={localCartItems}
                         compact
                       />
                     </View>

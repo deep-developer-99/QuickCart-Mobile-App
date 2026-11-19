@@ -28,7 +28,7 @@ import { hasVariantDiscount, variantDiscountPercentage, variantSellingPrice } fr
 import TrashIcon from '../../assets/icons/trash.svg';
 import type { CartItem } from '../../api/quickCartApi';
 import type { RootState, AppDispatch } from '../../store/store';
-import { removeCartLine, setCartLineQuantity } from '../../store/slices/cartSlice';
+import { decrementCartLine, incrementCartLine, removeCartLine } from '../../store/slices/cartSlice';
 import { radius, spacing, typography, useTheme } from '../../theme';
 import type { ThemeColors } from '../../theme';
 
@@ -144,13 +144,15 @@ const CartScreen = () => {
     );
   };
 
-  const changeQuantity = async (item: CartItem, nextQuantity: number) => {
+  const changeQuantity = async (item: CartItem, direction: 'increase' | 'decrease') => {
     const productId = item.product?._id;
 
     if (!productId) return;
 
-    if (nextQuantity > (item.product?.variants?.find(entry => entry._id === item.variantId)?.stock ?? 0)) return;
-    dispatch(setCartLineQuantity({ userId: userId ?? '', productId, variantId: item.variantId, quantity: nextQuantity }));
+    if (!item.variantId) return;
+    dispatch(direction === 'decrease'
+      ? decrementCartLine({ userId: userId ?? '', productId, variantId: item.variantId })
+      : incrementCartLine({ userId: userId ?? '', productId, variantId: item.variantId }));
   };
 
   const removeItem = async (productId: string, variantId?: string) => {
@@ -272,7 +274,7 @@ const CartScreen = () => {
                         <Pressable
                           style={styles.quantityButton}
                           onPress={() =>
-                            changeQuantity(item, item.quantity - 1)
+                            changeQuantity(item, 'decrease')
                           }
                         >
                           <Text style={styles.quantitySymbol}>−</Text>
@@ -283,7 +285,7 @@ const CartScreen = () => {
                         <Pressable
                           style={styles.quantityButton}
                           onPress={() =>
-                            changeQuantity(item, item.quantity + 1)
+                            changeQuantity(item, 'increase')
                           }
                         >
                           <Text style={styles.quantitySymbol}>+</Text>

@@ -189,7 +189,6 @@ const HomeScreen = () => {
     detectCurrentLocation();
   }, [detectCurrentLocation]);
 
-  const localCartItems = useSelector((state: RootState) => state.cart.items);
   const cartLoading = useSelector((state: RootState) => Boolean(state.auth.user?.id && state.cart.hydratedForUserId !== state.auth.user.id));
   const showAddedToast = useCallback(() => {
     setShowCartToast(true);
@@ -648,7 +647,6 @@ const HomeScreen = () => {
                           productImage={product.image}
                           stock={cardVariant?.stock}
                           variants={product.variants}
-                          cartItems={localCartItems}
                           disabled={cartLoading}
                           compact
                           onAdded={showAddedToast}

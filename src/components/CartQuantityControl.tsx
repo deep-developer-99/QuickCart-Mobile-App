@@ -17,13 +17,12 @@ import {
 } from '../utils/cartQuantities';
 import ProductVariantBottomSheet from './ProductVariantBottomSheet';
 import type { RootState, AppDispatch } from '../store/store';
-import { addCartLine, removeCartLine, setCartLineQuantity } from '../store/slices/cartSlice';
+import { addCartLine, decrementCartLine, incrementCartLine } from '../store/slices/cartSlice';
 
 type CartQuantityControlProps = {
   productId: string;
   stock?: number;
   cartItem?: CartItem;
-  cartItems?: CartItem[];
   compact?: boolean;
   disabled?: boolean;
   onAdded?: () => void;
@@ -38,7 +37,6 @@ const CartQuantityControl = ({
   productId,
   stock,
   cartItem,
-  cartItems,
   compact = false,
   disabled = false,
   onAdded,
@@ -52,7 +50,10 @@ const CartQuantityControl = ({
   const styles = useStyles();
   const dispatch = useDispatch<AppDispatch>();
   const userId = useSelector((state: RootState) => state.auth.user?.id ?? '');
-  const localItems = useSelector((state: RootState) => state.cart.items);
+  const localItems = useSelector(
+    (state: RootState) => state.cart.items.filter(item => item.product?._id === productId),
+    (left, right) => left.length === right.length && left.every((item, index) => item === right[index]),
+  );
   const hydratedForUserId = useSelector((state: RootState) => state.cart.hydratedForUserId);
   const [showVariantPicker, setShowVariantPicker] = React.useState(false);
   const activeVariants = variants.filter(item => item.isActive);
@@ -66,7 +67,7 @@ const CartQuantityControl = ({
   const selectedVariant =
     activeVariants.find(item => item._id === effectiveSelectedVariantId) ??
     purchasableVariants[0];
-  const currentCartItems = cartItems ?? (cartItem ? [cartItem] : localItems);
+  const currentCartItems = cartItem ? [cartItem] : localItems;
   const allProductCart = getProductCartSummary(currentCartItems, productId);
   const productCart =
     quantityScope === 'variant'
@@ -96,15 +97,12 @@ const CartQuantityControl = ({
     return Promise.resolve();
   };
 
-  const setVariantQuantity = (entry: typeof directEntries[number], next: number) => {
+  const setVariantQuantity = (entry: typeof directEntries[number], direction: 'increase' | 'decrease') => {
     const variantId = entry.variant?._id ?? entry.item.variantId;
-    const payload = { productId, ...(variantId ? { variantId } : {}) };
-    if (next <= 0) {
-      dispatch(removeCartLine({ userId, ...payload }));
-      return Promise.resolve();
-    }
-    if (next > (entry.variant?.stock ?? stock ?? 1)) return Promise.resolve();
-    dispatch(setCartLineQuantity({ userId, ...payload, quantity: next }));
+    if (!variantId) return Promise.resolve();
+    dispatch(direction === 'decrease'
+      ? decrementCartLine({ userId, productId, variantId })
+      : incrementCartLine({ userId, productId, variantId }));
     return Promise.resolve();
   };
 
@@ -113,7 +111,7 @@ const CartQuantityControl = ({
     if (getCartQuantityAction('decrease', actionVariantCount, productCart.distinctVariantCount) === 'openVariantSheet') {
       setShowVariantPicker(true);
     } else if (directEntry) {
-      return setVariantQuantity(directEntry, directEntry.item.quantity - 1);
+      return setVariantQuantity(directEntry, 'decrease');
     }
   };
 
@@ -122,7 +120,7 @@ const CartQuantityControl = ({
     if (getCartQuantityAction('increase', actionVariantCount, productCart.distinctVariantCount) === 'openVariantSheet') {
       setShowVariantPicker(true);
     } else if (directEntry) {
-      return setVariantQuantity(directEntry, directEntry.item.quantity + 1);
+      return setVariantQuantity(directEntry, 'increase');
     } else if (!directEntry && selectedVariant && selectedVariant.stock > 0) {
       addOne();
     }
