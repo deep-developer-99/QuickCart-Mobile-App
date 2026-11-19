@@ -20,10 +20,7 @@ import CartIcon from '../assets/icons/shopping-cart.svg';
 import WishlistIcon from '../assets/icons/heart.svg';
 import ProfileIcon from '../assets/icons/profile.svg';
 
-import {
-  getWishlistProducts,
-  useGetWishlistQuery,
-} from '../api/quickCartApi';
+import { getWishlistProducts, useGetWishlistQuery } from '../api/quickCartApi';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -120,22 +117,35 @@ const MainTabNavigator = () => {
       <Tab.Screen
         name="Categories"
         component={CategoriesScreen}
-        options={{ tabBarLabel: t('tabs.categories'), tabBarIcon: renderCategoriesIcon }}
+        options={{
+          tabBarLabel: t('tabs.categories'),
+          tabBarIcon: renderCategoriesIcon,
+        }}
       />
       <Tab.Screen
         name="Cart"
         component={CartScreen}
-        options={{ title: t('tabs.cart'), tabBarLabel: t('tabs.cart'), tabBarIcon: renderCartIcon }}
+        options={{
+          title: t('tabs.cart'),
+          tabBarLabel: t('tabs.cart'),
+          tabBarIcon: renderCartIcon,
+        }}
       />
       <Tab.Screen
         name="Wishlist"
         component={WishlistScreen}
-        options={{ tabBarLabel: t('tabs.wishlist'), tabBarIcon: renderWishlistIcon }}
+        options={{
+          tabBarLabel: t('tabs.wishlist'),
+          tabBarIcon: renderWishlistIcon,
+        }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ tabBarLabel: t('tabs.profile'), tabBarIcon: renderProfileIcon }}
+        options={{
+          tabBarLabel: t('tabs.profile'),
+          tabBarIcon: renderProfileIcon,
+        }}
       />
     </Tab.Navigator>
   );
