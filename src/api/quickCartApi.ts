@@ -25,6 +25,7 @@ import {
   wishlistRequestStarted,
 } from '../store/slices/wishlistSlice';
 import { logout } from '../store/slices/authSlice';
+import { deactivateLocalCart } from '../services/cartStorage';
 
 interface VerifyOtpResponse {
   success: boolean;
@@ -263,6 +264,7 @@ const diagnosticBaseQuery: BaseQueryFn<
   const method = typeof args === 'string' ? 'GET' : args.method ?? 'GET';
   const path = safeApiPath(typeof args === 'string' ? args : args.url);
   const startedAt = Date.now();
+  const authAtStart = (api.getState() as { auth: { user: { id: string } | null; token: string | null } }).auth;
   const requestInfo = {
     operation: api.endpoint,
     method,
@@ -278,6 +280,16 @@ const diagnosticBaseQuery: BaseQueryFn<
       result.meta?.request.headers.get('authorization'),
     );
 
+    const currentAuth = (api.getState() as { auth: { user: { id: string } | null; token: string | null } }).auth;
+    if (authAtStart.user?.id !== currentAuth.user?.id || authAtStart.token !== currentAuth.token) {
+      return { error: { status: "CUSTOM_ERROR", error: "Account changed during request." } };
+    }
+    if (result.error?.status === 401 && authAtStart.user?.id && authPresent) {
+      const code = (result.error.data as { code?: string } | undefined)?.code;
+      if (code === 'ACCOUNT_INACTIVE') void deactivateLocalCart(authAtStart.user.id).catch(() => console.warn('Unable to clear deactivated cart.'));
+      api.dispatch(logout());
+      void removeToken(authAtStart.token).catch(() => console.warn('Unable to clear expired token.'));
+    }
     if (result.error) {
       logApiDiagnostic('warn', 'request.failed', {
         ...requestInfo,
