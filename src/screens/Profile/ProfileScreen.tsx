@@ -313,7 +313,7 @@ const ProfileScreen = () => {
             <MenuRow
               icon={<PrivacyIcon color={theme.colors.grey150} />}
               label={t('profile.privacy')}
-              onPress={() => handleComingSoon(t('ui.profile.privacy'))}
+              onPress={() => navigation.navigate('DeleteAccount')}
             />
             <MenuRow
               icon={<TermsIcon color={theme.colors.grey150} />}

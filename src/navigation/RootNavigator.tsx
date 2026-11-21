@@ -18,6 +18,7 @@ import OrderHistoryScreen from '../screens/OrderHistory/OrderHistoryScreen';
 import OrderDetailsScreen from '../screens/OrderDetails/OrderDetailsScreen';
 import ProductDetailsScreen from '../screens/ProductDetails/ProductDetailsScreen';
 import CheckoutScreen from '../screens/Checkout/CheckoutScreen';
+import DeleteAccountScreen from '../screens/Profile/DeleteAccountScreen';
 import ShippingAddressScreen from '../screens/ShippingAddress/ShippingAddressScreen';
 import PaymentMethodScreen from '../screens/PaymentMethod/PaymentMethodScreen';
 
@@ -51,6 +52,7 @@ export type RootStackParamList = {
 
   Checkout: undefined;
   ShippingAddress: undefined;
+  DeleteAccount: undefined;
   PaymentMethod: undefined;
 };
 
@@ -246,6 +248,11 @@ const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
           />
 
           <Stack.Screen name="Checkout" component={CheckoutScreen} />
+          <Stack.Screen
+            name="DeleteAccount"
+            component={DeleteAccountScreen}
+            options={{ headerShown: true, title: 'Delete account' }}
+          />
           <Stack.Screen
             name="ShippingAddress"
             component={ShippingAddressScreen}

@@ -605,6 +605,17 @@ export const quickCartApi = createApi({
     }),
 
     // Get current logged-in user
+    getDeletionConfirmation: builder.mutation<{ confirmationToken: string }, void>({
+      query: () => ({ url: '/auth/delete-account/confirmation', method: 'POST' }),
+    }),
+
+    deleteAccount: builder.mutation<
+      { success: boolean },
+      { reason: string; feedback?: string; confirmationToken: string }
+    >({
+      query: body => ({ url: '/auth/delete-account', method: 'POST', body }),
+    }),
+
     getMe: builder.query<MeResponse, void>({
       query: () => ({
         url: '/auth/me',
