@@ -110,6 +110,16 @@ export interface BannerResponse {
   message?: string;
 }
 
+export interface MobileBanner {
+  _id: string;
+  title: string;
+  image: string;
+  redirectType: 'none' | 'category' | 'subcategory' | 'product';
+  redirectTarget?: string;
+  redirectCategoryId?: string;
+  displayOrder: number;
+}
+
 export interface PublishedOffer {
   _id: string;
   title: string;
@@ -407,6 +417,11 @@ export const quickCartApi = createApi({
         url: '/banners',
         method: 'GET',
       }),
+      providesTags: ['Banners'],
+    }),
+
+    getMobileBanners: builder.query<{ success: boolean; data: MobileBanner[] }, void>({
+      query: () => '/mobile-banners',
       providesTags: ['Banners'],
     }),
 
@@ -709,6 +724,7 @@ export const {
   useGetSubcategoriesQuery,
   useGetSearchSuggestionsQuery,
   useGetBannersQuery,
+  useGetMobileBannersQuery,
   useGetProductsQuery,
   useLazyGetProductsQuery,
   useGetProductByIdQuery,

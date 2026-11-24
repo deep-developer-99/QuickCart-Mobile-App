@@ -17,7 +17,6 @@ import {
   StyleSheet,
   Alert,
   Image,
-  Linking,
   Modal,
   Pressable,
   RefreshControl,
@@ -35,14 +34,14 @@ import {
 
 import {
   useGetSearchSuggestionsQuery,
-  useGetBannersQuery,
+  useGetMobileBannersQuery,
   useGetCategoriesQuery,
   useGetMobileCategoryNavigationQuery,
   useGetSubcategoriesQuery,
   useGetProductsQuery,
 } from '../../api/quickCartApi';
 import { hasVariantDiscount, lowestPricedVariant, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
-import type { Banner } from '../../api/quickCartApi';
+import type { MobileBanner } from '../../api/quickCartApi';
 import HomeCategoryNavigation from '../../components/HomeCategoryNavigation';
 import CartAddedToast from '../../components/CartAddedToast';
 import CartQuantityControl from '../../components/CartQuantityControl';
@@ -96,9 +95,6 @@ const productEmoji = (name: string) => {
 
 const NOTIFICATION_PROMPT_SEEN_KEY =
   'quickcart.notificationPermissionPromptSeen';
-
-const getBannerImage = (banner: Banner) =>
-  banner.mobileImage?.trim() || banner.image?.trim() || banner.imageUrl?.trim() || null;
 
 const hintLayout = StyleSheet.create({
   row: { flex: 1, flexDirection: 'row', alignItems: 'center' },
@@ -396,10 +392,9 @@ const HomeScreen = () => {
   });
   const {
     data: bannerResponse,
-    isLoading: bannersLoading,
     isFetching: bannersFetching,
     refetch: refetchBanners,
-  } = useGetBannersQuery(undefined, {
+  } = useGetMobileBannersQuery(undefined, {
     refetchOnMountOrArgChange: 30,
   });
   const { data: navigationResponse, refetch: refetchNavigation } = useGetMobileCategoryNavigationQuery(undefined, { refetchOnMountOrArgChange: 30 });
@@ -408,39 +403,51 @@ const HomeScreen = () => {
     if (navigationResponse && selectedCategoryId && !navigationItems.some(item => item.categoryId === selectedCategoryId)) selectHomeCategory(null);
   }, [navigationItems, navigationResponse, selectedCategoryId, selectHomeCategory]);
   const selectedNavigationItem = navigationItems.find(item => item.categoryId === selectedCategoryId);
-  const { data: selectedSubcategories, isFetching: selectedSubcategoriesLoading, refetch: refetchSelectedSubcategories } = useGetSubcategoriesQuery(selectedCategoryId ?? '', { skip: !selectedCategoryId });
+  const { currentData: selectedSubcategories, isFetching: selectedSubcategoriesLoading, refetch: refetchSelectedSubcategories } = useGetSubcategoriesQuery(selectedCategoryId ?? '', { skip: !selectedCategoryId });
   const { data: selectedProducts, isFetching: selectedProductsLoading, refetch: refetchSelectedProducts } = useGetProductsQuery({ category: selectedCategoryId ?? undefined, subCategory: selectedSubcategoryId ?? undefined, page: 1, limit: 18 }, { skip: !selectedCategoryId });
   useEffect(() => {
     if (selectedSubcategoryId && selectedSubcategories && !selectedSubcategories.data.some(item => item._id === selectedSubcategoryId)) setSelectedSubcategoryId(null);
   }, [selectedSubcategoryId, selectedSubcategories]);
 
-  const banners = useMemo<Banner[]>(() => {
-    const data = bannerResponse?.data;
-    const responseBanners = Array.isArray(data)
-      ? data
-      : data?.banners ?? bannerResponse?.banners ?? [];
-    return responseBanners.filter(banner => Boolean(getBannerImage(banner)));
-  }, [bannerResponse]);
+  const banners = useMemo<MobileBanner[]>(() =>
+    Array.isArray(bannerResponse?.data) ? bannerResponse.data.filter(banner => Boolean(banner.image?.trim())) : [],
+  [bannerResponse]);
   const [bannerIndex, setBannerIndex] = useState(0);
   const [invalidBannerIds, setInvalidBannerIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const [invalidMobileBannerIds, setInvalidMobileBannerIds] = useState<Set<string>>(() => new Set());
   const bannerScrollRef = useRef<any>(null);
+  const bannerRatioCache = useRef<Record<string, number>>({});
   const { width: screenWidth } = useWindowDimensions();
   const bannerWidth = Math.max(screenWidth, 1);
-  const [bannerRatio, setBannerRatio] = useState(2.1);
+  const [bannerRatios, setBannerRatios] = useState<Record<string, number>>({});
   const activeBanner = banners[bannerIndex];
-  const activeBannerImage = activeBanner && (invalidMobileBannerIds.has(activeBanner._id) ? activeBanner.image : getBannerImage(activeBanner));
   useEffect(() => {
-    if (!activeBannerImage) return;
     let active = true;
-    Image.getSize(activeBannerImage, (width, height) => {
-      if (active && width > 0 && height > 0) setBannerRatio(width / height);
-    }, () => { if (active) setBannerRatio(2.1); });
+    banners.forEach(banner => {
+      if (bannerRatioCache.current[banner.image]) return;
+      Image.getSize(banner.image, (width, height) => {
+        if (active && width > 0 && height > 0) {
+          const ratio = width / height;
+          bannerRatioCache.current[banner.image] = ratio;
+          setBannerRatios(current => current[banner.image] === ratio ? current : { ...current, [banner.image]: ratio });
+        }
+      }, () => undefined);
+    });
     return () => { active = false; };
-  }, [activeBannerImage]);
-  const bannerHeight = Math.round(bannerWidth / bannerRatio);
+  }, [banners]);
+  const bannerRatio = activeBanner ? bannerRatios[activeBanner.image] ?? 2.1 : 2.1;
+  const bannerHeight = Math.round(Math.min(bannerWidth, bannerWidth / Math.max(bannerRatio, 1)));
+  const [bannerAnimatedHeight] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    const animation = Animated.timing(bannerAnimatedHeight, {
+      toValue: banners.length ? bannerHeight : 0,
+      duration: 240,
+      useNativeDriver: false,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [bannerAnimatedHeight, bannerHeight, banners.length]);
 
   const categories = useMemo<Category[]>(
     () => (Array.isArray(categoryResponse?.data) ? categoryResponse.data : []),
@@ -471,12 +478,11 @@ const HomeScreen = () => {
     ]);
   }, [refetchBanners, refetchCategories, refetchProducts, refetchNavigation, refetchSelectedSubcategories, refetchSelectedProducts, selectedCategoryId]);
 
-  const bannerKey = banners.map(banner => banner._id).join('|');
+  const bannerKey = banners.map(banner => `${banner._id}:${banner.image}`).join('|');
 
   useEffect(() => {
     setBannerIndex(0);
     setInvalidBannerIds(new Set());
-    setInvalidMobileBannerIds(new Set());
     bannerScrollRef.current?.scrollTo({ x: 0, animated: false });
   }, [bannerKey]);
 
@@ -507,38 +513,24 @@ const HomeScreen = () => {
   );
 
   const handleBannerPress = useCallback(
-    async (banner: Banner) => {
-      const type = banner.redirectType?.trim().toLowerCase();
-      const value = banner.redirectValue?.trim();
-      if (!type || !value) return;
-
-      if (type === 'category' || type === 'categories') {
+    (banner: MobileBanner) => {
+      const type = banner.redirectType;
+      const value = banner.redirectTarget;
+      if (!value) return;
+      if (type === 'category') {
         navigation.navigate('Categories', { categoryId: value });
         return;
       }
-
-      if (type === 'product') {
-        const allProducts = Array.isArray(productResponse?.data)
-          ? productResponse.data
-          : [];
-        const product = allProducts.find(item => item._id === value);
-        if (product) {
-          navigation.navigate('ProductDetails', { product });
-        }
+      if (type === 'subcategory' && banner.redirectCategoryId) {
+        selectHomeCategory(banner.redirectCategoryId);
+        setSelectedSubcategoryId(value);
         return;
       }
-
-      if (type === 'external' || type === 'url' || type === 'link') {
-        try {
-          if (await Linking.canOpenURL(value)) {
-            await Linking.openURL(value);
-          }
-        } catch (error) {
-          console.warn('Unable to open banner link:', error);
-        }
+      if (type === 'product') {
+        navigation.navigate('ProductDetails', { productId: value });
       }
     },
-    [navigation, productResponse],
+    [navigation, selectHomeCategory],
   );
 
   useFocusEffect(
@@ -658,23 +650,11 @@ const HomeScreen = () => {
           <HomeCategoryNavigation items={navigationItems} selectedId={selectedCategoryId} onSelect={selectHomeCategory} />
         </View>
 
-        {selectedCategoryId ? null : bannersLoading ? (
-          <View
-            style={[
-              styles.bannerPlaceholder,
-              { width: bannerWidth, height: bannerHeight },
-            ]}
-          >
-            <ActivityIndicator
-              size="small"
-              color={styles.loadingIndicator.color}
-            />
-          </View>
-        ) : banners.length > 0 ? (
-          <View
+        {selectedCategoryId ? null : banners.length > 0 ? (
+          <Animated.View
             style={[
               styles.bannerCarousel,
-              { width: bannerWidth, height: bannerHeight },
+              { width: bannerWidth, height: bannerAnimatedHeight },
             ]}
           >
             <ScrollView
@@ -694,7 +674,6 @@ const HomeScreen = () => {
               }}
             >
               {banners.map(banner => {
-                const image = invalidMobileBannerIds.has(banner._id) ? banner.image : getBannerImage(banner);
                 const imageFailed = invalidBannerIds.has(banner._id);
 
                 return (
@@ -702,27 +681,17 @@ const HomeScreen = () => {
                     key={banner._id}
                     style={{ width: bannerWidth, height: bannerHeight }}
                     onPress={() => handleBannerPress(banner)}
-                    disabled={!banner.redirectType || !banner.redirectValue}
+                    disabled={banner.redirectType === 'none' || !banner.redirectTarget}
                   >
-                    {image && !imageFailed ? (
+                    {!imageFailed ? (
                       <Image
-                        source={{ uri: image }}
+                        source={{ uri: banner.image }}
                         style={styles.bannerImage}
                         resizeMode="contain"
-                        onError={() => {
-                          if (banner.mobileImage && !invalidMobileBannerIds.has(banner._id) && banner.image) {
-                            setInvalidMobileBannerIds(current => new Set(current).add(banner._id));
-                            return;
-                          }
-                          setInvalidBannerIds(current => {
-                            const next = new Set(current);
-                            next.add(banner._id);
-                            return next;
-                          });
-                        }}
+                        onError={() => setInvalidBannerIds(current => new Set(current).add(banner._id))}
                       />
                     ) : (
-                      <View style={styles.bannerFallback} />
+                      <View style={styles.bannerFallback}><Text style={styles.bannerFallbackTitle}>{banner.title}</Text></View>
                     )}
                   </Pressable>
                 );
@@ -741,7 +710,7 @@ const HomeScreen = () => {
                 ))}
               </View>
             ) : null}
-          </View>
+          </Animated.View>
         ) : null}
 
         {selectedCategoryId ? <View style={styles.section}>
@@ -1029,17 +998,16 @@ const createStyles = (colors: ThemeColors, _mode: ThemeMode) => ({
   bannerCarousel: {
     overflow: 'hidden' as const,
     position: 'relative' as const,
+    backgroundColor: colors.grey50,
   },
   bannerImage: { width: '100%', height: '100%' },
   bannerFallback: {
     flex: 1,
     backgroundColor: colors.grey50,
-  },
-  bannerPlaceholder: {
-    backgroundColor: colors.grey50,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
+  bannerFallbackTitle: { ...typography.body2Regular, color: colors.secondaryText },
   bannerDots: {
     position: 'absolute' as const,
     alignSelf: 'center' as const,
