@@ -316,7 +316,7 @@ const ProductDetailsScreen = () => {
 
       <CartAddedToast
         visible={showAddedMessage}
-        onViewCart={() => navigation.navigate('MainTabs', { screen: 'Cart' })}
+        onViewCart={() => navigation.navigate('Checkout')}
       />
 
       <SafeAreaView style={styles.bottomBar} edges={['bottom']}>

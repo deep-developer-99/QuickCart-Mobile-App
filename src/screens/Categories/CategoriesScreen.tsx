@@ -590,7 +590,7 @@ const CategoriesScreen = () => {
         />
         <CartAddedToast
           visible={showCartToast}
-          onViewCart={() => navigation.navigate('MainTabs', { screen: 'Cart' })}
+          onViewCart={() => navigation.navigate('Checkout')}
         />
       </View>
     </SafeAreaView>

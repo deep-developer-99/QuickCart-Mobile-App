@@ -10,13 +10,11 @@ import type { RootState } from '../store/store';
 
 import HomeScreen from '../screens/Home/HomeScreen';
 import CategoriesScreen from '../screens/Categories/CategoriesScreen';
-import CartScreen from '../screens/Cart/CartScreen';
 import WishlistScreen from '../screens/Wishlist/WishlistScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
 
 import HomeIcon from '../assets/icons/home-2.svg';
 import CategoriesIcon from '../assets/icons/category-2.svg';
-import CartIcon from '../assets/icons/shopping-cart.svg';
 import WishlistIcon from '../assets/icons/heart.svg';
 import ProfileIcon from '../assets/icons/profile.svg';
 
@@ -26,7 +24,6 @@ import { selectHasWishlistItems } from '../store/slices/wishlistSlice';
 export type MainTabParamList = {
   Home: undefined;
   Categories: { categoryId?: string } | undefined;
-  Cart: undefined;
   Wishlist: undefined;
   Profile: undefined;
 };
@@ -41,17 +38,13 @@ type TabBarIconProps = {
 const tabIcons = {
   Home: HomeIcon,
   Categories: CategoriesIcon,
-  Cart: CartIcon,
   Wishlist: WishlistIcon,
   Profile: ProfileIcon,
 };
 
 const TabBarIcon = ({ color, routeName }: TabBarIconProps) => {
   const styles = useStyles();
-  const cartItems = useSelector((state: RootState) => state.cart.items);
   const hasWishlistItems = useSelector(selectHasWishlistItems);
-
-  const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   const Icon = tabIcons[routeName];
 
@@ -59,9 +52,6 @@ const TabBarIcon = ({ color, routeName }: TabBarIconProps) => {
     <View style={styles.iconContainer}>
       <Icon width={24} height={24} color={color} fill={color} />
 
-      {routeName === 'Cart' && cartCount > 0 ? (
-        <View style={styles.cartBadge} />
-      ) : null}
 
       {routeName === 'Wishlist' && hasWishlistItems ? (
         <View style={styles.wishlistBadge} />
@@ -75,9 +65,6 @@ const renderHomeIcon = ({ color }: { color: string }) => (
 );
 const renderCategoriesIcon = ({ color }: { color: string }) => (
   <TabBarIcon color={color} routeName="Categories" />
-);
-const renderCartIcon = ({ color }: { color: string }) => (
-  <TabBarIcon color={color} routeName="Cart" />
 );
 const renderWishlistIcon = ({ color }: { color: string }) => (
   <TabBarIcon color={color} routeName="Wishlist" />
@@ -101,12 +88,14 @@ const MainTabNavigator = () => {
         headerShown: false,
         tabBarActiveTintColor: theme.colors.cyan,
         tabBarInactiveTintColor: theme.colors.grey150,
+        tabBarLabelPosition: 'below-icon',
+        tabBarItemStyle: styles.tabItem,
         tabBarLabelStyle: styles.tabBarLabel,
         tabBarStyle: [
           styles.tabBar,
           {
-            height: 68 + insets.bottom,
-            paddingBottom: 7 + insets.bottom,
+            height: 58 + insets.bottom,
+            paddingBottom: 4 + insets.bottom,
           },
         ],
       }}
@@ -122,15 +111,6 @@ const MainTabNavigator = () => {
         options={{
           tabBarLabel: t('tabs.categories'),
           tabBarIcon: renderCategoriesIcon,
-        }}
-      />
-      <Tab.Screen
-        name="Cart"
-        component={CartScreen}
-        options={{
-          title: t('tabs.cart'),
-          tabBarLabel: t('tabs.cart'),
-          tabBarIcon: renderCartIcon,
         }}
       />
       <Tab.Screen
@@ -183,10 +163,11 @@ const createStyles = (colors: ThemeColors) =>
       borderWidth: 1,
       borderColor: colors.white,
     },
+    tabItem: { flex: 1 },
     tabBarLabel: {
       fontFamily: 'PlusJakartaSans-Regular',
       fontSize: 10,
-      marginBottom: 3,
+      textAlign: 'center',
     },
     tabBar: {
       height: 68,

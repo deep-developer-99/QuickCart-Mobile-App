@@ -1,4 +1,5 @@
 import { AppText as Text } from '../../components/AppText';
+const profileImage = require('../../assets/icons/user.png');
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {
   useCallback,
@@ -9,6 +10,9 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
+  StyleSheet,
   Alert,
   Image,
   Linking,
@@ -28,6 +32,7 @@ import {
 } from 'react-native-safe-area-context';
 
 import {
+  useGetSearchSuggestionsQuery,
   useGetBannersQuery,
   useGetCategoriesQuery,
   useGetProductsQuery,
@@ -37,7 +42,6 @@ import type { Banner } from '../../api/quickCartApi';
 import CartAddedToast from '../../components/CartAddedToast';
 import CartQuantityControl from '../../components/CartQuantityControl';
 import WishlistHeartButton from '../../components/WishlistHeartButton';
-import QuickCartWordmark from '../../components/QuickCartWordmark';
 import type { CartProduct } from '../../store/slices/cartSlice';
 import type { RootState } from '../../store/store';
 import { radius, spacing, typography, useTheme } from '../../theme';
@@ -91,12 +95,95 @@ const NOTIFICATION_PROMPT_SEEN_KEY =
 const getBannerImage = (banner: Banner) =>
   banner.image?.trim() || banner.imageUrl?.trim() || null;
 
+const hintLayout = StyleSheet.create({
+  row: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  slot: { flexShrink: 1, overflow: 'hidden' },
+  invisible: { opacity: 0 },
+  measure: { opacity: 0, height: 0, overflow: 'hidden' },
+  layer: { ...StyleSheet.absoluteFill, justifyContent: 'center' },
+});
+
+function RotatingHint({ phrases, interval }: { phrases: string[]; interval: number }) {
+  const styles = useStyles();
+  const [index, setIndex] = useState(0);
+  const [height, setHeight] = useState(0);
+  const progress = useRef(new Animated.Value(0)).current;
+  const next = (index + 1) % phrases.length;
+
+  useFocusEffect(useCallback(() => {
+    progress.setValue(0);
+    if (phrases.length < 2 || !height) return;
+    let active = true;
+    let slide: Animated.CompositeAnimation;
+    const timer = setTimeout(() => {
+      slide = Animated.timing(progress, {
+        toValue: 1, duration: 240, easing: Easing.inOut(Easing.cubic), useNativeDriver: true,
+      });
+      slide.start(({ finished }) => {
+        if (active && finished) setIndex(next);
+      });
+    }, interval - 240);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      slide?.stop();
+    };
+  }, [height, interval, next, phrases.length, progress]));
+
+  return (
+    <View style={hintLayout.row}>
+      <Text style={styles.searchPlaceholder}>{'Search for "'}</Text>
+      <View style={hintLayout.slot} onLayout={event => setHeight(event.nativeEvent.layout.height)}>
+        {/* Reserve the widest term so both quotation marks stay in place. */}
+        <View style={hintLayout.measure} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          {phrases.map(phrase => (
+            <Text key={phrase} numberOfLines={1}
+              style={styles.searchPlaceholder}>{phrase}</Text>
+          ))}
+        </View>
+        <Text accessible={false} importantForAccessibility="no" style={[styles.searchPlaceholder, hintLayout.invisible]}> </Text>
+        {[index, ...(phrases.length > 1 ? [next] : [])].map((position, layer) => (
+          <Animated.View key={layer} style={[hintLayout.layer, { transform: [{ translateY:
+            progress.interpolate({ inputRange: [0, 1], outputRange: layer ? [height, 0] : [0, -height] }),
+          }] }]}>
+            <Text style={styles.searchPlaceholder} numberOfLines={1}>{phrases[position]}</Text>
+          </Animated.View>
+        ))}
+      </View>
+      <Text style={styles.searchPlaceholder}>{'"'}</Text>
+    </View>
+  );
+}
+
+const SearchHint = () => {
+  const styles = useStyles();
+  const { data } = useGetSearchSuggestionsQuery(undefined, { refetchOnMountOrArgChange: 30 });
+  const config = data?.data;
+  const phrases = useMemo(() => {
+    if (!config?.isEnabled || !Array.isArray(config.suggestions)) return [];
+    const seen = new Set<string>();
+    return config.suggestions.flatMap(entry => {
+      if (typeof entry?.phrase !== 'string' || ('isActive' in entry && entry.isActive === false)) return [];
+      const phrase = entry.phrase.trim().replace(/^(?:search\s+for(?:\s+|$))+/i, '')
+        .replace(/^[\s"'“”‘’]+|[\s"'“”‘’]+$/g, '').trim();
+      const key = phrase.normalize('NFC').toLowerCase();
+      if (!key || /^(undefined|null|ui\.[\w.]+)$/.test(key) || seen.has(key)) return [];
+      seen.add(key);
+      return [phrase];
+    });
+  }, [config]);
+  if (!phrases.length) return <Text style={styles.searchPlaceholder}>Search for products</Text>;
+  const interval = config?.rotationInterval ?? 2500;
+  return <RotatingHint key={JSON.stringify(phrases)} phrases={phrases}
+    interval={Number.isInteger(interval) && interval >= 1000 && interval <= 10000 ? interval : 2500} />;
+};
+
 const HomeScreen = () => {
   const styles = useStyles();
   const navigation = useNavigation<any>();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const user = useSelector((state: RootState) => state.auth.user);
+
   const [currentLocation, setCurrentLocation] = useState<string | null>(null);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [
@@ -234,9 +321,9 @@ const HomeScreen = () => {
   );
   const bannerScrollRef = useRef<any>(null);
   const { width: screenWidth } = useWindowDimensions();
-  const bannerWidth = Math.max(screenWidth - spacing.lg * 2, 1);
+  const bannerWidth = Math.max(screenWidth, 1);
   const bannerHeight = Math.round(
-    Math.min(176, Math.max(128, bannerWidth * 0.45)),
+    Math.min(190, Math.max(132, bannerWidth * 0.43)),
   );
 
   const categories = useMemo<Category[]>(
@@ -246,13 +333,13 @@ const HomeScreen = () => {
   const products = useMemo<Product[]>(
     () =>
       Array.isArray(productResponse?.data)
-        ? productResponse.data.slice(0, 6)
+        ? productResponse.data.slice(0, 18)
         : [],
     [productResponse],
   );
   const productCardWidth = Math.max(
     1,
-    (screenWidth - spacing.lg * 2 - spacing.sm) / 2,
+    (screenWidth - spacing.lg * 2 - spacing.sm * 2) / 3,
   );
 
   const isRefreshing =
@@ -383,9 +470,11 @@ const HomeScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.page}>
       <ScrollView
+        stickyHeaderIndices={[1]}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 104) }}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -397,30 +486,18 @@ const HomeScreen = () => {
       >
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <QuickCartWordmark
-              style={styles.logoRow}
-              textStyle={styles.logoText}
-              markSize={30}
-              gap={spacing.xs}
-            />
-
+            <View style={styles.locationHeading}>
+              <Text style={styles.locationHeadline}>QuickCart</Text>
+            </View>
             <View style={styles.headerActions}>
               <Pressable
-                onPress={() => navigation.navigate('Search')}
-                hitSlop={10}
-              >
-                <View style={styles.searchIcon}>
-                  <View style={styles.searchHandle} />
-                </View>
-              </Pressable>
-              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('tabs.profile')}
                 style={styles.avatar}
                 onPress={() => navigation.navigate('Profile')}
                 hitSlop={8}
               >
-                <Text style={styles.avatarText}>
-                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                </Text>
+                <Image source={profileImage} resizeMode="contain" style={styles.profileImage} />
               </Pressable>
             </View>
           </View>
@@ -450,6 +527,14 @@ const HomeScreen = () => {
                 color={styles.locationSpinner.color}
               />
             ) : null}
+            <Text style={styles.locationChevron}>⌄</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.stickySearch}>
+          <Pressable style={styles.searchField} onPress={() => navigation.navigate('Search')} accessibilityRole="button" accessibilityLabel={t('ui.common.searchPlaceholder')}>
+            <View style={styles.searchIcon}><View style={styles.searchHandle} /></View>
+            <SearchHint />
           </Pressable>
         </View>
 
@@ -503,7 +588,7 @@ const HomeScreen = () => {
                       <Image
                         source={{ uri: image }}
                         style={styles.bannerImage}
-                        resizeMode="cover"
+                        resizeMode="contain"
                         onError={() =>
                           setInvalidBannerIds(current => {
                             const next = new Set(current);
@@ -687,9 +772,10 @@ const HomeScreen = () => {
           <View style={styles.deliveryPromiseAccent} />
         </View>
       </ScrollView>
+      </View>
       <CartAddedToast
         visible={showCartToast}
-        onViewCart={() => navigation.navigate('MainTabs', { screen: 'Cart' })}
+        onViewCart={() => navigation.navigate('Checkout')}
       />
 
       <Modal
@@ -747,26 +833,31 @@ const HomeScreen = () => {
 
 type ThemeMode = 'light' | 'dark';
 
-const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
+const createStyles = (colors: ThemeColors, _mode: ThemeMode) => ({
   container: { flex: 1, backgroundColor: colors.background },
+  page: { flex: 1 },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+  stickySearch: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, backgroundColor: colors.background, zIndex: 3 },
+  searchField: { height: 48, borderRadius: 13, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, flexDirection: 'row' as const, alignItems: 'center' as const, paddingHorizontal: spacing.md, gap: spacing.md },
+  searchPlaceholder: { ...typography.body2Regular, color: colors.secondaryText },
   headerTop: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'space-between' as const,
   },
-  logoRow: { flexDirection: 'row' as const, alignItems: 'center' as const },
-  logoText: { ...typography.heading3Bold, color: colors.text, fontSize: 18 },
+  locationHeading: { flex: 1, minWidth: 0 },
+  locationHeadline: { ...typography.heading3Bold, color: colors.text, fontSize: 18 },
+  locationSubheading: { ...typography.captionRegular, color: colors.secondaryText },
   headerActions: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    gap: spacing.lg,
+    gap: spacing.md,
   },
   searchIcon: {
     width: 25,
     height: 25,
     borderWidth: 2,
-    borderColor: colors.text,
+    borderColor: colors.secondaryText,
     borderRadius: radius.pill,
     position: 'relative' as const,
   },
@@ -781,14 +872,14 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
     borderRadius: radius.pill,
   },
   avatar: {
-    width: 32,
-    height: 32,
+    width: 40,
+    height: 40,
     borderRadius: radius.pill,
     backgroundColor: colors.grey50,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
-  avatarText: { ...typography.captionSemiBold, color: colors.secondaryText },
+  profileImage: { width: 28, height: 28 },
   locationRow: {
     marginTop: spacing.md,
     flexDirection: 'row' as const,
@@ -798,13 +889,12 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
   locationCopy: { flex: 1, minWidth: 0 },
   locationText: { ...typography.captionRegular, color: colors.secondaryText },
   locationStrong: { ...typography.captionSemiBold, color: colors.text },
+  locationChevron: { fontSize: 21, color: colors.text, marginLeft: spacing.sm },
   locationSpinner: { color: colors.cyan },
   refreshControl: { color: colors.cyan },
   loadingIndicator: { color: colors.cyan },
   bannerCarousel: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-    borderRadius: radius.xl,
+    marginTop: spacing.xs,
     overflow: 'hidden' as const,
     position: 'relative' as const,
   },
@@ -814,9 +904,7 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
     backgroundColor: colors.grey50,
   },
   bannerPlaceholder: {
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-    borderRadius: radius.xl,
+    marginTop: spacing.xs,
     backgroundColor: colors.grey50,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -913,25 +1001,27 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
     width: 27,
     height: 27,
     borderRadius: radius.pill,
-    backgroundColor: mode === 'dark' ? colors.white : colors.black,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   },
   heartText: {
-    color: mode === 'dark' ? colors.black : colors.white,
+    color: colors.red,
     fontSize: 17,
     lineHeight: 18,
   },
   productName: {
-    ...typography.body2Regular,
+    ...typography.captionRegular,
     color: colors.text,
     marginTop: spacing.sm,
-    minHeight: 48,
-    lineHeight: 16,
+    minHeight: 36,
+    lineHeight: 14,
     flexShrink: 1,
   },
-  productPrice: { ...typography.body2Medium, color: colors.text, minHeight: 20 },
-  productUnit: { ...typography.captionRegular, color: colors.secondaryText, minHeight: 16 },
+  productPrice: { ...typography.body2Medium, color: colors.text, minHeight: 19, fontSize: 14 },
+  productUnit: { ...typography.captionRegular, color: colors.secondaryText, minHeight: 15, fontSize: 10 },
   originalPrice: {
     ...typography.captionRegular,
     color: colors.secondaryText,
@@ -939,11 +1029,11 @@ const createStyles = (colors: ThemeColors, mode: ThemeMode) => ({
     flexShrink: 1,
   },
   discountRow: { minHeight: 16, flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4 },
-  productDiscount: { ...typography.captionRegular, color: '#168BCE', fontSize: 9, flexShrink: 1 },
+  productDiscount: { ...typography.captionRegular, color: '#168BCE', fontSize: 8, flexShrink: 1 },
   cartControl: {
     alignSelf: 'flex-end' as const,
     width: '56%' as const,
-    minHeight: 54,
+    minHeight: 38,
     justifyContent: 'flex-start' as const,
     marginTop: spacing.xs,
     marginBottom: spacing.xs,

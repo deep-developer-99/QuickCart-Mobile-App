@@ -383,6 +383,12 @@ export const quickCartApi = createApi({
       ],
     }),
 
+    getSearchSuggestions: builder.query<{
+      data: { isEnabled: boolean; rotationInterval: number; suggestions: { phrase: string }[] };
+    }, void>({
+      query: () => '/search-suggestions',
+    }),
+
     getBanners: builder.query<BannerResponse, void>({
       query: () => ({
         url: '/banners',
@@ -687,6 +693,7 @@ export const {
   useRemoveFcmTokenMutation,
   useGetCategoriesQuery,
   useGetSubcategoriesQuery,
+  useGetSearchSuggestionsQuery,
   useGetBannersQuery,
   useGetProductsQuery,
   useLazyGetProductsQuery,

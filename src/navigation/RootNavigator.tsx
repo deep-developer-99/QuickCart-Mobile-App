@@ -18,6 +18,7 @@ import OrderHistoryScreen from '../screens/OrderHistory/OrderHistoryScreen';
 import OrderDetailsScreen from '../screens/OrderDetails/OrderDetailsScreen';
 import ProductDetailsScreen from '../screens/ProductDetails/ProductDetailsScreen';
 import CheckoutScreen from '../screens/Checkout/CheckoutScreen';
+import CartScreen from '../screens/Cart/CartScreen';
 import DeleteAccountScreen from '../screens/Profile/DeleteAccountScreen';
 import ShippingAddressScreen from '../screens/ShippingAddress/ShippingAddressScreen';
 import PaymentMethodScreen from '../screens/PaymentMethod/PaymentMethodScreen';
@@ -51,6 +52,7 @@ export type RootStackParamList = {
   };
 
   Checkout: undefined;
+  Cart: undefined;
   ShippingAddress: undefined;
   DeleteAccount: undefined;
   PaymentMethod: undefined;
@@ -236,7 +238,6 @@ const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
       {isAuthenticated ? (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="MainTabs" component={MainTabNavigator} />
-
           <Stack.Screen name="Search" component={SearchScreen} />
 
           <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
@@ -248,6 +249,7 @@ const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
           />
 
           <Stack.Screen name="Checkout" component={CheckoutScreen} />
+          <Stack.Screen name="Cart" component={CartScreen} />
           <Stack.Screen
             name="DeleteAccount"
             component={DeleteAccountScreen}
