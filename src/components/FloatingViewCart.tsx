@@ -1,5 +1,5 @@
 import { AppText as Text } from './AppText';
-import React, { useEffect, useRef, useSyncExternalStore } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Animated, Image, Pressable, StyleSheet, View } from 'react-native';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -7,36 +7,26 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { RootState } from '../store/store';
 import { radius, spacing, typography, useTheme } from '../theme';
-import { navigationRef } from '../navigation/RootNavigator';
-
-const subscribeToNavigation = (notify: () => void) => {
-  const unsubscribeState = navigationRef.addListener('state', notify);
-  const unsubscribeReady = navigationRef.addListener('ready', notify);
-  return () => { unsubscribeState(); unsubscribeReady(); };
+type FloatingViewCartProps = {
+  activeRouteName: string | undefined;
+  onPress: () => void;
 };
-const currentScreen = () => navigationRef.getCurrentRoute()?.name;
 
-const FloatingViewCart = () => {
+const FloatingViewCart = ({ activeRouteName, onPress }: FloatingViewCartProps) => {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const styles = useStyles();
   const { items, hydratedForUserId } = useSelector((state: RootState) => state.cart);
   const userId = useSelector((state: RootState) => state.auth.user?.id ?? null);
-  const activeRouteName = useSyncExternalStore(subscribeToNavigation, currentScreen);
-  const visible = Boolean(activeRouteName) && activeRouteName !== 'Checkout' && activeRouteName !== 'Cart' && Boolean(userId) && hydratedForUserId === userId && items.length > 0;
+  const visible = Boolean(activeRouteName) && ['Home', 'Categories', 'Wishlist', 'Search', 'ProductDetails'].includes(activeRouteName ?? '') && Boolean(userId) && hydratedForUserId === userId && items.length > 0;
   const quantity = items.reduce((total, item) => total + item.quantity, 0);
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.spring(progress, { toValue: visible ? 1 : 0, useNativeDriver: true, damping: 18, stiffness: 180 }).start();
+    const animation = Animated.spring(progress, { toValue: visible ? 1 : 0, useNativeDriver: true, damping: 18, stiffness: 180 });
+    animation.start();
+    return () => animation.stop();
   }, [progress, visible]);
-
-  const onPress = () => {
-    if (!navigationRef.isReady()) return;
-    const currentRoute = navigationRef.getCurrentRoute()?.name;
-    if (currentRoute === 'Checkout' || currentRoute === 'Cart') return;
-    navigationRef.navigate('Cart');
-  };
 
   return (
     <Animated.View pointerEvents={visible ? 'box-none' : 'none'} style={[styles.position, { bottom: insets.bottom + 66, opacity: progress, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }, { scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }]}>

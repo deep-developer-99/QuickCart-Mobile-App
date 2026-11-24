@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking } from 'react-native';
+import { Linking, View, StyleSheet } from 'react-native';
 import {
   NavigationContainer,
   type LinkingOptions,
@@ -9,6 +9,7 @@ import {
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useDispatch, useSelector } from 'react-redux';
 
+import FloatingViewCart from '../components/FloatingViewCart';
 import AuthNavigator from './AuthNavigator';
 import MainTabNavigator, { type MainTabParamList } from './MainTabNavigator';
 import { SplashScreenContent } from '../screens/splash/SplashScreen';
@@ -74,6 +75,26 @@ const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
     null,
   );
   const [getMe, { isLoading }] = useLazyGetMeQuery();
+  const [activeRouteName, setActiveRouteName] = useState<string>();
+  const openingCheckout = useRef(false);
+  const updateActiveRoute = useCallback(() => {
+    const name = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.name : undefined;
+    setActiveRouteName(name);
+    openingCheckout.current = false;
+  }, []);
+  const openCheckout = useCallback(() => {
+    if (!navigationRef.isReady() || openingCheckout.current) return;
+    const name = navigationRef.getCurrentRoute()?.name;
+    if (!['Home', 'Categories', 'Wishlist', 'Search', 'ProductDetails'].includes(name ?? '')) return;
+    openingCheckout.current = true;
+    navigationRef.navigate('Checkout');
+  }, []);
+  useEffect(() => {
+    if (checkingAuth || isLoading) setActiveRouteName(undefined);
+    else updateActiveRoute();
+    openingCheckout.current = false;
+  }, [checkingAuth, isLoading, isAuthenticated, updateActiveRoute]);
+
   const lastHandledUrl = useRef({ value: '', at: 0 });
 
   const handleIncomingUrl = useCallback(
@@ -222,7 +243,9 @@ const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
   }
 
   return (
-    <NavigationContainer ref={navigationRef} linking={linking} onReady={() => {
+    <View style={styles.container}>
+    <NavigationContainer ref={navigationRef} linking={linking} onStateChange={updateActiveRoute} onReady={() => {
+      updateActiveRoute();
       if (isAuthenticated) {
         const productId = consumePendingProductId();
         if (productId) {
@@ -268,7 +291,11 @@ const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
         />
       )}
     </NavigationContainer>
+    {isAuthenticated && <FloatingViewCart activeRouteName={activeRouteName} onPress={openCheckout} />}
+    </View>
   );
 };
+
+const styles = StyleSheet.create({ container: { flex: 1 } });
 
 export default RootNavigator;

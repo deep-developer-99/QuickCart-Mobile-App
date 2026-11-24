@@ -14,7 +14,6 @@ import {
   type NotificationData,
 } from './src/services/pushNotifications';
 import InAppNotification from './src/components/InAppNotification';
-import FloatingViewCart from './src/components/FloatingViewCart';
 import { beginCartHydration, hydrateCart } from './src/store/slices/cartSlice';
 import { readLocalCart } from './src/services/cartStorage';
 
@@ -145,7 +144,6 @@ const ThemedApp = () => {
         barStyle={mode === 'dark' ? 'light-content' : 'dark-content'}
       />
       <RootNavigator onReady={() => setNavigationReady(true)} />
-      <FloatingViewCart />
       <PushNotificationManager navigationReady={navigationReady} />
     </>
   );
