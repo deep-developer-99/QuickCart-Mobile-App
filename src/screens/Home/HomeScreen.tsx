@@ -97,10 +97,12 @@ const NOTIFICATION_PROMPT_SEEN_KEY =
 const getBannerImage = (banner: Banner) =>
   banner.image?.trim() || banner.imageUrl?.trim() || null;
 
-const AnimatedHintText = Animated.createAnimatedComponent(Text);
 const hintLayout = StyleSheet.create({
   row: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   slot: { flex: 1, overflow: 'hidden' },
+  layer: { position: 'absolute', left: 0, top: 0, overflow: 'hidden' },
+  measure: { position: 'absolute', left: 0, top: 0, opacity: 0 },
+  feather: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 6, backgroundColor: 'white' },
 });
 
 function RotatingHint({ phrases, interval }: { phrases: string[]; interval: number }) {
@@ -109,63 +111,107 @@ function RotatingHint({ phrases, interval }: { phrases: string[]; interval: numb
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
   const [reducedMotion, setReducedMotion] = useState(true);
   const [index, setIndex] = useState(0);
+  const [widths, setWidths] = useState<number[]>([]);
   const progress = useRef(new Animated.Value(1)).current;
-  const characters = Array.from(phrases[index] + '"');
+  const currentWidth = widths[index] ?? 0;
+  const nextIndex = (index + 1) % phrases.length;
+  const nextWidth = widths[nextIndex] ?? 0;
 
   useEffect(() => {
-    let active = true;
+    let mounted = true;
     AccessibilityInfo.isReduceMotionEnabled().then(value => {
-      if (active) setReducedMotion(value);
-    }).catch(() => {
-      // Retain the static accessible presentation if the setting cannot be read.
-    });
+      if (mounted) setReducedMotion(value);
+    }).catch(() => {});
     const motion = AccessibilityInfo.addEventListener('reduceMotionChanged', setReducedMotion);
     const app = AppState.addEventListener('change', state => setForeground(state === 'active'));
-    return () => { active = false; motion.remove(); app.remove(); };
+    return () => { mounted = false; motion.remove(); app.remove(); };
   }, []);
 
   useEffect(() => {
-    progress.setValue(1);
-    if (!focused || !foreground || reducedMotion || phrases.length < 2) return;
     let active = true;
-    let animation: Animated.CompositeAnimation;
-    let timer: ReturnType<typeof setTimeout>;
-    const hold = () => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let animation: Animated.CompositeAnimation | undefined;
+    const recover = () => { progress.stopAnimation(); progress.setValue(1); };
+    if (!focused || !foreground || reducedMotion || phrases.length < 2 ||
+        currentWidth <= 0 || nextWidth <= 0) {
+      recover();
+      return;
+    }
+
+    const revealNext = () => {
+      if (!active) return;
+      setIndex(nextIndex);
+      progress.setValue(0);
+      animation = Animated.timing(progress, {
+        toValue: 1, duration: 450, easing: Easing.linear, useNativeDriver: false,
+      });
+      animation.start(({ finished }) => {
+        if (!active) return;
+        if (!finished) { recover(); return; }
+        timer = setTimeout(holdCurrent, interval);
+      });
+    };
+    const holdCurrent = () => {
+      if (!active) return;
       timer = setTimeout(() => {
         animation = Animated.timing(progress, {
-          toValue: 0, duration: 750, easing: Easing.linear, useNativeDriver: true,
+          toValue: 0, duration: 600, easing: Easing.linear, useNativeDriver: false,
         });
         animation.start(({ finished }) => {
-          if (!active || !finished) return;
-          timer = setTimeout(() => {
-            if (!active) return;
-            setIndex(value => (value + 1) % phrases.length);
-            animation = Animated.timing(progress, {
-              toValue: 1, duration: 500, easing: Easing.linear, useNativeDriver: true,
-            });
-            animation.start(result => { if (active && result.finished) hold(); });
-          }, 90);
+          if (!active) return;
+          if (!finished) { recover(); return; }
+          timer = setTimeout(revealNext, 60);
         });
       }, interval);
     };
-    hold();
-    return () => { active = false; clearTimeout(timer); animation?.stop(); };
-  }, [focused, foreground, reducedMotion, interval, phrases.length, progress]);
+
+    progress.setValue(1);
+    timer = setTimeout(holdCurrent, interval);
+    return () => {
+      active = false;
+      if (timer) clearTimeout(timer);
+      animation?.stop();
+      recover();
+    };
+  }, [focused, foreground, reducedMotion, phrases, interval, index,
+    nextIndex, currentWidth, nextWidth, progress]);
+
+  const onMeasure = (position: number, value: number) => {
+    if (!Number.isFinite(value) || value <= 0) return;
+    setWidths(previous => previous[position] === value ? previous : Object.assign([], previous, { [position]: value }));
+  };
+  const animatedWidth = (width: number) => progress.interpolate({
+    inputRange: [0, 1], outputRange: [0, width], extrapolate: 'clamp',
+  });
 
   return (
     <View style={hintLayout.row}>
       <Text style={styles.searchPlaceholder}>{'Search for "'}</Text>
       <View style={hintLayout.slot}>
-        <Text style={styles.searchPlaceholder} numberOfLines={1}>
-          {characters.map((character, position) => (
-            <AnimatedHintText key={position} style={{
-              opacity: progress.interpolate({
-                inputRange: [position / characters.length, (position + 1) / characters.length],
-                outputRange: [0, 1], extrapolate: 'clamp',
-              }),
-            }}>{character}</AnimatedHintText>
-          ))}
-        </Text>
+        {phrases.map((value, position) => (
+          <Text key={position} style={[styles.searchPlaceholder, hintLayout.measure]}
+            numberOfLines={1} onLayout={event => onMeasure(position, event.nativeEvent.layout.width)}>
+            {value + '"'}
+          </Text>
+        ))}
+        {phrases.length > 1 && nextWidth > 0 && (
+          <Animated.View pointerEvents="none"
+            style={[hintLayout.layer, { width: animatedWidth(nextWidth), opacity: progress.interpolate({
+              inputRange: [0, 0.04, 1], outputRange: [0, 0.8, 1], extrapolate: 'clamp',
+            }) }]}>
+            <Text style={styles.searchPlaceholder} numberOfLines={1}>{phrases[nextIndex] + '"'}</Text>
+          </Animated.View>
+        )}
+        <Animated.View pointerEvents="none"
+          style={[hintLayout.layer, { width: currentWidth ? animatedWidth(currentWidth) : undefined }]}>
+          <Text style={styles.searchPlaceholder} numberOfLines={1}>{phrases[index] + '"'}</Text>
+          {currentWidth > 0 && <Animated.View style={[hintLayout.feather, { opacity: progress.interpolate({
+            inputRange: [0, 0.98, 1], outputRange: [0, 0, 0.75], extrapolate: 'clamp',
+          }) }]} />}
+        </Animated.View>
+        {(!currentWidth || reducedMotion || phrases.length === 1) && (
+          <Text style={styles.searchPlaceholder} numberOfLines={1}>{phrases[index] + '"'}</Text>
+        )}
       </View>
     </View>
   );
