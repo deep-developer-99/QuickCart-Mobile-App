@@ -9,6 +9,8 @@ import React, {
   useState,
 } from 'react';
 import {
+  AccessibilityInfo,
+  AppState,
   ActivityIndicator,
   Animated,
   Easing,
@@ -23,7 +25,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
 import {
@@ -95,62 +97,76 @@ const NOTIFICATION_PROMPT_SEEN_KEY =
 const getBannerImage = (banner: Banner) =>
   banner.image?.trim() || banner.imageUrl?.trim() || null;
 
+const AnimatedHintText = Animated.createAnimatedComponent(Text);
 const hintLayout = StyleSheet.create({
   row: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  slot: { flexShrink: 1, overflow: 'hidden' },
-  invisible: { opacity: 0 },
-  measure: { opacity: 0, height: 0, overflow: 'hidden' },
-  layer: { ...StyleSheet.absoluteFill, justifyContent: 'center' },
+  slot: { flex: 1, overflow: 'hidden' },
 });
 
 function RotatingHint({ phrases, interval }: { phrases: string[]; interval: number }) {
   const styles = useStyles();
+  const focused = useIsFocused();
+  const [foreground, setForeground] = useState(AppState.currentState === 'active');
+  const [reducedMotion, setReducedMotion] = useState(true);
   const [index, setIndex] = useState(0);
-  const [height, setHeight] = useState(0);
-  const progress = useRef(new Animated.Value(0)).current;
-  const next = (index + 1) % phrases.length;
+  const progress = useRef(new Animated.Value(1)).current;
+  const characters = Array.from(phrases[index] + '"');
 
-  useFocusEffect(useCallback(() => {
-    progress.setValue(0);
-    if (phrases.length < 2 || !height) return;
+  useEffect(() => {
     let active = true;
-    let slide: Animated.CompositeAnimation;
-    const timer = setTimeout(() => {
-      slide = Animated.timing(progress, {
-        toValue: 1, duration: 240, easing: Easing.inOut(Easing.cubic), useNativeDriver: true,
-      });
-      slide.start(({ finished }) => {
-        if (active && finished) setIndex(next);
-      });
-    }, interval - 240);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-      slide?.stop();
+    AccessibilityInfo.isReduceMotionEnabled().then(value => {
+      if (active) setReducedMotion(value);
+    }).catch(() => {
+      // Retain the static accessible presentation if the setting cannot be read.
+    });
+    const motion = AccessibilityInfo.addEventListener('reduceMotionChanged', setReducedMotion);
+    const app = AppState.addEventListener('change', state => setForeground(state === 'active'));
+    return () => { active = false; motion.remove(); app.remove(); };
+  }, []);
+
+  useEffect(() => {
+    progress.setValue(1);
+    if (!focused || !foreground || reducedMotion || phrases.length < 2) return;
+    let active = true;
+    let animation: Animated.CompositeAnimation;
+    let timer: ReturnType<typeof setTimeout>;
+    const hold = () => {
+      timer = setTimeout(() => {
+        animation = Animated.timing(progress, {
+          toValue: 0, duration: 750, easing: Easing.linear, useNativeDriver: true,
+        });
+        animation.start(({ finished }) => {
+          if (!active || !finished) return;
+          timer = setTimeout(() => {
+            if (!active) return;
+            setIndex(value => (value + 1) % phrases.length);
+            animation = Animated.timing(progress, {
+              toValue: 1, duration: 500, easing: Easing.linear, useNativeDriver: true,
+            });
+            animation.start(result => { if (active && result.finished) hold(); });
+          }, 90);
+        });
+      }, interval);
     };
-  }, [height, interval, next, phrases.length, progress]));
+    hold();
+    return () => { active = false; clearTimeout(timer); animation?.stop(); };
+  }, [focused, foreground, reducedMotion, interval, phrases.length, progress]);
 
   return (
     <View style={hintLayout.row}>
       <Text style={styles.searchPlaceholder}>{'Search for "'}</Text>
-      <View style={hintLayout.slot} onLayout={event => setHeight(event.nativeEvent.layout.height)}>
-        {/* Reserve the widest term so both quotation marks stay in place. */}
-        <View style={hintLayout.measure} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-          {phrases.map(phrase => (
-            <Text key={phrase} numberOfLines={1}
-              style={styles.searchPlaceholder}>{phrase}</Text>
+      <View style={hintLayout.slot}>
+        <Text style={styles.searchPlaceholder} numberOfLines={1}>
+          {characters.map((character, position) => (
+            <AnimatedHintText key={position} style={{
+              opacity: progress.interpolate({
+                inputRange: [position / characters.length, (position + 1) / characters.length],
+                outputRange: [0, 1], extrapolate: 'clamp',
+              }),
+            }}>{character}</AnimatedHintText>
           ))}
-        </View>
-        <Text accessible={false} importantForAccessibility="no" style={[styles.searchPlaceholder, hintLayout.invisible]}> </Text>
-        {[index, ...(phrases.length > 1 ? [next] : [])].map((position, layer) => (
-          <Animated.View key={layer} style={[hintLayout.layer, { transform: [{ translateY:
-            progress.interpolate({ inputRange: [0, 1], outputRange: layer ? [height, 0] : [0, -height] }),
-          }] }]}>
-            <Text style={styles.searchPlaceholder} numberOfLines={1}>{phrases[position]}</Text>
-          </Animated.View>
-        ))}
+        </Text>
       </View>
-      <Text style={styles.searchPlaceholder}>{'"'}</Text>
     </View>
   );
 }
