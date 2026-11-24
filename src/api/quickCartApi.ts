@@ -384,7 +384,7 @@ export const quickCartApi = createApi({
     }),
 
     getSearchSuggestions: builder.query<{
-      data: { isEnabled: boolean; rotationInterval: number; suggestions: { phrase: string }[] };
+      data: { isEnabled: boolean; rotationInterval: number; typingSpeedMs?: number; deletingSpeedMs?: number; suggestions: { phrase: string; isActive?: boolean }[] };
     }, void>({
       query: () => '/search-suggestions',
     }),

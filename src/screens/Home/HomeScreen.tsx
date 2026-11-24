@@ -99,29 +99,37 @@ const getBannerImage = (banner: Banner) =>
 
 const hintLayout = StyleSheet.create({
   row: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  slot: { flex: 1, overflow: 'hidden' },
-  layer: { position: 'absolute', left: 0, top: 0, overflow: 'hidden' },
-  measure: { position: 'absolute', left: 0, top: 0, opacity: 0 },
-  feather: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 6, backgroundColor: 'white' },
+  slot: { flex: 1, height: 22, overflow: 'hidden' },
+  measure: { position: 'absolute', opacity: 0 },
+  clip: { height: 22, overflow: 'hidden' },
+  text: { width: 1000 },
 });
 
-function RotatingHint({ phrases, interval }: { phrases: string[]; interval: number }) {
+function RotatingHint({
+  phrases, interval, typingSpeed, deletingSpeed,
+}: {
+  phrases: string[];
+  interval: number;
+  typingSpeed: number;
+  deletingSpeed: number;
+}) {
   const styles = useStyles();
   const focused = useIsFocused();
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
   const [reducedMotion, setReducedMotion] = useState(true);
   const [index, setIndex] = useState(0);
   const [widths, setWidths] = useState<number[]>([]);
+  const indexRef = useRef(0);
   const progress = useRef(new Animated.Value(1)).current;
+  const measured = widths.length >= phrases.length &&
+    phrases.every((_, position) => (widths[position] ?? 0) > 0);
   const currentWidth = widths[index] ?? 0;
-  const nextIndex = (index + 1) % phrases.length;
-  const nextWidth = widths[nextIndex] ?? 0;
 
   useEffect(() => {
     let mounted = true;
     AccessibilityInfo.isReduceMotionEnabled().then(value => {
       if (mounted) setReducedMotion(value);
-    }).catch(() => {});
+    }).catch(() => setReducedMotion(true));
     const motion = AccessibilityInfo.addEventListener('reduceMotionChanged', setReducedMotion);
     const app = AppState.addEventListener('change', state => setForeground(state === 'active'));
     return () => { mounted = false; motion.remove(); app.remove(); };
@@ -130,59 +138,73 @@ function RotatingHint({ phrases, interval }: { phrases: string[]; interval: numb
   useEffect(() => {
     let active = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let frame: number | undefined;
     let animation: Animated.CompositeAnimation | undefined;
-    const recover = () => { progress.stopAnimation(); progress.setValue(1); };
-    if (!focused || !foreground || reducedMotion || phrases.length < 2 ||
-        currentWidth <= 0 || nextWidth <= 0) {
-      recover();
+    const resetVisible = () => {
+      progress.stopAnimation();
+      progress.setValue(1);
+    };
+    if (!focused || !foreground || reducedMotion || phrases.length < 2 || !measured) {
+      resetVisible();
       return;
     }
 
-    const revealNext = () => {
+    const hold = () => {
+      timer = setTimeout(erase, interval);
+    };
+    const erase = () => {
       if (!active) return;
-      setIndex(nextIndex);
-      progress.setValue(0);
       animation = Animated.timing(progress, {
-        toValue: 1, duration: 450, easing: Easing.linear, useNativeDriver: false,
+        toValue: 0,
+        duration: (Array.from(phrases[indexRef.current]).length + 1) * deletingSpeed,
+        easing: Easing.linear,
+        useNativeDriver: false,
       });
       animation.start(({ finished }) => {
         if (!active) return;
-        if (!finished) { recover(); return; }
-        timer = setTimeout(holdCurrent, interval);
+        if (!finished) { resetVisible(); return; }
+        const next = (indexRef.current + 1) % phrases.length;
+        indexRef.current = next;
+        setIndex(next);
+        // The next measured phrase must commit before its width interpolation runs.
+        frame = requestAnimationFrame(() => {
+          if (!active) return;
+          progress.setValue(0);
+          animation = Animated.timing(progress, {
+            toValue: 1,
+            duration: (Array.from(phrases[next]).length + 1) * typingSpeed,
+            easing: Easing.linear,
+            useNativeDriver: false,
+          });
+          animation.start(result => {
+            if (!active) return;
+            if (result.finished) hold();
+            else resetVisible();
+          });
+        });
       });
     };
-    const holdCurrent = () => {
-      if (!active) return;
-      timer = setTimeout(() => {
-        animation = Animated.timing(progress, {
-          toValue: 0, duration: 600, easing: Easing.linear, useNativeDriver: false,
-        });
-        animation.start(({ finished }) => {
-          if (!active) return;
-          if (!finished) { recover(); return; }
-          timer = setTimeout(revealNext, 60);
-        });
-      }, interval);
-    };
-
-    progress.setValue(1);
-    timer = setTimeout(holdCurrent, interval);
+    resetVisible();
+    hold();
     return () => {
       active = false;
       if (timer) clearTimeout(timer);
+      if (frame !== undefined) cancelAnimationFrame(frame);
       animation?.stop();
-      recover();
+      resetVisible();
     };
-  }, [focused, foreground, reducedMotion, phrases, interval, index,
-    nextIndex, currentWidth, nextWidth, progress]);
+  }, [focused, foreground, reducedMotion, measured, phrases, interval,
+    typingSpeed, deletingSpeed, progress]);
 
   const onMeasure = (position: number, value: number) => {
     if (!Number.isFinite(value) || value <= 0) return;
-    setWidths(previous => previous[position] === value ? previous : Object.assign([], previous, { [position]: value }));
+    setWidths(previous => {
+      if (previous[position] === value) return previous;
+      const next = [...previous];
+      next[position] = value;
+      return next;
+    });
   };
-  const animatedWidth = (width: number) => progress.interpolate({
-    inputRange: [0, 1], outputRange: [0, width], extrapolate: 'clamp',
-  });
 
   return (
     <View style={hintLayout.row}>
@@ -190,27 +212,25 @@ function RotatingHint({ phrases, interval }: { phrases: string[]; interval: numb
       <View style={hintLayout.slot}>
         {phrases.map((value, position) => (
           <Text key={position} style={[styles.searchPlaceholder, hintLayout.measure]}
-            numberOfLines={1} onLayout={event => onMeasure(position, event.nativeEvent.layout.width)}>
+            onLayout={event => onMeasure(position, event.nativeEvent.layout.width)}>
             {value + '"'}
           </Text>
         ))}
-        {phrases.length > 1 && nextWidth > 0 && (
-          <Animated.View pointerEvents="none"
-            style={[hintLayout.layer, { width: animatedWidth(nextWidth), opacity: progress.interpolate({
-              inputRange: [0, 0.04, 1], outputRange: [0, 0.8, 1], extrapolate: 'clamp',
-            }) }]}>
-            <Text style={styles.searchPlaceholder} numberOfLines={1}>{phrases[nextIndex] + '"'}</Text>
+        {measured && !reducedMotion && phrases.length > 1 ? (
+          <Animated.View pointerEvents="none" style={[hintLayout.clip, {
+            width: progress.interpolate({
+              inputRange: [0, 1], outputRange: [0, currentWidth],
+              extrapolate: 'clamp',
+            }),
+          }]}>
+            <Text style={[styles.searchPlaceholder, hintLayout.text]} numberOfLines={1}>
+              {phrases[index] + '"'}
+            </Text>
           </Animated.View>
-        )}
-        <Animated.View pointerEvents="none"
-          style={[hintLayout.layer, { width: currentWidth ? animatedWidth(currentWidth) : undefined }]}>
-          <Text style={styles.searchPlaceholder} numberOfLines={1}>{phrases[index] + '"'}</Text>
-          {currentWidth > 0 && <Animated.View style={[hintLayout.feather, { opacity: progress.interpolate({
-            inputRange: [0, 0.98, 1], outputRange: [0, 0, 0.75], extrapolate: 'clamp',
-          }) }]} />}
-        </Animated.View>
-        {(!currentWidth || reducedMotion || phrases.length === 1) && (
-          <Text style={styles.searchPlaceholder} numberOfLines={1}>{phrases[index] + '"'}</Text>
+        ) : (
+          <Text style={styles.searchPlaceholder} numberOfLines={1}>
+            {phrases[index] + '"'}
+          </Text>
         )}
       </View>
     </View>
@@ -236,8 +256,12 @@ const SearchHint = () => {
   }, [config]);
   if (!phrases.length) return <Text style={styles.searchPlaceholder}>Search for products</Text>;
   const interval = config?.rotationInterval ?? 2500;
+  const speed = (value: number | undefined, fallback: number) =>
+    Number.isInteger(value) && value! >= 20 && value! <= 150 ? value! : fallback;
   return <RotatingHint key={JSON.stringify(phrases)} phrases={phrases}
-    interval={Number.isInteger(interval) && interval >= 1000 && interval <= 10000 ? interval : 2500} />;
+    interval={Number.isInteger(interval) && interval >= 1000 && interval <= 10000 ? interval : 2500}
+    typingSpeed={speed(config?.typingSpeedMs, 60)}
+    deletingSpeed={speed(config?.deletingSpeedMs, 40)} />;
 };
 
 const HomeScreen = () => {
