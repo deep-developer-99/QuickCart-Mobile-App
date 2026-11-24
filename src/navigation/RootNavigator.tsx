@@ -76,23 +76,23 @@ const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
   );
   const [getMe, { isLoading }] = useLazyGetMeQuery();
   const [activeRouteName, setActiveRouteName] = useState<string>();
-  const openingCheckout = useRef(false);
+  const openingCart = useRef(false);
   const updateActiveRoute = useCallback(() => {
     const name = navigationRef.isReady() ? navigationRef.getCurrentRoute()?.name : undefined;
     setActiveRouteName(name);
-    openingCheckout.current = false;
+    openingCart.current = false;
   }, []);
-  const openCheckout = useCallback(() => {
-    if (!navigationRef.isReady() || openingCheckout.current) return;
+  const openCart = useCallback(() => {
+    if (!navigationRef.isReady() || openingCart.current) return;
     const name = navigationRef.getCurrentRoute()?.name;
     if (!['Home', 'Categories', 'Wishlist', 'Search', 'ProductDetails'].includes(name ?? '')) return;
-    openingCheckout.current = true;
-    navigationRef.navigate('Checkout');
+    openingCart.current = true;
+    navigationRef.navigate('Cart');
   }, []);
   useEffect(() => {
     if (checkingAuth || isLoading) setActiveRouteName(undefined);
     else updateActiveRoute();
-    openingCheckout.current = false;
+    openingCart.current = false;
   }, [checkingAuth, isLoading, isAuthenticated, updateActiveRoute]);
 
   const lastHandledUrl = useRef({ value: '', at: 0 });
@@ -291,7 +291,7 @@ const RootNavigator = ({ onReady }: { onReady?: () => void }) => {
         />
       )}
     </NavigationContainer>
-    {isAuthenticated && <FloatingViewCart activeRouteName={activeRouteName} onPress={openCheckout} />}
+    {isAuthenticated && <FloatingViewCart activeRouteName={activeRouteName} onPress={openCart} />}
     </View>
   );
 };
