@@ -37,10 +37,13 @@ import {
   useGetSearchSuggestionsQuery,
   useGetBannersQuery,
   useGetCategoriesQuery,
+  useGetMobileCategoryNavigationQuery,
+  useGetSubcategoriesQuery,
   useGetProductsQuery,
 } from '../../api/quickCartApi';
 import { hasVariantDiscount, lowestPricedVariant, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
 import type { Banner } from '../../api/quickCartApi';
+import HomeCategoryNavigation from '../../components/HomeCategoryNavigation';
 import CartAddedToast from '../../components/CartAddedToast';
 import CartQuantityControl from '../../components/CartQuantityControl';
 import WishlistHeartButton from '../../components/WishlistHeartButton';
@@ -95,7 +98,7 @@ const NOTIFICATION_PROMPT_SEEN_KEY =
   'quickcart.notificationPermissionPromptSeen';
 
 const getBannerImage = (banner: Banner) =>
-  banner.image?.trim() || banner.imageUrl?.trim() || null;
+  banner.mobileImage?.trim() || banner.image?.trim() || banner.imageUrl?.trim() || null;
 
 const hintLayout = StyleSheet.create({
   row: { flex: 1, flexDirection: 'row', alignItems: 'center' },
@@ -368,6 +371,12 @@ const HomeScreen = () => {
     if (cartToastTimeout.current) clearTimeout(cartToastTimeout.current);
     cartToastTimeout.current = setTimeout(() => setShowCartToast(false), 2800);
   }, []);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string | null>(null);
+  const selectHomeCategory = useCallback((categoryId: string | null) => {
+    setSelectedCategoryId(categoryId);
+    setSelectedSubcategoryId(null);
+  }, []);
 
   const {
     data: categoryResponse,
@@ -393,6 +402,17 @@ const HomeScreen = () => {
   } = useGetBannersQuery(undefined, {
     refetchOnMountOrArgChange: 30,
   });
+  const { data: navigationResponse, refetch: refetchNavigation } = useGetMobileCategoryNavigationQuery(undefined, { refetchOnMountOrArgChange: 30 });
+  const navigationItems = useMemo(() => Array.isArray(navigationResponse?.data) ? navigationResponse.data : [], [navigationResponse]);
+  useEffect(() => {
+    if (navigationResponse && selectedCategoryId && !navigationItems.some(item => item.categoryId === selectedCategoryId)) selectHomeCategory(null);
+  }, [navigationItems, navigationResponse, selectedCategoryId, selectHomeCategory]);
+  const selectedNavigationItem = navigationItems.find(item => item.categoryId === selectedCategoryId);
+  const { data: selectedSubcategories, isFetching: selectedSubcategoriesLoading, refetch: refetchSelectedSubcategories } = useGetSubcategoriesQuery(selectedCategoryId ?? '', { skip: !selectedCategoryId });
+  const { data: selectedProducts, isFetching: selectedProductsLoading, refetch: refetchSelectedProducts } = useGetProductsQuery({ category: selectedCategoryId ?? undefined, subCategory: selectedSubcategoryId ?? undefined, page: 1, limit: 18 }, { skip: !selectedCategoryId });
+  useEffect(() => {
+    if (selectedSubcategoryId && selectedSubcategories && !selectedSubcategories.data.some(item => item._id === selectedSubcategoryId)) setSelectedSubcategoryId(null);
+  }, [selectedSubcategoryId, selectedSubcategories]);
 
   const banners = useMemo<Banner[]>(() => {
     const data = bannerResponse?.data;
@@ -405,12 +425,22 @@ const HomeScreen = () => {
   const [invalidBannerIds, setInvalidBannerIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const [invalidMobileBannerIds, setInvalidMobileBannerIds] = useState<Set<string>>(() => new Set());
   const bannerScrollRef = useRef<any>(null);
   const { width: screenWidth } = useWindowDimensions();
   const bannerWidth = Math.max(screenWidth, 1);
-  const bannerHeight = Math.round(
-    Math.min(190, Math.max(132, bannerWidth * 0.43)),
-  );
+  const [bannerRatio, setBannerRatio] = useState(2.1);
+  const activeBanner = banners[bannerIndex];
+  const activeBannerImage = activeBanner && (invalidMobileBannerIds.has(activeBanner._id) ? activeBanner.image : getBannerImage(activeBanner));
+  useEffect(() => {
+    if (!activeBannerImage) return;
+    let active = true;
+    Image.getSize(activeBannerImage, (width, height) => {
+      if (active && width > 0 && height > 0) setBannerRatio(width / height);
+    }, () => { if (active) setBannerRatio(2.1); });
+    return () => { active = false; };
+  }, [activeBannerImage]);
+  const bannerHeight = Math.round(bannerWidth / bannerRatio);
 
   const categories = useMemo<Category[]>(
     () => (Array.isArray(categoryResponse?.data) ? categoryResponse.data : []),
@@ -418,10 +448,10 @@ const HomeScreen = () => {
   );
   const products = useMemo<Product[]>(
     () =>
-      Array.isArray(productResponse?.data)
-        ? productResponse.data.slice(0, 18)
+      Array.isArray((selectedCategoryId ? selectedProducts : productResponse)?.data)
+        ? (selectedCategoryId ? selectedProducts : productResponse)!.data.slice(0, 18)
         : [],
-    [productResponse],
+    [productResponse, selectedCategoryId, selectedProducts],
   );
   const productCardWidth = Math.max(
     1,
@@ -429,21 +459,24 @@ const HomeScreen = () => {
   );
 
   const isRefreshing =
-    categoriesFetching || productsFetching || bannersFetching;
+    categoriesFetching || productsFetching || bannersFetching || selectedSubcategoriesLoading || selectedProductsLoading;
 
   const refreshHome = useCallback(async () => {
     await Promise.all([
       refetchCategories(),
       refetchProducts(),
       refetchBanners(),
+      refetchNavigation(),
+      ...(selectedCategoryId ? [refetchSelectedSubcategories(), refetchSelectedProducts()] : []),
     ]);
-  }, [refetchBanners, refetchCategories, refetchProducts]);
+  }, [refetchBanners, refetchCategories, refetchProducts, refetchNavigation, refetchSelectedSubcategories, refetchSelectedProducts, selectedCategoryId]);
 
   const bannerKey = banners.map(banner => banner._id).join('|');
 
   useEffect(() => {
     setBannerIndex(0);
     setInvalidBannerIds(new Set());
+    setInvalidMobileBannerIds(new Set());
     bannerScrollRef.current?.scrollTo({ x: 0, animated: false });
   }, [bannerKey]);
 
@@ -622,9 +655,10 @@ const HomeScreen = () => {
             <View style={styles.searchIcon}><View style={styles.searchHandle} /></View>
             <SearchHint />
           </Pressable>
+          <HomeCategoryNavigation items={navigationItems} selectedId={selectedCategoryId} onSelect={selectHomeCategory} />
         </View>
 
-        {bannersLoading ? (
+        {selectedCategoryId ? null : bannersLoading ? (
           <View
             style={[
               styles.bannerPlaceholder,
@@ -660,7 +694,7 @@ const HomeScreen = () => {
               }}
             >
               {banners.map(banner => {
-                const image = getBannerImage(banner);
+                const image = invalidMobileBannerIds.has(banner._id) ? banner.image : getBannerImage(banner);
                 const imageFailed = invalidBannerIds.has(banner._id);
 
                 return (
@@ -675,13 +709,17 @@ const HomeScreen = () => {
                         source={{ uri: image }}
                         style={styles.bannerImage}
                         resizeMode="contain"
-                        onError={() =>
+                        onError={() => {
+                          if (banner.mobileImage && !invalidMobileBannerIds.has(banner._id) && banner.image) {
+                            setInvalidMobileBannerIds(current => new Set(current).add(banner._id));
+                            return;
+                          }
                           setInvalidBannerIds(current => {
                             const next = new Set(current);
                             next.add(banner._id);
                             return next;
-                          })
-                        }
+                          });
+                        }}
                       />
                     ) : (
                       <View style={styles.bannerFallback} />
@@ -706,7 +744,15 @@ const HomeScreen = () => {
           </View>
         ) : null}
 
-        <View style={styles.section}>
+        {selectedCategoryId ? <View style={styles.section}>
+          <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>{selectedNavigationItem?.name ?? 'Subcategories'}</Text></View>
+          {selectedSubcategoriesLoading ? <ActivityIndicator color={styles.loadingIndicator.color} /> : <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryList}>
+            {(selectedSubcategories?.data ?? []).map(subcategory => <Pressable key={subcategory._id} style={styles.categoryCard} onPress={() => setSelectedSubcategoryId(current => current === subcategory._id ? null : subcategory._id)} accessibilityState={{ selected: selectedSubcategoryId === subcategory._id }}>
+              <View style={styles.categoryIcon}>{subcategory.image ? <Image source={{ uri: subcategory.image }} style={styles.categoryImage} resizeMode="contain" /> : <Text style={styles.categoryEmoji}>🛍️</Text>}</View>
+              <Text style={[styles.categoryName, selectedSubcategoryId === subcategory._id && styles.selectedCategoryName]} numberOfLines={1}>{subcategory.name}</Text>
+            </Pressable>)}
+          </ScrollView>}
+        </View> : <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t('tabs.categories')}</Text>
             <Pressable onPress={() => navigation.navigate('Categories')}>
@@ -757,17 +803,17 @@ const HomeScreen = () => {
               ))}
             </ScrollView>
           )}
-        </View>
+        </View>}
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t('home.latestProducts')}</Text>
+            <Text style={styles.sectionTitle}>{selectedCategoryId ? `${selectedNavigationItem?.name ?? 'Category'} Products` : t('home.latestProducts')}</Text>
             <Pressable onPress={() => navigation.navigate('Categories')}>
               <Text style={styles.seeAll}>{t('home.seeAll')}</Text>
             </Pressable>
           </View>
 
-          {productsLoading ? (
+          {(selectedCategoryId ? selectedProductsLoading : productsLoading) ? (
             <View style={styles.loadingBox}>
               <ActivityIndicator
                 size="small"
@@ -776,6 +822,7 @@ const HomeScreen = () => {
             </View>
           ) : (
             <View style={[styles.productGrid, { columnGap: spacing.sm }]}>
+              {selectedCategoryId && products.length === 0 ? <Text style={styles.emptyCategoryProducts}>No products available in this category.</Text> : null}
               {products.map(product => {
                 const cardVariant = lowestPricedVariant(product.variants);
                 const sellingPrice = variantSellingPrice(cardVariant);
@@ -980,7 +1027,6 @@ const createStyles = (colors: ThemeColors, _mode: ThemeMode) => ({
   refreshControl: { color: colors.cyan },
   loadingIndicator: { color: colors.cyan },
   bannerCarousel: {
-    marginTop: spacing.xs,
     overflow: 'hidden' as const,
     position: 'relative' as const,
   },
@@ -990,7 +1036,6 @@ const createStyles = (colors: ThemeColors, _mode: ThemeMode) => ({
     backgroundColor: colors.grey50,
   },
   bannerPlaceholder: {
-    marginTop: spacing.xs,
     backgroundColor: colors.grey50,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -1055,12 +1100,14 @@ const createStyles = (colors: ThemeColors, _mode: ThemeMode) => ({
     fontSize: 9,
     textAlign: 'center' as const,
   },
+  selectedCategoryName: { fontWeight: '700' as const, color: colors.cyan },
   productGrid: {
     paddingHorizontal: spacing.lg,
     flexDirection: 'row' as const,
     flexWrap: 'wrap' as const,
     justifyContent: 'flex-start' as const,
   },
+  emptyCategoryProducts: { ...typography.body2Regular, color: colors.secondaryText, paddingVertical: spacing.lg },
   productCard: {
     minWidth: 0,
     marginBottom: spacing.lg,

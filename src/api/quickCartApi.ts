@@ -85,6 +85,7 @@ export interface Banner {
   _id: string;
   image?: string;
   imageUrl?: string;
+  mobileImage?: string;
   title?: string;
   description?: string;
   redirectType?: string;
@@ -93,6 +94,13 @@ export interface Banner {
   isActive?: boolean;
   startDate?: string;
   endDate?: string;
+}
+
+export interface MobileNavigationItem {
+  categoryId: string;
+  name: string;
+  image: string;
+  displayOrder: number;
 }
 
 export interface BannerResponse {
@@ -359,7 +367,7 @@ const logoutIfWishlistUnauthorized = (
 
 export const quickCartApi = createApi({
   reducerPath: 'quickCartApi',
-  tagTypes: ['Categories', 'Products', 'Banners', 'Me', 'Wishlist'],
+  tagTypes: ['Categories', 'Products', 'Banners', 'Me', 'Wishlist', 'MobileNavigation'],
 
   baseQuery: diagnosticBaseQuery,
 
@@ -371,6 +379,11 @@ export const quickCartApi = createApi({
         method: 'GET',
       }),
       providesTags: ['Categories'],
+    }),
+
+    getMobileCategoryNavigation: builder.query<{ success: boolean; data: MobileNavigationItem[] }, void>({
+      query: () => '/mobile-category-navigation',
+      providesTags: ['MobileNavigation'],
     }),
 
     getSubcategories: builder.query<{ success: boolean; data: Subcategory[] }, string>({
@@ -692,6 +705,7 @@ export const {
   useRegisterFcmTokenMutation,
   useRemoveFcmTokenMutation,
   useGetCategoriesQuery,
+  useGetMobileCategoryNavigationQuery,
   useGetSubcategoriesQuery,
   useGetSearchSuggestionsQuery,
   useGetBannersQuery,
