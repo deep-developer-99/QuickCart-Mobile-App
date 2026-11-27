@@ -35,7 +35,7 @@ const HomeCategoryNavigation = React.memo(({ items, selectedId, onSelect }: Prop
 
 const styles = StyleSheet.create({
   strip: { flexGrow: 0, height: 73 },
-  row: { paddingHorizontal: 8, alignItems: 'stretch' },
+  row: { paddingLeft: 4, paddingRight: 12, gap: 6, alignItems: 'stretch' },
   item: { height: 73, alignItems: 'center', justifyContent: 'center', gap: 4 },
   icon: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   image: { width: 28, height: 28 },
