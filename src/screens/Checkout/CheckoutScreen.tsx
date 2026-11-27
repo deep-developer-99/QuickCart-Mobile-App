@@ -10,7 +10,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -53,6 +53,7 @@ type PaymentMethod =
 export default function CheckoutScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const styles = useStyles();
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch<AppDispatch>();
   const userId = useSelector((state: RootState) => state.auth.user?.id ?? '');
   const { items, hydratedForUserId } = useSelector((state: RootState) => state.cart);
@@ -318,7 +319,10 @@ export default function CheckoutScreen({ navigation }: Props) {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          step === 'review' && styles.reviewContent,
+        ]}
       >
         {step === 'shipping' && (
           <>
@@ -455,14 +459,6 @@ export default function CheckoutScreen({ navigation }: Props) {
               )}
             </View>
 
-            <Summary
-              items={items}
-              subtotal={subtotal}
-              shipping={shipping}
-              total={total}
-              verifiedItems={verifiedSummary?.data.items}
-            />
-
             {changedPrices.length > 0 && (
               <View style={styles.reviewCard}>
                 <Text style={styles.reviewLabel}>Some item prices changed</Text>
@@ -477,22 +473,34 @@ export default function CheckoutScreen({ navigation }: Props) {
               </View>
             )}
 
-            <Button
-              title={
-                placingOrder
-                  ? isOnlinePayment
-                    ? t('ui.checkout.processingPayment')
-                    : t('ui.checkout.placingOrder')
-                  : isOnlinePayment
-                  ? t('ui.checkout.payAmount', { amount: total.toFixed(2) })
-                  : t('ui.checkout.placeOrder')
-              }
-              disabled={placingOrder || !verifiedSummary || hasUnacceptedPriceChanges}
-              onPress={placeOrder}
-            />
           </>
         )}
       </ScrollView>
+
+      {step === 'review' && (
+        <View style={[styles.reviewFooter, { paddingBottom: insets.bottom }]}>
+          <Summary
+            items={items}
+            subtotal={subtotal}
+            shipping={shipping}
+            total={total}
+            verifiedItems={verifiedSummary?.data.items}
+          />
+          <Button
+            title={
+              placingOrder
+                ? isOnlinePayment
+                  ? t('ui.checkout.processingPayment')
+                  : t('ui.checkout.placingOrder')
+                : isOnlinePayment
+                ? t('ui.checkout.payAmount', { amount: total.toFixed(2) })
+                : t('ui.checkout.placeOrder')
+            }
+            disabled={placingOrder || !verifiedSummary || hasUnacceptedPriceChanges}
+            onPress={placeOrder}
+          />
+        </View>
+      )}
 
       <AddAddressModal
         visible={addressModalOpen}
@@ -805,7 +813,18 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
 
     content: {
       padding: 16,
-      paddingBottom: 100,
+    },
+
+    reviewContent: {
+      paddingBottom: 16,
+    },
+
+    reviewFooter: {
+      paddingTop: 4,
+      paddingHorizontal: 16,
+      backgroundColor: colors.background,
+      borderTopWidth: 1,
+      borderTopColor: colors.grey50,
     },
 
     header: {
@@ -1178,8 +1197,8 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
     },
 
     summary: {
-      marginTop: 20,
-      marginBottom: 10,
+      marginTop: 8,
+      marginBottom: 0,
     },
 
     summaryTitle: {
