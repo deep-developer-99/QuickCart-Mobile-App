@@ -38,7 +38,7 @@ import {
 
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
-  Search: { categoryId?: string } | undefined;
+  Search: { categoryId?: string; voiceSearchQuery?: string; voiceSearchRequestId?: string } | undefined;
   OrderHistory: undefined;
   OrderDetails: {
     order?: import('../api/orderApi').MyOrder;

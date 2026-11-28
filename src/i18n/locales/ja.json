@@ -220,6 +220,7 @@
     "search": {
       "recentSearches": "最近の検索",
       "noRecentSearches": "最近の検索はありません",
+      "voice": {"open":"音声検索","close":"音声検索を閉じる","ready":"聞き取り準備完了","requesting":"マイクの許可を確認中…","listening":"聞き取り中…","processing":"処理中…","recognized":"検索語を認識しました","noSpeech":"音声が検出されませんでした","error":"音声を認識できませんでした","denied":"マイクの許可がありません","unavailable":"音声認識を利用できません","helper":"「Amul Milk」と話してください","prompt":"認識した言葉がここに表示されます","mic":"聞き取りを開始または停止","waveform":"音声の状態","privacy":"端末内で認識できない場合、端末の音声サービスがオンラインで音声を処理することがあります。","retry":"再試行","cancel":"キャンセル","settings":"設定を開く"},
       "resultCount_one": "検索結果（{{count}}件）",
       "resultCount_other": "検索結果（{{count}}件）",
       "errorTitle": "問題が発生しました",

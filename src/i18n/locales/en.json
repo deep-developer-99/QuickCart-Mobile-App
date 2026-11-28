@@ -220,6 +220,7 @@
     "search": {
       "recentSearches": "RECENT SEARCHES",
       "noRecentSearches": "No recent searches",
+      "voice": {"open":"Voice search","close":"Close voice search","ready":"Ready to listen","requesting":"Requesting microphone access…","listening":"Listening…","processing":"Processing…","recognized":"Search found","noSpeech":"No speech detected","error":"Could not recognize speech","denied":"Microphone permission denied","unavailable":"Speech recognition is unavailable","helper":"Try saying Amul Milk","prompt":"Your words will appear here","mic":"Start or stop listening","waveform":"Speech activity","privacy":"Your device’s speech recognition service may process speech online when on-device recognition is unavailable.","retry":"Try again","cancel":"Cancel","settings":"Open settings"},
       "resultCount_one": "SEARCH RESULT ({{count}})",
       "resultCount_other": "SEARCH RESULTS ({{count}})",
       "errorTitle": "Something went wrong",

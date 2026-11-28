@@ -1,5 +1,5 @@
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ActivityIndicator,
@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import type {RouteProp} from '@react-navigation/native';
 import {
   useGetCategoriesQuery,
   useGetProductsQuery,
@@ -27,6 +28,9 @@ import QuickCartWordmark from '../../components/QuickCartWordmark';
 import CartQuantityControl from '../../components/CartQuantityControl';
 import WishlistHeartButton from '../../components/WishlistHeartButton';
 import type { ThemeColors } from '../../theme';
+import VoiceSearchButton from '../../components/VoiceSearchButton';
+import VoiceSearchModal from '../../components/VoiceSearchModal';
+import type {RootStackParamList} from '../../navigation/RootNavigator';
 
 type Product = ProductResponse['data'][number];
 type SortOption = 'priceLow' | 'priceHigh' | 'rating' | null;
@@ -75,7 +79,7 @@ const SearchScreen = () => {
   const styles = useStyles();
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
-  const route = useRoute<any>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Search'>>();
   const initialCategoryId = route.params?.categoryId as string | undefined;
   const scopedFilters = useMemo<ProductFilters>(
     () => ({ ...emptyFilters, categoryId: initialCategoryId ?? null }),
@@ -88,6 +92,8 @@ const SearchScreen = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [filters, setFilters] = useState<ProductFilters>(scopedFilters);
   const [draftFilters, setDraftFilters] = useState<ProductFilters>(scopedFilters);
+  const [voiceSearchOpen, setVoiceSearchOpen] = useState(false);
+  const handledVoiceRequest = useRef<string | null>(null);
 
   const { data: categoryResponse } = useGetCategoriesQuery();
   const categories = useMemo(
@@ -105,11 +111,10 @@ const SearchScreen = () => {
           const parsed = JSON.parse(stored);
 
           if (Array.isArray(parsed)) {
-            setRecentSearches(
-              parsed
-                .filter((item): item is string => typeof item === 'string')
-                .slice(0, MAX_RECENT_SEARCHES),
-            );
+            const storedSearches = parsed.filter((item): item is string => typeof item === 'string');
+            setRecentSearches(current => [...current, ...storedSearches]
+              .filter((item, index, all) => all.findIndex(candidate => candidate.toLowerCase() === item.toLowerCase()) === index)
+              .slice(0, MAX_RECENT_SEARCHES));
           }
         }
       } catch (error) {
@@ -187,20 +192,20 @@ const SearchScreen = () => {
     return result;
   }, [filters, productResponse]);
 
-  const saveRecentSearch = async (value: string) => {
+  const saveRecentSearch = useCallback(async (value: string) => {
     const cleaned = value.trim();
     if (!cleaned) return;
 
-    const updatedSearches = [
-      cleaned,
-      ...recentSearches.filter(
-        item => item.toLowerCase() !== cleaned.toLowerCase(),
-      ),
-    ].slice(0, MAX_RECENT_SEARCHES);
-
-    setRecentSearches(updatedSearches);
-
     try {
+      const stored = await AsyncStorage.getItem(RECENT_SEARCHES_KEY);
+      const persisted = stored ? JSON.parse(stored) : [];
+      const base = Array.isArray(persisted)
+        ? persisted.filter((item): item is string => typeof item === 'string')
+        : [];
+      const updatedSearches = [cleaned, ...recentSearches, ...base]
+        .filter((item, index, all) => all.findIndex(candidate => candidate.toLowerCase() === item.toLowerCase()) === index)
+        .slice(0, MAX_RECENT_SEARCHES);
+      setRecentSearches(updatedSearches);
       await AsyncStorage.setItem(
         RECENT_SEARCHES_KEY,
         JSON.stringify(updatedSearches),
@@ -208,6 +213,25 @@ const SearchScreen = () => {
     } catch (error) {
       console.log('Failed to save recent search:', error);
     }
+  }, [recentSearches]);
+
+  useEffect(() => {
+    const query = route.params?.voiceSearchQuery?.trim().replace(/\s+/g, ' ');
+    const requestId = route.params?.voiceSearchRequestId;
+    if (!query || !requestId || handledVoiceRequest.current === requestId) return;
+    handledVoiceRequest.current = requestId;
+    setSearchText(query);
+    saveRecentSearch(query);
+    navigation.setParams({voiceSearchQuery: undefined, voiceSearchRequestId: undefined});
+  }, [navigation, route.params?.voiceSearchQuery, route.params?.voiceSearchRequestId, saveRecentSearch]);
+
+  const handleVoiceResult = (query: string) => {
+    const cleaned = query.trim().replace(/\s+/g, ' ');
+    if (!cleaned) return;
+    Keyboard.dismiss();
+    setVoiceSearchOpen(false);
+    setSearchText(cleaned);
+    saveRecentSearch(cleaned);
   };
 
   const handleSubmitSearch = () => {
@@ -293,6 +317,8 @@ const SearchScreen = () => {
             <Text style={styles.clearText}>×</Text>
           </Pressable>
         ) : null}
+
+        <VoiceSearchButton onPress={() => {Keyboard.dismiss(); setVoiceSearchOpen(true);}} accessibilityLabel={t('ui.search.voice.open')} />
 
         <Pressable
           onPress={openFilter}
@@ -448,6 +474,7 @@ const SearchScreen = () => {
           setFilterOpen(false);
         }}
       />
+      <VoiceSearchModal visible={voiceSearchOpen} onDismiss={() => setVoiceSearchOpen(false)} onResult={handleVoiceResult} />
     </SafeAreaView>
   );
 };
@@ -888,3 +915,4 @@ const useStyles = () => {
 };
 
 export default SearchScreen;
+

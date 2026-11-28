@@ -2,6 +2,14 @@
   "name": "QuickCartMobile",
   "version": "0.0.1",
   "private": true,
+  "codegenConfig": {
+    "name": "QuickCartVoiceSearchSpec",
+    "type": "modules",
+    "jsSrcsDir": "src/native",
+    "android": {
+      "javaPackageName": "com.quickcartmobile"
+    }
+  },
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",

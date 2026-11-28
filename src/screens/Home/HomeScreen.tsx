@@ -45,6 +45,8 @@ import type { MobileBanner } from '../../api/quickCartApi';
 import HomeCategoryNavigation from '../../components/HomeCategoryNavigation';
 import CartAddedToast from '../../components/CartAddedToast';
 import CartQuantityControl from '../../components/CartQuantityControl';
+import VoiceSearchButton from '../../components/VoiceSearchButton';
+import VoiceSearchModal from '../../components/VoiceSearchModal';
 import WishlistHeartButton from '../../components/WishlistHeartButton';
 import type { CartProduct } from '../../store/slices/cartSlice';
 import type { RootState } from '../../store/store';
@@ -279,6 +281,7 @@ const HomeScreen = () => {
   const [locationUnavailable, setLocationUnavailable] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [showCartToast, setShowCartToast] = useState(false);
+  const [voiceSearchOpen, setVoiceSearchOpen] = useState(false);
   const hasRequestedInitialLocation = useRef(false);
   const cartToastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -580,6 +583,7 @@ const HomeScreen = () => {
   };
 
   return (
+    <>
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.page}>
       <ScrollView
@@ -643,10 +647,13 @@ const HomeScreen = () => {
         </View>
 
         <View style={styles.stickySearch}>
-          <Pressable style={styles.searchField} onPress={() => navigation.navigate('Search')} accessibilityRole="button" accessibilityLabel={t('ui.common.searchPlaceholder')}>
-            <View style={styles.searchIcon}><View style={styles.searchHandle} /></View>
-            <SearchHint />
-          </Pressable>
+          <View style={styles.searchField}>
+            <Pressable style={styles.searchTextArea} onPress={() => navigation.navigate('Search')} accessibilityRole="button" accessibilityLabel={t('ui.common.searchPlaceholder')}>
+              <View style={styles.searchIcon}><View style={styles.searchHandle} /></View>
+              <SearchHint />
+            </Pressable>
+            <VoiceSearchButton onPress={() => setVoiceSearchOpen(true)} accessibilityLabel={t('ui.search.voice.open')} />
+          </View>
           <HomeCategoryNavigation items={navigationItems} selectedId={selectedCategoryId} onSelect={selectHomeCategory} />
         </View>
 
@@ -929,7 +936,12 @@ const HomeScreen = () => {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+      </SafeAreaView>
+      <VoiceSearchModal visible={voiceSearchOpen} onDismiss={() => setVoiceSearchOpen(false)} onResult={query => {
+        setVoiceSearchOpen(false);
+        navigation.navigate('Search', {voiceSearchQuery: query, voiceSearchRequestId: `${Date.now()}-${Math.random()}`});
+      }} />
+    </>
   );
 };
 
@@ -941,6 +953,7 @@ const createStyles = (colors: ThemeColors, _mode: ThemeMode) => ({
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   stickySearch: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, backgroundColor: colors.background, zIndex: 3 },
   searchField: { height: 48, borderRadius: 13, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, flexDirection: 'row' as const, alignItems: 'center' as const, paddingHorizontal: spacing.md, gap: spacing.md },
+  searchTextArea: {flex: 1, minWidth: 0, height: '100%' as const, flexDirection: 'row' as const, alignItems: 'center' as const, gap: spacing.md},
   searchPlaceholder: { ...typography.body2Regular, color: colors.secondaryText },
   headerTop: {
     flexDirection: 'row' as const,
@@ -1259,3 +1272,4 @@ const useStyles = () => {
 };
 
 export default HomeScreen;
+

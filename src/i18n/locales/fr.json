@@ -220,6 +220,7 @@
     "search": {
       "recentSearches": "RECHERCHES RÉCENTES",
       "noRecentSearches": "Aucune recherche récente",
+      "voice": {"open":"Recherche vocale","close":"Fermer la recherche vocale","ready":"Prêt à écouter","requesting":"Autorisation du micro…","listening":"Écoute…","processing":"Traitement…","recognized":"Recherche trouvée","noSpeech":"Aucune parole détectée","error":"Reconnaissance vocale impossible","denied":"Accès au micro refusé","unavailable":"Reconnaissance vocale indisponible","helper":"Dites « Amul Milk »","prompt":"Vos paroles apparaîtront ici","mic":"Démarrer ou arrêter l’écoute","waveform":"Activité vocale","privacy":"Le service vocal de votre appareil peut traiter la parole en ligne si la reconnaissance hors ligne est indisponible.","retry":"Réessayer","cancel":"Annuler","settings":"Ouvrir les réglages"},
       "resultCount_one": "RÉSULTAT ({{count}})",
       "resultCount_other": "RÉSULTATS ({{count}})",
       "errorTitle": "Une erreur est survenue",
