@@ -17,7 +17,7 @@ import {
   NavigationProp,
   ParamListBase,
 } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -36,6 +36,7 @@ const cartKey = (item: CartItem) => `${item.product?._id ?? ''}:${item.variantId
 
 const CartScreen = () => {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useStyles();
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { t } = useTranslation();
@@ -326,7 +327,7 @@ const CartScreen = () => {
             </View>
           </ScrollView>
 
-          <View style={styles.checkoutContainer}>
+          <View style={[styles.checkoutContainer, { paddingBottom: spacing.md + insets.bottom }]}>
             <Pressable
               style={[
                 styles.checkoutButton,
