@@ -1,6 +1,7 @@
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   ActivityIndicator,
   Image,
   Keyboard,
@@ -8,8 +9,10 @@ import {
   Modal,
   Platform,
   Pressable,
+  Share,
   ScrollView,
   StyleSheet,
+  ToastAndroid,
   View,
 } from 'react-native';
 import {
@@ -19,14 +22,18 @@ import {
 } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 
 import EmptyCart from './EmptyCart';
 import { getVoucherInputScrollDelta } from './voucherKeyboard';
 import BackButton from '../../components/common/BackButton';
-import { hasVariantDiscount, variantDiscountPercentage, variantSellingPrice } from '../../utils/variantPricing';
-import TrashIcon from '../../assets/icons/trash.svg';
-import type { CartItem } from '../../api/quickCartApi';
+import { hasVariantDiscount, lowestPricedVariant, variantSellingPrice } from '../../utils/variantPricing';
+import type { CartItem, CartProduct } from '../../api/quickCartApi';
+import { useGetProductsQuery, useGetWishlistQuery } from '../../api/quickCartApi';
+import { useGetAddressesQuery } from '../../api/addressApi';
+import ProductVariantBottomSheet from '../../components/ProductVariantBottomSheet';
+import { useWishlistActions } from '../../hooks/useWishlistActions';
+import { moveCartLineToWishlist } from './moveCartLineToWishlist';
 import type { RootState, AppDispatch } from '../../store/store';
 import { decrementCartLine, incrementCartLine, removeCartLine } from '../../store/slices/cartSlice';
 import { radius, spacing, typography, useTheme } from '../../theme';
@@ -42,12 +49,22 @@ const CartScreen = () => {
   const { t } = useTranslation();
 
   const dispatch = useDispatch<AppDispatch>();
+  const store = useStore<RootState>();
   const userId = useSelector((state: RootState) => state.auth.user?.id ?? null);
   const { items: savedItems, hydratedForUserId } = useSelector((state: RootState) => state.cart);
+  const wishlistItems = useSelector((state: RootState) => state.wishlist.items);
+  const confirmedWishlistItems = useSelector((state: RootState) => state.wishlist.confirmedItems);
+  const confirmedWishlistIds = useMemo(() => new Set(confirmedWishlistItems.map(product => product._id)), [confirmedWishlistItems]);
+  const pendingWishlistIds = useSelector((state: RootState) => state.wishlist.latestOperationByProduct);
+  const { setWishlisted } = useWishlistActions();
+  useGetWishlistQuery();
+  const { data: addressResponse } = useGetAddressesQuery();
   const isLoading = Boolean(userId && hydratedForUserId !== userId);
   const items: CartItem[] = savedItems;
 
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [movingProductIds, setMovingProductIds] = useState<string[]>([]);
+  const movingProductKeysRef = useRef(new Set<string>());
+  const [selectedProduct, setSelectedProduct] = useState<CartProduct | null>(null);
   const [voucherVisible, setVoucherVisible] = useState(false);
   const [voucherCode, setVoucherCode] = useState('');
   const voucherScrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
@@ -112,40 +129,45 @@ const CartScreen = () => {
     };
   }, [scrollVoucherInputIntoView, voucherVisible]);
 
-  useEffect(() => {
-    setSelectedIds(items.map(cartKey));
-  }, [items]);
-
-  const selectedItems = useMemo(
-    () => items.filter(item => selectedIds.includes(cartKey(item))),
-    [items, selectedIds],
-  );
-
   const subtotal = useMemo(
     () =>
-      selectedItems.reduce(
+      items.reduce(
         (total, item) =>
           total +
           variantSellingPrice(item.product?.variants?.find(variant => variant._id === item.variantId)) *
             item.quantity,
         0,
       ),
-    [selectedItems],
+    [items],
   );
+
+  const recommendationCategory = useMemo(() => {
+    const category = items.find(item => item.product?.category)?.product?.category;
+    return typeof category === 'string' ? category : category?._id;
+  }, [items]);
+  const { data: recommendationResponse } = useGetProductsQuery(
+    { category: recommendationCategory, page: 1, limit: 12 },
+    { skip: !recommendationCategory || items.length === 0 },
+  );
+  const recommendations = useMemo(() => {
+    const inCart = new Set(items.map(item => item.product?._id));
+    return (recommendationResponse?.data ?? [])
+      .filter(product => !inCart.has(product._id) && lowestPricedVariant(product.variants))
+      .slice(0, 8);
+  }, [items, recommendationResponse]);
+  const addresses = addressResponse?.data ?? [];
+  const defaultAddress = addresses.find(address => address.isDefault) ?? addresses[0];
+  const confirmedWishlist = wishlistItems.filter(product => confirmedWishlistIds.has(product._id));
+  const cartSavings = useMemo(() => items.reduce((sum, item) => {
+    const variant = item.product?.variants?.find(entry => entry._id === item.variantId);
+    return sum + Math.max(0, (variant?.price ?? 0) - variantSellingPrice(variant)) * item.quantity;
+  }, 0), [items]);
 
   // ₹40 shipping for subtotal up to ₹99; free shipping above ₹99.
   const shippingCost = subtotal > 0 && subtotal <= 99 ? 40 : 0;
   const total = subtotal + shippingCost;
 
-  const toggleSelection = (productId: string) => {
-    setSelectedIds(current =>
-      current.includes(productId)
-        ? current.filter(id => id !== productId)
-        : [...current, productId],
-    );
-  };
-
-  const changeQuantity = async (item: CartItem, direction: 'increase' | 'decrease') => {
+  const changeQuantity = (item: CartItem, direction: 'increase' | 'decrease') => {
     const productId = item.product?._id;
 
     if (!productId) return;
@@ -156,9 +178,44 @@ const CartScreen = () => {
       : incrementCartLine({ userId: userId ?? '', productId, variantId: item.variantId }));
   };
 
-  const removeItem = async (productId: string, variantId?: string) => {
-    dispatch(removeCartLine({ userId: userId ?? '', productId, variantId }));
-    setSelectedIds(current => current.filter(id => id !== `${productId}:${variantId ?? ''}`));
+  const moveToWishlist = async (item: CartItem) => {
+    const product = item.product;
+    const productId = product?._id;
+    const ownerAtStart = userId;
+    const lineId = cartKey(item);
+    if (!product || !productId || !item.variantId || !ownerAtStart || movingProductKeysRef.current.has(lineId)) return;
+    movingProductKeysRef.current.add(lineId);
+    setMovingProductIds(current => [...current, cartKey(item)]);
+    try {
+      const moved = await moveCartLineToWishlist({
+        item,
+        userId: ownerAtStart,
+        isWishlistPending: Boolean(pendingWishlistIds[productId]),
+        isAlreadyConfirmed: confirmedWishlistIds.has(productId),
+        setWishlisted: () => setWishlisted(product, true),
+        getCurrentUserId: () => store.getState().auth.user?.id ?? null,
+        isConfirmed: () => store.getState().wishlist.confirmedItems.some(entry => entry._id === productId),
+        removeLine: payload => dispatch(removeCartLine(payload)),
+      });
+      if (!moved) return;
+      if (Platform.OS === 'android') ToastAndroid.show('Moved to wishlist', ToastAndroid.SHORT);
+      else Alert.alert('Wishlist', 'Moved to wishlist');
+    } finally {
+      movingProductKeysRef.current.delete(lineId);
+      setMovingProductIds(current => current.filter(key => key !== cartKey(item)));
+    }
+  };
+
+  const shareCart = async () => {
+    const lines = items.map(item => {
+      const variant = item.product?.variants?.find(entry => entry._id === item.variantId);
+      return `${item.product?.name ?? 'Product'} (${variant?.quantity ?? ''} ${variant?.unit ?? ''}) × ${item.quantity}`;
+    });
+    try {
+      await Share.share({ message: `My QuickCart basket:\n${lines.join('\n')}\nItems total: ₹${subtotal.toFixed(2)}` });
+    } catch (error) {
+      console.warn('Unable to share cart summary:', error);
+    }
   };
 
   if (isLoading) {
@@ -185,18 +242,16 @@ const CartScreen = () => {
           }}
         />
 
-        <Text style={styles.headerTitle}>{t('tabs.cart')}</Text>
+        <Text style={styles.headerTitle}>Checkout</Text>
 
-        {items.length > 0 ? (
-          <Pressable
-            onPress={() => setVoucherVisible(true)}
-            style={styles.voucherButton}
-          >
-            <Text style={styles.voucherText}>{t('cart.voucher')}</Text>
+        <View style={styles.headerActions}>
+          <Pressable onPress={() => navigation.navigate('Search')} style={styles.headerAction} accessibilityRole="button" accessibilityLabel="Search products">
+            <Text style={styles.headerActionText}>⌕</Text>
           </Pressable>
-        ) : (
-          <View style={styles.headerSpacer} />
-        )}
+          <Pressable onPress={shareCart} style={styles.shareButton} accessibilityRole="button" accessibilityLabel="Share cart">
+            <Text style={styles.shareText}>Share</Text>
+          </Pressable>
+        </View>
       </View>
 
       {items.length === 0 ? (
@@ -207,17 +262,23 @@ const CartScreen = () => {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            {items.map(item => {
-              const product = item.product;
-              if (!product) return null;
-
-              const productId = product._id;
-              const variant = product.variants?.find(entry => entry._id === item.variantId);
-              const currentPrice = variantSellingPrice(variant);
-              const selected = selectedIds.includes(cartKey(item));
-
-              return (
-                <View key={cartKey(item)} style={styles.cartItem}>
+            <View style={styles.sectionCard}>
+              <View style={styles.cardHeadingRow}>
+                <View>
+                  <Text style={styles.sectionTitle}>Your cart</Text>
+                  <Text style={styles.sectionSubtitle}>Shipment of {items.reduce((count, item) => count + item.quantity, 0)} items</Text>
+                </View>
+                {shippingCost === 0 ? <Text style={styles.freeDelivery}>FREE delivery</Text> : null}
+              </View>
+              {items.map((item, index) => {
+                const product = item.product;
+                if (!product) return null;
+                const variant = product.variants?.find(entry => entry._id === item.variantId);
+                const currentPrice = variantSellingPrice(variant);
+                const lineKey = cartKey(item);
+                const isMoving = movingProductIds.includes(lineKey);
+                return (
+                <View key={lineKey} style={[styles.cartItem, index < items.length - 1 && styles.cartItemBorder]}>
                   <Pressable
                     style={styles.imageBox}
                     onPress={() =>
@@ -236,111 +297,85 @@ const CartScreen = () => {
                   </Pressable>
 
                   <View style={styles.productDetails}>
-                    <View style={styles.nameRow}>
-                      <Pressable
-                        style={styles.productNamePressable}
-                        onPress={() =>
-                          navigation.navigate('ProductDetails', { product })
-                        }
-                        accessibilityRole="button"
-                        accessibilityLabel={t('ui.common.viewProductDetails', { name: product.name })}
-                      >
-                        <Text style={styles.productName} numberOfLines={2}>
-                          {product.name}
-                        </Text>
-                        {variant && <Text style={styles.productName}>{variant.quantity} {variant.unit}</Text>}
+                    <View style={styles.productTopLine}>
+                      <Pressable style={styles.productNamePressable} onPress={() => navigation.navigate('ProductDetails', { product })} accessibilityRole="button" accessibilityLabel={t('ui.common.viewProductDetails', { name: product.name })}>
+                        <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
+                        {variant ? <Text style={styles.variantText}>{variant.quantity} {variant.unit}</Text> : null}
                       </Pressable>
-
-                      <Pressable
-                        style={[
-                          styles.checkbox,
-                          selected && styles.checkboxSelected,
-                        ]}
-                        onPress={() => toggleSelection(cartKey(item))}
-                      >
-                        {selected ? (
-                          <Text style={styles.checkmark}>✓</Text>
-                        ) : null}
-                      </Pressable>
-                    </View>
-
-                    <Text style={styles.currentPrice}>
-                      ₹{currentPrice.toFixed(2)}
-                    </Text>
-
-                    {variant && hasVariantDiscount(variant) && <Text style={styles.originalPrice}>{String.fromCharCode(0x20b9)}{variant.price.toFixed(2)} ({variantDiscountPercentage(variant)}% off)</Text>}
-
-                    <View style={styles.itemBottomRow}>
                       <View style={styles.quantityBox}>
-                        <Pressable
-                          style={styles.quantityButton}
-                          onPress={() =>
-                            changeQuantity(item, 'decrease')
-                          }
-                        >
-                          <Text style={styles.quantitySymbol}>−</Text>
-                        </Pressable>
-
+                        <Pressable style={styles.quantityButton} onPress={() => changeQuantity(item, 'decrease')} accessibilityRole="button" accessibilityLabel="Decrease quantity"><Text style={styles.quantitySymbol}>−</Text></Pressable>
                         <Text style={styles.quantity}>{item.quantity}</Text>
-
-                        <Pressable
-                          style={styles.quantityButton}
-                          onPress={() =>
-                            changeQuantity(item, 'increase')
-                          }
-                        >
-                          <Text style={styles.quantitySymbol}>+</Text>
-                        </Pressable>
+                        <Pressable style={styles.quantityButton} onPress={() => changeQuantity(item, 'increase')} accessibilityRole="button" accessibilityLabel="Increase quantity"><Text style={styles.quantitySymbol}>+</Text></Pressable>
                       </View>
-
-                      <Pressable
-                        style={styles.deleteButton}
-                        onPress={() => removeItem(productId, item.variantId)}
-                        accessibilityRole="button"
-                        accessibilityLabel={t('ui.common.removeFromCart', { name: product.name })}
-                      >
-                        <TrashIcon width={24} height={24} />
+                    </View>
+                    <View style={styles.productBottomLine}>
+                      <View style={styles.priceBlock}>
+                        <Text style={styles.currentPrice}>₹{(currentPrice * item.quantity).toFixed(2)}</Text>
+                        {variant && hasVariantDiscount(variant) ? <Text style={styles.originalPrice}>₹{(variant.price * item.quantity).toFixed(2)}</Text> : null}
+                      </View>
+                      <Pressable style={styles.moveButton} onPress={() => moveToWishlist(item)} disabled={isMoving || !userId} accessibilityRole="button">
+                        <Text style={styles.moveButtonText}>{isMoving ? 'Saving…' : 'Move to wishlist'}</Text>
                       </Pressable>
                     </View>
                   </View>
                 </View>
               );
-            })}
-
-            <View style={styles.orderInfo}>
-              <Text style={styles.orderInfoTitle}>{t('cart.orderInfo')}</Text>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{t('cart.subtotal')}</Text>
+              })}
+              <View style={styles.subtotalRow}>
+                <Text style={styles.infoLabel}>Items total</Text>
                 <Text style={styles.infoValue}>₹{subtotal.toFixed(2)}</Text>
               </View>
+            </View>
 
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{t('cart.shipping')}</Text>
-                <Text style={styles.infoValue}>₹{shippingCost.toFixed(2)}</Text>
-              </View>
+            {recommendations.length > 0 ? <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>You might also like</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalProducts}>
+                {recommendations.map(product => <Pressable key={product._id} style={styles.miniProduct} onPress={() => setSelectedProduct(product)}>
+                  {product.image ? <Image source={{ uri: product.image }} style={styles.miniProductImage} resizeMode="cover" /> : <View style={styles.miniProductImage} />}
+                  <Text style={styles.miniProductName} numberOfLines={2}>{product.name}</Text>
+                  <Text style={styles.miniProductPrice}>₹{variantSellingPrice(lowestPricedVariant(product.variants)).toFixed(2)}</Text>
+                  <Text style={styles.miniProductAdd}>ADD</Text>
+                </Pressable>)}
+              </ScrollView>
+            </View> : null}
 
+            {confirmedWishlist.length > 0 ? <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>Your wishlist</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalProducts}>
+                {confirmedWishlist.map(product => <Pressable key={product._id} style={styles.miniProduct} onPress={() => setSelectedProduct(product)}>
+                  {product.image ? <Image source={{ uri: product.image }} style={styles.miniProductImage} resizeMode="cover" /> : <View style={styles.miniProductImage} />}
+                  <Text style={styles.miniProductName} numberOfLines={2}>{product.name}</Text>
+                  <Text style={styles.miniProductPrice}>₹{variantSellingPrice(lowestPricedVariant(product.variants)).toFixed(2)}</Text>
+                  <Text style={styles.miniProductAdd}>Choose size</Text>
+                </Pressable>)}
+              </ScrollView>
+            </View> : null}
+
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>Bill details</Text>
+              <View style={styles.infoRow}><Text style={styles.infoLabel}>Items total</Text><Text style={styles.infoValue}>₹{subtotal.toFixed(2)}</Text></View>
+              <View style={styles.infoRow}><Text style={styles.infoLabel}>Delivery charge</Text><Text style={styles.infoValue}>{shippingCost > 0 ? `₹${shippingCost.toFixed(2)}` : 'FREE'}</Text></View>
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>{t('cart.total')}</Text>
+                <Text style={styles.totalLabel}>Grand total</Text>
                 <Text style={styles.totalValue}>₹{total.toFixed(2)}</Text>
               </View>
+              {cartSavings > 0 ? <View style={styles.savingsBox}><Text style={styles.savingsTitle}>You save ₹{cartSavings.toFixed(2)}</Text><Text style={styles.savingsCaption}>Savings on discounted items</Text></View> : null}
             </View>
+
           </ScrollView>
 
           <View style={[styles.checkoutContainer, { paddingBottom: spacing.md + insets.bottom }]}>
-            <Pressable
-              style={[
-                styles.checkoutButton,
-                selectedItems.length === 0 && styles.checkoutDisabled,
-              ]}
-              disabled={selectedItems.length === 0}
-              onPress={() => {
-                navigation.navigate('Checkout');
-              }}
-            >
-              <Text style={styles.checkoutText}>
-                {t('ui.cart.checkoutItems', { count: selectedItems.length })}
-              </Text>
+            <Pressable style={styles.addressRow} onPress={() => navigation.navigate('Checkout')} accessibilityRole="button">
+              <View style={styles.addressIcon}><Text style={styles.addressIconText}>⌂</Text></View>
+              <View style={styles.addressCopy}>
+                <Text style={styles.addressTitle}>{defaultAddress ? 'Default delivery address' : 'Select delivery address'}</Text>
+                <Text style={styles.addressText} numberOfLines={1}>{defaultAddress ? `${defaultAddress.addressLine}, ${defaultAddress.city}` : 'Choose an address at checkout'}</Text>
+              </View>
+              <Text style={styles.addressChange}>Change</Text>
+            </Pressable>
+            <Pressable style={styles.checkoutButton} onPress={() => navigation.navigate('Checkout')} accessibilityRole="button">
+              <View style={styles.checkoutAmount}><Text style={styles.checkoutTotal}>₹{total.toFixed(2)}</Text><Text style={styles.checkoutTotalLabel}>TOTAL</Text></View>
+              <Text style={styles.checkoutText}>Proceed  ›</Text>
             </Pressable>
           </View>
         </>
@@ -404,6 +439,7 @@ const CartScreen = () => {
           </KeyboardAvoidingView>
         </View>
       </Modal>
+      {selectedProduct ? <ProductVariantBottomSheet visible productId={selectedProduct._id} productName={selectedProduct.name} productImage={selectedProduct.image} variants={selectedProduct.variants ?? []} cartItems={items} product={selectedProduct} onClose={() => setSelectedProduct(null)} /> : null}
     </SafeAreaView>
   );
 };
@@ -412,7 +448,7 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: mode === 'dark' ? colors.background : '#F5F6F7',
     },
     header: {
       height: 60,
@@ -421,11 +457,15 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
       paddingHorizontal: spacing.md,
       borderBottomWidth: 1,
       borderBottomColor: colors.grey50,
+      backgroundColor: colors.surface,
     },
     backButton: {
-      width: 36,
-      height: 36,
-      alignItems: 'flex-start',
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      borderWidth: 1,
+      borderColor: colors.grey100,
+      alignItems: 'center',
       justifyContent: 'center',
     },
     backIcon: {
@@ -437,7 +477,13 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
     headerTitle: {
       ...typography.body1Medium,
       color: colors.text,
+      fontSize: 19,
     },
+    headerActions: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 8 },
+    headerAction: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: colors.grey100, alignItems: 'center', justifyContent: 'center' },
+    headerActionText: { color: colors.text, fontSize: 25, lineHeight: 29 },
+    shareButton: { height: 36, borderRadius: 18, borderWidth: 1, borderColor: colors.grey100, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+    shareText: { color: colors.text, ...typography.captionRegular },
     voucherButton: {
       marginLeft: 'auto',
     },
@@ -451,8 +497,15 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
     },
     scrollContent: {
       paddingHorizontal: spacing.md,
-      paddingBottom: 20,
+      paddingTop: spacing.md,
+      paddingBottom: 24,
+      gap: spacing.md,
     },
+    sectionCard: { padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surface },
+    cardHeadingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
+    sectionTitle: { ...typography.body1Medium, color: colors.text, fontSize: 18 },
+    sectionSubtitle: { ...typography.captionRegular, color: colors.secondaryText, marginTop: 3 },
+    freeDelivery: { ...typography.captionRegular, color: mode === 'dark' ? colors.cyan : '#168B43', fontWeight: '700' },
     refreshingRow: {
       height: 28,
       alignItems: 'center',
@@ -460,12 +513,13 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
     },
     cartItem: {
       flexDirection: 'row',
-      paddingVertical: spacing.sm,
+      paddingVertical: spacing.md,
     },
+    cartItemBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.grey50 },
     imageBox: {
-      width: 120,
-      height: 120,
-      borderRadius: radius.lg,
+      width: 76,
+      height: 76,
+      borderRadius: radius.md,
       overflow: 'hidden',
       backgroundColor: colors.cyan50,
     },
@@ -476,8 +530,15 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
     productDetails: {
       flex: 1,
       marginLeft: spacing.sm,
-      paddingVertical: 2,
+      paddingVertical: 1,
+      minWidth: 0,
     },
+    productTopLine: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.xs },
+    productBottomLine: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: spacing.sm, gap: spacing.xs },
+    variantText: { ...typography.captionRegular, color: colors.secondaryText, marginTop: 3 },
+    priceBlock: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    moveButton: { paddingVertical: 3, paddingHorizontal: 2 },
+    moveButtonText: { ...typography.captionRegular, color: mode === 'dark' ? colors.cyan : '#168B43', textDecorationLine: 'underline' },
     nameRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
@@ -487,10 +548,10 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
       minWidth: 0,
     },
     productName: {
-      ...typography.body2Regular,
+      ...typography.body2Medium,
       color: colors.text,
-      flex: 1,
       paddingRight: spacing.xs,
+      lineHeight: 19,
     },
     checkbox: {
       width: 20,
@@ -515,13 +576,13 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
     currentPrice: {
       ...typography.body2Medium,
       color: colors.text,
-      marginTop: 5,
+      marginTop: 0,
     },
     originalPrice: {
       ...typography.captionRegular,
       color: colors.secondaryText,
       textDecorationLine: 'line-through',
-      marginTop: 1,
+      marginTop: 0,
     },
     itemBottomRow: {
       flexDirection: 'row',
@@ -534,8 +595,10 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
       flexDirection: 'row',
       alignItems: 'center',
       borderWidth: 1,
-      borderColor: colors.grey50,
-      borderRadius: radius.sm,
+      borderColor: mode === 'dark' ? colors.cyan : '#168B43',
+      backgroundColor: mode === 'dark' ? colors.cyan : '#168B43',
+      borderRadius: 8,
+      minWidth: 82,
     },
     quantityButton: {
       width: 32,
@@ -545,12 +608,12 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
     },
     quantitySymbol: {
       fontSize: 21,
-      color: colors.text,
+      color: colors.white,
     },
     quantity: {
       ...typography.body2Medium,
-      color: colors.text,
-      minWidth: 25,
+      color: colors.white,
+      minWidth: 19,
       textAlign: 'center',
     },
     deleteButton: {
@@ -559,10 +622,7 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    orderInfo: {
-      marginTop: 38,
-      paddingBottom: 12,
-    },
+    subtotalRow: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.grey50, paddingTop: spacing.sm, marginTop: spacing.xs },
     orderInfoTitle: {
       ...typography.body1Medium,
       color: colors.text,
@@ -571,7 +631,7 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
     infoRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginBottom: 14,
+      marginBottom: spacing.sm,
     },
     infoLabel: {
       ...typography.captionRegular,
@@ -584,7 +644,10 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
     totalRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginTop: 2,
+      marginTop: spacing.xs,
+      paddingTop: spacing.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.grey50,
     },
     totalLabel: {
       ...typography.body1Medium,
@@ -594,19 +657,40 @@ const createStyles = (colors: ThemeColors, mode: 'light' | 'dark') =>
       ...typography.body1Medium,
       color: colors.text,
     },
+    horizontalProducts: { paddingTop: spacing.md, gap: spacing.sm },
+    miniProduct: { width: 126, padding: spacing.sm, borderRadius: radius.md, borderWidth: 1, borderColor: colors.grey50, backgroundColor: colors.surface },
+    miniProductImage: { width: '100%', height: 82, borderRadius: radius.sm, backgroundColor: colors.cyan50 },
+    miniProductName: { ...typography.captionRegular, color: colors.text, minHeight: 34, marginTop: spacing.xs },
+    miniProductPrice: { ...typography.body2Medium, color: colors.text, marginTop: 2 },
+    miniProductAdd: { ...typography.captionRegular, color: mode === 'dark' ? colors.cyan : '#168B43', fontWeight: '700', marginTop: spacing.xs },
+    savingsBox: { marginTop: spacing.md, padding: spacing.sm, borderRadius: radius.sm, backgroundColor: mode === 'dark' ? colors.cyan50 : '#EAF5FF' },
+    savingsTitle: { ...typography.body2Medium, color: colors.text },
+    savingsCaption: { ...typography.captionRegular, color: colors.secondaryText, marginTop: 2 },
     checkoutContainer: {
       paddingHorizontal: spacing.md,
       paddingTop: 10,
       paddingBottom: spacing.md,
       backgroundColor: colors.surface,
     },
+    addressRow: { flexDirection: 'row', alignItems: 'center', paddingBottom: 10 },
+    addressIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.cyan50, alignItems: 'center', justifyContent: 'center' },
+    addressIconText: { color: colors.cyan, fontSize: 20 },
+    addressCopy: { flex: 1, minWidth: 0, marginLeft: spacing.sm },
+    addressTitle: { ...typography.captionRegular, fontWeight: '700', color: colors.text },
+    addressText: { ...typography.captionRegular, color: colors.secondaryText, marginTop: 2 },
+    addressChange: { ...typography.captionRegular, color: mode === 'dark' ? colors.cyan : '#168B43', fontWeight: '700', marginLeft: spacing.sm },
     checkoutButton: {
       height: 61,
       borderRadius: radius.md,
       backgroundColor: mode === 'dark' ? colors.cyan : colors.black,
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.md,
     },
+    checkoutAmount: { alignItems: 'flex-start' },
+    checkoutTotal: { ...typography.body1Medium, color: colors.white },
+    checkoutTotalLabel: { ...typography.captionRegular, color: colors.white, fontSize: 10 },
     checkoutDisabled: {
       opacity: 0.5,
     },

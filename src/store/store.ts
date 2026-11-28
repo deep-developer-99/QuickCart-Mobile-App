@@ -34,7 +34,7 @@ const cartPersistenceMiddleware: Middleware = api => next => action => {
   const type = typeof action === 'object' && action !== null && 'type' in action
     ? String(action.type)
     : '';
-  if (type === 'cart/addCartLine' || type === 'cart/setCartLineQuantity' || type === 'cart/removeCartLine' || type === 'cart/clearUserCart' || type === 'cart/removePurchasedCartLines') {
+  if (type === 'cart/addCartLine' || type === 'cart/incrementCartLine' || type === 'cart/decrementCartLine' || type === 'cart/setCartLineQuantity' || type === 'cart/removeCartLine' || type === 'cart/clearUserCart' || type === 'cart/removePurchasedCartLines') {
     const state = api.getState() as { auth: { user: { id: string } | null }; cart: CartState };
     const userId = state.auth.user?.id;
     if (userId && state.cart.ownerId === userId && state.cart.hydratedForUserId === userId) {
